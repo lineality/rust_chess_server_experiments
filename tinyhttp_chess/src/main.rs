@@ -121,12 +121,23 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Response, Method};
-use std::io::prelude::*;
-
+use tiny_http::{Server, Response, Method}; // Header
+use std::path::Path;
 
 // Variables
 type Board = [[char; 8]; 8];
+
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+
+struct GameData {
+    game_name: String,
+    activity_timestamp: i64,
+    game_type: String,
+    move_number: u32,
+}
 
 
 fn main() {
@@ -146,10 +157,32 @@ fn main() {
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
-        // landing page
+            // // landing page html
+            // // Check if it's the landing page (base domain only)
+            // if url_parts.len() == 2 {
+            //     let response = match landing_page() {
+            //         Ok(response_string) => {
+            //             Response::from_data(response_string)
+            //                 .with_header(Header::from_bytes("Content-Type", "text/html").unwrap())
+            //                 .with_status_code(200)
+            //         },
+            //         Err(e) => {
+            //             eprintln!("Failed to generate landing page: {}", e);
+            //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
+            //         }
+            //     };
+
+            //     if let Err(e) = request.respond(response) {
+            //         eprintln!("Failed to respond to request: {}", e);
+            //     }
+            //     continue; // No need to run the rest of the loop for the landing page
+            // }
+
+
+        // landing page (NOT HTML, keep it)
         // Check if it's the landing page (base domain only)
         if url_parts.len() == 2 {
-            let response = match landing_page() {
+            let response = match landing_page_no_html() {
                 Ok(response_string) => {
                     Response::from_string(response_string).with_status_code(200)
                 },
@@ -162,48 +195,81 @@ fn main() {
             if let Err(e) = request.respond(response) {
                 eprintln!("Failed to respond to request: {}", e);
             }
-
             continue; // No need to run the rest of the loop for the landing page
+            }
+
+        // if chess game maove
+        else if url_parts.len() == 3 {
+
+            let game_name = url_parts[1].to_string();
+            let move_data = url_parts[2].to_string();  
+
+            // // // declare response outside match blocks so we can assign it in each match block
+            // let response = Response::from_string(response_string);
+
+            // sanitize and validate inputs from get request
+            match validate_input(&move_data) {
+                Err(err_msg) => {
+                    let response = Response::from_string(err_msg).with_status_code(400);
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop for invalid inputs
+                },
+                Ok(()) => {},
+            }
+
+            // call game move function
+            let response = match handle_chess_move(game_name, move_data) {
+                Ok(response_string) => {
+                    Response::from_string(response_string).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to handle move: {}", e);
+                    Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                }
+            };
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+
+        } 
+        
+        // setup (new game)
+        else if url_parts.len() == 5 {
+            // Call setup_new_game here
+            let response = match setup_new_game("new_game", "chess") {
+                Ok(_) => Response::from_string("Game setup successfully.")
+                    .with_status_code(200),
+                Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
+                    .with_status_code(500),
+            };
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
         }
 
 
-            // if chess game maove
-            else if url_parts.len() == 3 {
 
-                let game_name = url_parts[1].to_string();
-                let move_data = url_parts[2].to_string();  
 
-                // // // declare response outside match blocks so we can assign it in each match block
-                // let response = Response::from_string(response_string);
-
-                // sanitize and validate inputs from get request
-                match validate_input(&move_data) {
-                    Err(err_msg) => {
-                        let response = Response::from_string(err_msg).with_status_code(400);
-                        if let Err(e) = request.respond(response) {
-                            eprintln!("Failed to respond to request: {}", e);
-                        }
-                        continue; // No need to run the rest of the loop for invalid inputs
-                    },
-                    Ok(()) => {},
+        else {
+            // ... Invalid request format
+            let response = match landing_page_no_html() {
+                Ok(response_string) => {
+                    Response::from_string(response_string).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to generate landing page: {}", e);
+                    Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
                 }
+            };
 
-                // call game move function
-                let response = match handle_chess_move(game_name, move_data) {
-                    Ok(response_string) => {
-                        Response::from_string(response_string).with_status_code(200)
-                    },
-                    Err(e) => {
-                        eprintln!("Failed to handle move: {}", e);
-                        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                    }
-                };
-
-                if let Err(e) = request.respond(response) {
-                    eprintln!("Failed to respond to request: {}", e);
-                }
-            } else {
-                // ... Invalid request format
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+            continue; // No need to run the rest of the loop for the landing page
             }
         }
     }
@@ -214,40 +280,68 @@ fn main() {
 // Helper Functions
 /////////////////////
 
+// fn landing_page() -> Result<String, Box<dyn std::error::Error>> {
 
-fn landing_page() -> Result<String, Box<dyn std::error::Error>> {
+//     // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
+//     // For this example, I'll provide a simple response with a "Hello, World!" message.
+//     let response_string = r#"<html>
+//     <body>
+//         <body style="background-color:black;">
+//         <font color="00FF00">  
+//             <div style="line-height:1px">
+//         <tt> 
+//         <p style="font-size:38px; "> r n b q k b n r </p>
+//         <p style="font-size:38px; "> p p p p p p p p </p>
+//         <p style="font-size:38px; "> . . . . . . . . </p>
+//         <p style="font-size:38px; "> . . . . . . . . </p>
+//         <p style="font-size:38px; "> . . P . . . . . </p>
+//         <p style="font-size:38px; "> . . . . . . . . </p>
+//         <p style="font-size:38px; "> P P . P P P P P </p>
+//         <p style="font-size:38px; "> R N B Q K B N R </p>
+        
+//         <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
+//         <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
+//         <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
+//         <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
+//         <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
+//         <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
+//         <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
+//         <p style="font-size:18px; "> 三　ン　十　円 </p>
+//         <p style="font-size:18px; "> 八　万　円 </p>
+//         <p style="font-size:18px; "> 万　円 </p>
+//         <p style="font-size:18px; "> 円　</p>
+//             </div>
+//             </body>
+//         </html>
+//         "#.to_string();
+
+//         // return response string
+//         Ok(response_string)
+//     }
+
+fn landing_page_no_html() -> Result<String, Box<dyn std::error::Error>> {
 
     // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
     // For this example, I'll provide a simple response with a "Hello, World!" message.
-    let response_string: String = r#"<html>
-    <body>
-        <body style="background-color:black;">
-        <font color="00FF00">  
-            <div style="line-height:1px">
-        <tt> 
-        <p style="font-size:38px; "> r n b q k b n r </p>
-        <p style="font-size:38px; "> p p p p p p p p </p>
-        <p style="font-size:38px; "> . . . . . . . . </p>
-        <p style="font-size:38px; "> . . . . . . . . </p>
-        <p style="font-size:38px; "> . . . P . . . . </p>
-        <p style="font-size:38px; "> . . . . . . . . </p>
-        <p style="font-size:38px; "> P P P . P P P P </p>
-        <p style="font-size:38px; "> R N B Q K B N R </p>
+    let response_string = r#"
+    Try https://y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE & https://y0urm0ve.com/YOUR_GAME_NAME/Pc2c4
+
+        r n b q k b n r
+        p p p p p p p p
+        . . . . . . . .
+        . . . . . . . .
+        . . P . . . . .
+        . . . . . . . .
+        P P . P P P P P
+        R N B Q K B N R
         
-        <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
-        <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
-        <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
-        <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
-        <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
-        <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
-        <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
-        <p style="font-size:18px; "> 三　ン　十　円 </p>
-        <p style="font-size:18px; "> 八　万　円 </p>
-        <p style="font-size:18px; "> 万　円 </p>
-        <p style="font-size:18px; "> 円　</p>
-            </div>
-            </body>
-        </html>
+        天　ラ　白
+        丼　ー　竜
+        ん　八　メ
+        八　ン
+        万
+        円
+
         "#.to_string();
 
         // return response string
@@ -290,49 +384,6 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other, format!("Failed to flush writer: {}", e))));
     }
-
-
-    // // Load the game board state
-    // let mut board = match load_game_board_state(&game_name) {
-    //     Ok(board) => board,
-    //     Err(e) => {
-    //         return Err(Box::new(std::io::Error::new(
-    //             std::io::ErrorKind::Other, format!("Failed to load game board state: {}", e))));
-    //     }
-    // };
-
-    // let (piece, from, to);
-
-    // match parse_move(&move_data) {
-    //     Ok(parsed) => {
-    //         piece = parsed.0;
-    //         from = parsed.1;
-    //         to = parsed.2;
-    //     }
-    //     Err(e) => {
-    //         eprintln!("Invalid move format: {}", e);
-    //     }
-    // }
-
-    // match to_coords(&format!("{}{}", from.0, from.1)) {
-    //     Ok(coords) => {
-    //         let (x, y) = coords;
-    //         board[x][y] = ' ';
-    //     },
-    //     Err(err) => {
-    //         eprintln!("Error: {}", err);
-    //     },
-    // };
-
-    // match to_coords(&format!("{}{}", to.0, to.1)) {
-    //     Ok(coords) => {
-    //         let (x, y) = coords;
-    //         board[x][y] = piece;
-    //     },
-    //     Err(err) => {
-    //         eprintln!("Error: {}", err);
-    //     },
-    // };
 
     // Load the game board state
     let mut board = match load_game_board_state(&game_name) {
@@ -392,27 +443,6 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
             return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Invalid move format: {}", e))));
         }
     }
-
-
-    // // Save game (save game_board_state to .txt file)
-    // if let Err(e) = save_game_board_state(&game_name, board) {
-    //     eprintln!("Failed to save game state: {}", e);
-    // }
-
-
-    // // Terminal-print the updated board
-    // print_board(&board);
-
-    // let board_string = board_to_string(&board);
-
-    // response_string.push_str(&format!(
-    //     "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
-    //     game_name,
-    //     piece,
-    //     to.1,
-    //     to.0,
-    //     board_string
-    // ));
 
     // return response string
     Ok(response_string)
@@ -570,4 +600,163 @@ fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
     }
 
     Ok(board)
+}
+
+
+
+
+
+fn setup_new_game(game_name: &str, game_type: &str) -> std::io::Result<()> {
+
+    // Validate game_name: novel, permitted, ascii etc.
+    if !is_valid_game_name(game_name) {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, 
+            "Invalid game name: ascii abc_123 novel names, try again. "));
+        }
+    /*
+
+    make files and folders...
+    set up and save initial game board
+
+    store date in a file:
+    last_activity = posix timestamp
+
+    // make a game_data json:
+    activity_timestamp: posic timestamp
+    game_type: chess
+    move_number: 0
+    set game type = chess
+
+    */
+
+    // make a game_data json
+
+    // Posix Timestamp in gamedata json file:
+
+    // Set up board
+    let board: [[char; 8]; 8] = [
+        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+    
+
+    // Save game (save game_board_state to .txt file)
+    if let Err(e) = save_game_board_state(&game_name, board) {
+        eprintln!("Failed to save game state: {}", e);
+    }
+
+    // create folder for game_name
+    let dir_path = format!("./games/{}", game_name);
+    std::fs::create_dir_all(&dir_path)?;
+
+    let file_path = format!("{}/game_type.txt", dir_path);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(file_path)?;
+
+    writeln!(file, "{}", game_type)?;
+
+    // write gametype, timestamp
+    if let Err(e) = create_gamedata_json(&dir_path, game_name, game_type, 0) {
+        eprintln!("Failed to create game data: {}", e);
+    }
+
+    Ok(())
+}
+
+
+// Helper function to validate game_name
+fn is_valid_game_name(game_name: &str) -> bool {
+    // Check if game_name is a reserved word
+    let reserved_words = vec!["setup", "restart", "y0ur_m0ve"];
+    if reserved_words.contains(&game_name) {
+        return false;
+    }
+
+    // Check if game_name contains only alphanumeric characters and underscores
+    for c in game_name.chars() {
+        if !c.is_ascii_alphanumeric() && c != '_' {
+            return false;
+        }
+    }
+
+    // Check if a directory with this game_name already exists
+    let game_dir = format!("./games/{}", game_name);
+    if Path::new(&game_dir).exists() {
+        return false;
+    }
+
+    true
+}
+
+
+fn create_gamedata_json(dir_path: &str, game_name: &str, game_type: &str, move_number: u32) -> io::Result<()> {
+    // Get the current time
+    let now = SystemTime::now();
+    // Calculate the duration since UNIX EPOCH
+    let duration = now.duration_since(UNIX_EPOCH).map_err(|err| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Error while getting duration: {}", err),
+        )
+    })?;
+    // Extract the seconds from the duration
+    let timestamp_secs = duration.as_secs() as i64;
+
+    // Create the JSON string
+    let json_data = format!(
+        r#"{{
+            "game_name": "{}",
+            "activity_timestamp": {},
+            "game_type": "{}",
+            "move_number": {}
+        }}"#,
+        game_name,
+        timestamp_secs,
+        game_type,
+        move_number
+    );
+
+    // Open the file for writing
+    let json_path = format!("{}/game_data.json", dir_path);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(json_path)?;
+
+    // Write the JSON data to the file
+    writeln!(file, "{}", json_data)?;
+
+    Ok(())
+}
+
+
+
+
+fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
+    let mut file = File::open(file_path)?;
+    let mut timestamp_str = String::new();
+    file.read_to_string(&mut timestamp_str)?;
+    Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
+}
+
+fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
+    let new_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let mut file = File::create(file_path)?;
+    file.write_all(new_timestamp.to_string().as_bytes())?;
+
+    Ok(())
 }

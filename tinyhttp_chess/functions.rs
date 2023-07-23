@@ -935,4 +935,103 @@ fn landing_page()
                         }
                     }
                 }
-                
+
+
+        // landing page (NOT HTML, keep it)
+        // Check if it's the landing page (base domain only)
+        if url_parts.len() == 2 {
+            let response = match landing_page() {
+                Ok(response_string) => {
+                    Response::from_string(response_string).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to generate landing page: {}", e);
+                    Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
+                }
+            };
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+            continue; // No need to run the rest of the loop for the landing page
+        }
+
+
+        // access json like this:
+        fn main() {
+            let dir_path = "./games/my_game";
+            match read_gamedata_json(dir_path) {
+                Ok(parsed_json) => {
+                    let game_name = &parsed_json["game_name"];
+                    let activity_timestamp = &parsed_json["activity_timestamp"];
+                    let game_type = &parsed_json["game_type"];
+                    let move_number = &parsed_json["move_number"];
+        
+                    println!("Game Name: {}", game_name);
+                    println!("Activity Timestamp: {}", activity_timestamp);
+                    println!("Game Type: {}", game_type);
+                    println!("Move Number: {}", move_number);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        
+
+        use std::fs::OpenOptions;
+use std::io::{self, Write};
+use std::time::SystemTime;
+
+fn read_gamedata_json(dir_path: &str) -> Result<String, io::Error> {
+    let json_path = format!("{}/game_data.json", dir_path);
+    std::fs::read_to_string(json_path)
+}
+
+fn update_activity_timestamp(dir_path: &str) -> Result<(), io::Error> {
+    // Read the existing JSON data
+    let mut json_data = read_gamedata_json(dir_path)?;
+
+    // Update the activity_timestamp field with the current timestamp
+    if let Some(pos_start) = json_data.find("\"activity_timestamp\":") {
+        if let Some(pos_end) = json_data[pos_start..].find(',') {
+            let old_timestamp = &json_data[pos_start + "\"activity_timestamp\":".len()..pos_start + pos_end];
+            let new_timestamp = format!("{}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_secs() as i64);
+            json_data = json_data.replace(old_timestamp, &new_timestamp);
+        }
+    }
+
+    // Open the file for writing
+    let json_path = format!("{}/game_data.json", dir_path);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(json_path)?;
+
+    // Write the updated JSON data back to the file
+    file.write_all(json_data.as_bytes())?;
+
+    Ok(())
+}
+
+
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
+    let mut file = File::open(file_path)?;
+    let mut timestamp_str = String::new();
+    file.read_to_string(&mut timestamp_str)?;
+    Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
+}
+
+fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
+    let new_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let mut file = File::create(file_path)?;
+    file.write_all(new_timestamp.to_string().as_bytes())?;
+
+    Ok(())
+}
