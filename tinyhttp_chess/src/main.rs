@@ -1,46 +1,15 @@
 /*
 http://0.0.0.0:8000/game/Pc2c4
+RUST_BACKTRACE=full cargo run
+*/
 
 
-Rust-server chess board-game:
-
-Minimal
-Amnesiac
-Stateless
-Turn-based
-
-no 'game logic,' only players moving pieces: a board
-
-move with:
-    http://0.0.0.0:8000/game/Pc2c4
-    
-for back trace run with:
-    RUST_BACKTRACE=full cargo run
-
-
-Goals & Rules:
-- make only one changea at a time
-- no unwrap
-- stay slim, stay minimal, stay vanilla, small attack surface
-- fewest libraries imported as possible
-- fewest features possible
-- speed is NOT important
-- resource efficiency and robustness are important
-game-state exists only in files in gamename directory:
-
-
-Process outline: (draft):
-- get game-state from saved file
-- load game state
-- get move data in a get-request
-- add new move to log
-- make a new board array based on old array + new move data
-- make svg image of board's last move
-- show svg to user
-
-
+/* 
 TODO:
-- is it saving sate?
+- game setup:
+    how to do as page or get request?
+    what to do if files no found...redirect to setup-page...or instructions raw text/hmtl?
+
 - load game_board_state (instead of replaying all past moves)
 - new check and new system to start game:
     start/gamename get request
@@ -49,10 +18,7 @@ TODO:
 - get input start/gamename to set up game folder
 - 'request queue' system, using directory of queue files
 (ideally starting in RAM until threshold)
-- game setup:
-    how to do as page or get request?
-    what to do if files no found...redirect to setup-page...or instructions raw text/hmtl?
-- get report (log) get
+
 - remove games if inactive for a week
 - game secure "login" via gamephrase and lossy-hashed user IP
 (redirect to game-phase page if IP hash not recognized)
@@ -62,11 +28,47 @@ TODO:
 - add svg board: letter number border, redish black, 
 minimal pieces
 - move all operations in main route to separate functions
+- get report (log) get
 -- 
 -- 
+*/
 
-in order to set up the board from a saved state,
-that saved state needs to exist.
+
+
+/*
+Rust-server chess board-game:
+
+Minimal
+Amnesiac
+Stateless
+Turn-based
+
+move with:
+    http://0.0.0.0:8000/game/Pc2c4
+    
+for back trace run with:
+    RUST_BACKTRACE=full cargo run
+
+Goals & Rules:
+- make only one changea at a time
+- no unwrap
+- speed is NOT important
+- resource efficiency and robustness are important
+
+Process outline: (draft):
+- get game-state from saved file
+- load game state
+- get move data in a get-request
+- add new move to log
+- make a new board array based on old array + new move data
+- make svg image of board's last move
+- show svg to user
+**
+- stay slim, stay minimal, stay vanilla, small attack surface
+- fewest libraries imported as possible
+- fewest features possible
+-- game-state exists only in files in gamename directory
+- no 'game logic,' only players moving pieces: a board
 
     // // Set up board
     // let board: Arc<Mutex<Board>> = Arc::new(Mutex::new([
@@ -252,7 +254,20 @@ fn main() {
                 ));
                 //}
                 let response = Response::from_string(response_string);
-                request.respond(response).unwrap();
+
+                // request.respond(response).unwrap();
+                match request.respond(response) {
+                    Ok(_) => {
+                        // Successfully responded, do something if needed
+                    }
+                    Err(error) => {
+                        // Handle the error gracefully
+                        println!("Error: {:?}", error);
+                        // Or perform some other error handling actions
+                    }
+                }
+                
+
             } else {
                 // ... Invalid request format
             }
@@ -401,37 +416,6 @@ fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Res
     
     Ok(())
 }
-
-
-// // apply_move takes an existing board state and a move, and returns a new
-// // board state that reflects the outcome of the move.
-// fn board_state_after_move1(board: &Board, piece: char, from: (usize, usize), to: (usize, usize)) -> Board {
-//     let mut new_board = board.clone(); // Clone the board to ensure immutability
-
-//     // Empty the 'from' cell
-//     new_board[from.0][from.1] = ' ';
-
-//     // Place the piece in the 'to' cell
-//     new_board[to.0][to.1] = piece;
-
-//     new_board
-// }
-
-// // We can then define a function like this
-
-// fn board_state_after_move(board: &Board, move_data: &str) -> Result<Board, String> {
-//     let parsed_move = parse_move(move_data)?;
-    
-//     // Now, create a new board and apply the move on this new board
-//     let mut new_board = *board; // copy the original board
-//     // Now apply the parsed move on new_board
-//     // let's assume the parsed_move indicates a move from ('a',1) to ('b',2)
-    
-//     new_board[parsed_move.1.1 as usize][parsed_move.1.0 as usize] = ' '; // remove the piece from the original location
-//     new_board[parsed_move.2.1 as usize][parsed_move.2.0 as usize] = parsed_move.0; // place the piece at the new location
-
-//     Ok(new_board)
-// }
 
 fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
     let dir_path = format!("./games/{}", game_name);

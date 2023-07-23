@@ -211,3 +211,352 @@ for request in server.incoming_requests() {
         }
     }
 }
+
+
+// apply_move takes an existing board state and a move, and returns a new
+// board state that reflects the outcome of the move.
+fn board_state_after_move1(board: &Board, piece: char, from: (usize, usize), to: (usize, usize)) -> Board {
+    let mut new_board = board.clone(); // Clone the board to ensure immutability
+
+    // Empty the 'from' cell
+    new_board[from.0][from.1] = ' ';
+
+    // Place the piece in the 'to' cell
+    new_board[to.0][to.1] = piece;
+
+    new_board
+}
+
+// We can then define a function like this
+
+fn board_state_after_move(board: &Board, move_data: &str) -> Result<Board, String> {
+    let parsed_move = parse_move(move_data)?;
+    
+    // Now, create a new board and apply the move on this new board
+    let mut new_board = *board; // copy the original board
+    // Now apply the parsed move on new_board
+    // let's assume the parsed_move indicates a move from ('a',1) to ('b',2)
+    
+    new_board[parsed_move.1.1 as usize][parsed_move.1.0 as usize] = ' '; // remove the piece from the original location
+    new_board[parsed_move.2.1 as usize][parsed_move.2.0 as usize] = parsed_move.0; // place the piece at the new location
+
+    Ok(new_board)
+}
+
+
+/////////////////////
+// Helper Functions
+/////////////////////
+
+fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
+    if move_data.len() != 5 {
+        return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+    }
+
+    let chars: Vec<char> = move_data.chars().collect();
+
+    let piece = chars.get(0).ok_or("Failed to get piece")?;
+    let from_col = chars.get(1).ok_or("Failed to get from_col")?;
+    let from_row_digit = chars.get(2)
+        .ok_or("Failed to get from_row_digit")?
+        .to_digit(10)
+        .ok_or("Failed to parse from_row_digit to number")?;
+    let to_col = chars.get(3).ok_or("Failed to get to_col")?;
+    let to_row_digit = chars.get(4)
+        .ok_or("Failed to get to_row_digit")?
+        .to_digit(10)
+        .ok_or("Failed to parse to_row_digit to number")?;
+
+    let from = (*from_col, from_row_digit as u8);
+    let to = (*to_col, to_row_digit as u8);
+
+    Ok((*piece, from, to))
+}
+
+
+fn to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
+    if chess_notation.len() != 2 {
+        return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
+    }
+    let col = chess_notation.chars().nth(0).unwrap();
+    let row = chess_notation.chars().nth(1).unwrap();
+
+    if !('a'..='h').contains(&col) || !('1'..='8').contains(&row) {
+        return Err(format!("Invalid chess notation: '{}'. It should be in the form 'e4'.", chess_notation));
+    }
+
+    let col = col as usize - 'a' as usize;
+    let row = 8 - row.to_digit(10).unwrap() as usize;
+
+    Ok((row, col))
+}
+
+
+fn print_board(board: &[[char; 8]; 8]) {
+    for row in board.iter() {
+        for &cell in row.iter() {
+            print!("{} ", cell);
+        }
+        println!();
+    }
+}
+
+
+fn piece_to_unicode(piece: char) -> &'static str {
+    match piece {
+        'r' => "♜",
+        'n' => "♞",
+        'b' => "♝",
+        'q' => "♛",
+        'k' => "♚",
+        'p' => "♟",
+        'R' => "♖",
+        'N' => "♘",
+        'B' => "♗",
+        'Q' => "♕",
+        'K' => "♔",
+        'P' => "♙",
+        _ => " ",
+    }
+}
+
+
+fn board_to_string(board: &[[char; 8]; 8]) -> String {
+    let mut board_string = String::new();
+    board_string.push_str("  a b c d e f g h\n");
+    for (i, row) in board.iter().enumerate() {
+        board_string.push_str(&(8-i).to_string());
+        board_string.push(' ');
+        for &cell in row.iter() {
+            let piece = piece_to_unicode(cell);
+            board_string.push_str(piece);
+            board_string.push(' ');
+        }
+        board_string.push_str(&(8-i).to_string());
+        board_string.push('\n');
+    }
+    board_string.push_str("  a b c d e f g h\n");
+    board_string
+}
+
+
+
+// Return Result with appropriate error messages instead of bool
+fn validate_input(input: &str) -> Result<(), String> {
+    if input.len() != 5 {
+        return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+    }
+
+    let chars: Vec<char> = input.chars().collect();
+
+    let valid_pieces = ['p', 'r', 'n', 'b', 'q', 'k', 'P', 'R', 'N', 'B', 'Q', 'K'];
+    let valid_cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    let valid_rows = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    if !valid_pieces.contains(&chars[0]) {
+        return Err(format!("Invalid piece identifier. The first character should be one of 'prnbqkPRNBQK'. e.g. Pc2c4 or pc7c6 "));
+    }
+    if !valid_cols.contains(&chars[1]) || !valid_cols.contains(&chars[3]) {
+        return Err(format!("Invalid column identifier. The 2nd and 4th characters should be one of 'abcdefgh'. e.g. Pc2c4 or pc7c6 "));
+    }
+    if !valid_rows.contains(&chars[2]) || !valid_rows.contains(&chars[4]) {
+        return Err(format!("Invalid row identifier. The 3rd and 5th characters should be one of '12345678'.e.g. Pc2c4 or pc7c6  "));
+    }
+    
+    Ok(())
+}
+
+fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Result<()> {
+    let dir_path = format!("./games/{}", game_name);
+    std::fs::create_dir_all(&dir_path)?;
+
+    let file_path = format!("{}/game_board_state.txt", dir_path);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(file_path)?;
+
+    for row in board.iter() {
+        let line: String = row.iter().collect();
+        writeln!(file, "{}", line)?;
+    }
+    
+    Ok(())
+}
+
+
+
+// fn save_game_board_state(game_name: &str, board: &Board) -> std::io::Result<()> {
+//     let dir_path = format!("./games/{}", game_name);
+//     std::fs::create_dir_all(&dir_path)?;
+
+//     let file_path = format!("{}/game_board_state.txt", dir_path);
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open(file_path)?;
+
+//     for row in board.iter() {
+//         let line: String = row.iter().collect();
+//         writeln!(file, "{}", line)?;
+//     }
+    
+//     Ok(())
+// }
+
+
+// fn load_game_board_state(game_name: &str, board: &mut Board) -> std::io::Result<()> {
+//     let file_path = format!("./games/{}/game_state.txt", game_name);
+//     let file = std::fs::File::open(file_path)?;
+//     let reader = std::io::BufReader::new(file);
+
+//     for (i, line) in reader.lines().enumerate() {
+//         let line = line?;
+//         if i < 8 { // make sure we don't index out of the board
+//             for (j, piece) in line.chars().enumerate() {
+//                 if j < 8 { // make sure we don't index out of the board
+//                     board[i][j] = piece;
+//                 }
+//             }
+//         }
+//     }
+
+//     Ok(())
+// }
+
+// apply_move takes an existing board state and a move, and returns a new
+// board state that reflects the outcome of the move.
+fn board_state_after_move1(board: &Board, piece: char, from: (usize, usize), to: (usize, usize)) -> Board {
+    let mut new_board = board.clone(); // Clone the board to ensure immutability
+
+    // Empty the 'from' cell
+    new_board[from.0][from.1] = ' ';
+
+    // Place the piece in the 'to' cell
+    new_board[to.0][to.1] = piece;
+
+    new_board
+}
+
+// We can then define a function like this
+
+fn board_state_after_move(board: &Board, move_data: &str) -> Result<Board, String> {
+    let parsed_move = parse_move(move_data)?;
+    
+    // Now, create a new board and apply the move on this new board
+    let mut new_board = *board; // copy the original board
+    // Now apply the parsed move on new_board
+    // let's assume the parsed_move indicates a move from ('a',1) to ('b',2)
+    
+    new_board[parsed_move.1.1 as usize][parsed_move.1.0 as usize] = ' '; // remove the piece from the original location
+    new_board[parsed_move.2.1 as usize][parsed_move.2.0 as usize] = parsed_move.0; // place the piece at the new location
+
+    Ok(new_board)
+}
+
+// // New function for applying a move to a board
+// fn apply_move(board: &Board, chess_move: ChessMove) -> Board {
+//     let mut new_board = *board; // Create a copy of the board
+//     let ChessMove { piece, from, to } = chess_move; // Destructure the ChessMove struct
+//     new_board[from.0][from.1] = ' '; // Remove piece from starting position
+//     new_board[to.0][to.1] = piece; // Place piece in ending position
+//     new_board // Return the new board
+// }
+
+
+// fn make_move(original_state: &Board, move_: Move) -> Board {
+//     // Create a new game board that results from making the move
+//     let new_state = apply_move_to_state(original_state, &move_);
+    
+//     new_state
+// }
+
+// fn apply_move_to_state(original_state: &Board, move_: &Move) -> Board {
+//     // Function that applies a move to the original state and returns a new state
+//     // Logic of applying move goes here...
+    
+//     let new_state = Board {
+//         // fields updated based on the move
+//     };
+    
+//     new_state
+// }
+
+
+// fn load_game_board_state(game_name: &str, board: &mut Board) -> std::io::Result<()> {
+//     let dir_path = format!("./games/{}", game_name);
+//     std::fs::create_dir_all(&dir_path)?;
+
+//     let file_path = format!("{}/game_board_state.txt", dir_path);
+//     let file = match OpenOptions::new().read(true).open(&file_path) {
+//         Ok(file) => file,
+//         Err(_) => return Ok(()),  // if file does not exist, return Ok and continue with an empty board
+//     };
+
+//     let reader = std::io::BufReader::new(file);
+//     let mut lines = reader.lines();
+
+//     for row in board.iter_mut() {
+//         let line = match lines.next() {
+//             Some(line) => line?,
+//             None => break,  // if there are no more lines, break the loop
+//         };
+//         if line.len() != row.len() {
+//             return Err(std::io::Error::new(
+//                 std::io::ErrorKind::InvalidData,
+//                 "Invalid board state data",
+//             ));
+//         }
+//         row.copy_from_slice(line.as_bytes());
+//     }
+
+//     Ok(())
+// }
+
+fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
+    let dir_path = format!("./games/{}", game_name);
+    let file_path = format!("{}/game_state.txt", dir_path);
+    let file_content = std::fs::read_to_string(file_path)?;
+
+    let mut board: Board = [[' '; 8]; 8];
+    for (i, line) in file_content.lines().enumerate() {
+        for (j, square) in line.chars().enumerate() {
+            board[i][j] = square;
+        }
+    }
+
+    Ok(board)
+}
+
+
+// apply_move takes an existing board state and a move, and returns a new
+// board state that reflects the outcome of the move.
+fn board_state_after_move1(board: &Board, piece: char, from: (usize, usize), to: (usize, usize)) -> Board {
+    let mut new_board = board.clone(); // Clone the board to ensure immutability
+
+    // Empty the 'from' cell
+    new_board[from.0][from.1] = ' ';
+
+    // Place the piece in the 'to' cell
+    new_board[to.0][to.1] = piece;
+
+    new_board
+}
+
+// We can then define a function like this
+
+fn board_state_after_move(board: &Board, move_data: &str) -> Result<Board, String> {
+    let parsed_move = parse_move(move_data)?;
+    
+    // Now, create a new board and apply the move on this new board
+    let mut new_board = *board; // copy the original board
+    // Now apply the parsed move on new_board
+    // let's assume the parsed_move indicates a move from ('a',1) to ('b',2)
+    
+    new_board[parsed_move.1.1 as usize][parsed_move.1.0 as usize] = ' '; // remove the piece from the original location
+    new_board[parsed_move.2.1 as usize][parsed_move.2.0 as usize] = parsed_move.0; // place the piece at the new location
+
+    Ok(new_board)
+}
