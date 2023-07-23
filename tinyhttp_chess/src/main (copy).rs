@@ -190,6 +190,20 @@ fn main() {
                     }
                 };
 
+                // // Read all moves from CSV file and update the board accordingly
+                // let mut rdr = match csv::Reader::from_path(&file_path) {
+                //     Ok(reader) => reader,
+                //     Err(e) => {
+                //         eprintln!("Failed to create reader: {}", e);
+                //         continue;
+                //     }
+                // };
+
+                // for result in rdr.records() {
+
+                // let record = result.unwrap();
+                // let move_data = &record[0];
+
                 let (piece, from, to);
 
                 match parse_move(&move_data) {
