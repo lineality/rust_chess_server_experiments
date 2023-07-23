@@ -10,6 +10,17 @@ TODO:
     how to do as page or get request?
     what to do if files no found...redirect to setup-page...or instructions raw text/hmtl?
 
+
+    setup/type_type/game_name/game_phrase
+
+if error
+return text (not html) "that option is now available or allowed, try:
+    setup/type_type/game_name/game_phrase
+
+
+    if move len 7 & == "restart"
+        reset board
+
 - load game_board_state (instead of replaying all past moves)
 - new check and new system to start game:
     start/gamename get request
@@ -113,6 +124,7 @@ use std::fs::OpenOptions;
 use tiny_http::{Server, Response, Method};
 use std::io::prelude::*;
 
+
 // Variables
 type Board = [[char; 8]; 8];
 
@@ -133,10 +145,16 @@ fn main() {
         // get request containing game and move
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
-            if url_parts.len() >= 3 {
+
+
+            // if chess game maove
+            if url_parts.len() == 3 {
+
                 let game_name = url_parts[1].to_string();
-                let move_data = url_parts[2].to_string();
-                let mut response_string = String::new();  
+                let move_data = url_parts[2].to_string();  
+
+                // // // declare response outside match blocks so we can assign it in each match block
+                // let response = Response::from_string(response_string);
 
                 // sanitize and validate inputs from get request
                 match validate_input(&move_data) {
@@ -145,129 +163,26 @@ fn main() {
                         if let Err(e) = request.respond(response) {
                             eprintln!("Failed to respond to request: {}", e);
                         }
-                        continue;
+                        continue; // No need to run the rest of the loop for invalid inputs
                     },
                     Ok(()) => {},
                 }
 
-
-                // File Setup
-                let dir_path = format!("./games/{}", game_name);
-                std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
-                
-                let file_path = format!("{}/moves.csv", dir_path);
-
-                let file = match OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .append(true)
-                    .open(&file_path) {
-                    Ok(file) => file,
+                // call game move function
+                // call game move function
+                let response = match handle_chess_move(game_name, move_data) {
+                    Ok(response_string) => {
+                        Response::from_string(response_string).with_status_code(200)
+                    },
                     Err(e) => {
-                        eprintln!("Failed to open file: {}", e);
-                        continue;
-                    }
-                };
-            
-                let mut wtr = csv::Writer::from_writer(file);
-
-                // Write new move to CSV file
-                if let Err(e) = wtr.write_record(&[move_data.clone()]) {
-                    eprintln!("Failed to write to file: {}", e);
-                    continue;
-                }
-                
-                if let Err(e) = wtr.flush() {
-                    eprintln!("Failed to flush writer: {}", e);
-                    continue;
-                }
-                
-
-                // Load the game board state
-                let mut board = match load_game_board_state(&game_name) {
-                    Ok(board) => board,
-                    Err(e) => {
-                        eprintln!("Failed to load game state: {}", e);
-                        continue;
+                        eprintln!("Failed to handle move: {}", e);
+                        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
                     }
                 };
 
-                let (piece, from, to);
-
-                match parse_move(&move_data) {
-                    Ok(parsed) => {
-                        piece = parsed.0;
-                        from = parsed.1;
-                        to = parsed.2;
-                    }
-                    Err(e) => {
-                        eprintln!("Invalid move format: {}", e);
-                        continue; // Skip this iteration and go to next loop iteration
-                    }
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
                 }
-
-                match to_coords(&format!("{}{}", from.0, from.1)) {
-                    Ok(coords) => {
-                        let (x, y) = coords;
-                        board[x][y] = ' ';
-                    },
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        continue;
-                    },
-                };
-
-                match to_coords(&format!("{}{}", to.0, to.1)) {
-                    Ok(coords) => {
-                        let (x, y) = coords;
-                        board[x][y] = piece;
-                    },
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        continue;
-                    },
-                };
-
-                // // New use of the apply_move function
-                // let new_board = board_state_after_move(&board, piece, from, to);
-                // *board = new_board;  // Assign the new board back to the shared board state
-
-                // Save game (save game_board_state to .txt file)
-                if let Err(e) = save_game_board_state(&game_name, board) {
-                    eprintln!("Failed to save game state: {}", e);
-                }
-
-
-                // Terminal-print the updated board
-                print_board(&board);
-
-                let board_string = board_to_string(&board);
-
-    
-                response_string.push_str(&format!(
-                    "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
-                    game_name,
-                    piece,
-                    to.1,
-                    to.0,
-                    board_string
-                ));
-                //}
-                let response = Response::from_string(response_string);
-
-                // request.respond(response).unwrap();
-                match request.respond(response) {
-                    Ok(_) => {
-                        // Successfully responded, do something if needed
-                    }
-                    Err(error) => {
-                        // Handle the error gracefully
-                        println!("Error: {:?}", error);
-                        // Or perform some other error handling actions
-                    }
-                }
-                
-
             } else {
                 // ... Invalid request format
             }
@@ -279,6 +194,173 @@ fn main() {
 /////////////////////
 // Helper Functions
 /////////////////////
+
+
+fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box<dyn std::error::Error>> {
+
+    let mut response_string = String::new();
+
+
+    // File Setup
+    let dir_path = format!("./games/{}", game_name);
+    std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
+
+    let file_path = format!("{}/moves.csv", dir_path);
+
+    let file = match OpenOptions::new()
+    .write(true)
+    .create(true)
+    .append(true)
+    .open(&file_path) {
+    Ok(file) => file,
+    Err(e) => {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other, 
+            format!("Failed to open file: {}", e))));
+    }};
+
+    let mut wtr = csv::Writer::from_writer(file);
+
+
+    // Write new move to CSV file
+    if let Err(e) = wtr.write_record(&[move_data.clone()]) {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other, format!("Failed to write to file: {}", e))));
+    }
+
+    if let Err(e) = wtr.flush() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other, format!("Failed to flush writer: {}", e))));
+    }
+
+
+    // // Load the game board state
+    // let mut board = match load_game_board_state(&game_name) {
+    //     Ok(board) => board,
+    //     Err(e) => {
+    //         return Err(Box::new(std::io::Error::new(
+    //             std::io::ErrorKind::Other, format!("Failed to load game board state: {}", e))));
+    //     }
+    // };
+
+    // let (piece, from, to);
+
+    // match parse_move(&move_data) {
+    //     Ok(parsed) => {
+    //         piece = parsed.0;
+    //         from = parsed.1;
+    //         to = parsed.2;
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Invalid move format: {}", e);
+    //     }
+    // }
+
+    // match to_coords(&format!("{}{}", from.0, from.1)) {
+    //     Ok(coords) => {
+    //         let (x, y) = coords;
+    //         board[x][y] = ' ';
+    //     },
+    //     Err(err) => {
+    //         eprintln!("Error: {}", err);
+    //     },
+    // };
+
+    // match to_coords(&format!("{}{}", to.0, to.1)) {
+    //     Ok(coords) => {
+    //         let (x, y) = coords;
+    //         board[x][y] = piece;
+    //     },
+    //     Err(err) => {
+    //         eprintln!("Error: {}", err);
+    //     },
+    // };
+
+    // Load the game board state
+    let mut board = match load_game_board_state(&game_name) {
+        Ok(board) => board,
+        Err(e) => {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other, format!("Failed to load game board state: {}", e))));
+        }
+    };
+
+    match parse_move(&move_data) {
+        Ok((piece, from, to)) => {
+            // This is the successful case. `piece`, `from`, and `to` are guaranteed to be initialized.
+            match to_coords(&format!("{}{}", from.0, from.1)) {
+                Ok(coords) => {
+                    let (x, y) = coords;
+                    board[x][y] = ' ';
+                },
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                },
+            };
+
+            match to_coords(&format!("{}{}", to.0, to.1)) {
+                Ok(coords) => {
+                    let (x, y) = coords;
+                    board[x][y] = piece;
+                },
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                },
+            };
+
+            // Save game (save game_board_state to .txt file)
+            if let Err(e) = save_game_board_state(&game_name, board) {
+                eprintln!("Failed to save game state: {}", e);
+            }
+
+            // Terminal-print the updated board
+            print_board(&board);
+
+            let board_string = board_to_string(&board);
+
+            response_string.push_str(&format!(
+                "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
+                game_name,
+                piece,
+                to.1,
+                to.0,
+                board_string
+            ));
+        }
+        Err(e) => {
+            // This is the error case. Return or handle the error in some way here.
+            eprintln!("Invalid move format: {}", e);
+            // If you want to return error to the caller, you could do so here:
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Invalid move format: {}", e))));
+        }
+    }
+
+
+    // // Save game (save game_board_state to .txt file)
+    // if let Err(e) = save_game_board_state(&game_name, board) {
+    //     eprintln!("Failed to save game state: {}", e);
+    // }
+
+
+    // // Terminal-print the updated board
+    // print_board(&board);
+
+    // let board_string = board_to_string(&board);
+
+    // response_string.push_str(&format!(
+    //     "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
+    //     game_name,
+    //     piece,
+    //     to.1,
+    //     to.0,
+    //     board_string
+    // ));
+
+    // return response string
+    Ok(response_string)
+
+}
+
 
 fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
     if move_data.len() != 5 {

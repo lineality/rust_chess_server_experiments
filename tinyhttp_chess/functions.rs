@@ -560,3 +560,379 @@ fn board_state_after_move(board: &Board, move_data: &str) -> Result<Board, Strin
 
     Ok(new_board)
 }
+
+if url_parts.len() == 0 {
+    // This is the landing page (base domain only)
+    // Handle the landing page logic here
+    // For example, display a welcome message or show some introductory content.
+} else if url_parts.len() == 3 {
+    // This is a valid URL with exactly three parts
+    // Extract the data from the URL and perform the corresponding action
+    let game_name = url_parts[1].to_string();
+    let move_data = url_parts[2].to_string();
+    let mut response_string = String::new();
+} else {
+    // Handle the case when the URL has more than three parts or invalid URL
+    // For example, return an error response or provide a default action.
+}
+
+
+// Check if it's the landing page (base domain only)
+if path == "/" {
+    // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
+    // For this example, I'll provide a simple response with a "Hello, World!" message.
+    let landing_page_content = "<html><body><h1>Hello, World!</h1></body></html>";
+
+    // Create an HTTP response with the pre-existing HTML content
+    let response = Response::builder()
+        .header("Content-Type", "text/html")
+        .body(Body::from(landing_page_content))
+        .unwrap();
+
+    Ok(response)
+
+
+
+
+
+            // landing page
+            // Check if it's the landing page (base domain only)
+            if url_parts.len() == 0 {
+                // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
+                // For this example, I'll provide a simple response with a "Hello, World!" message.
+                let landing_page_content = r#"<html>
+                <body>
+                  <body style="background-color:black;">
+                  <font color="00FF00">  
+                        <div style="line-height:1px">
+                    <tt> 
+                    <p style="font-size:38px; "> r n b q k b n r </p>
+                    <p style="font-size:38px; "> p p p p p p p p </p>
+                    <p style="font-size:38px; "> . . . . . . . . </p>
+                    <p style="font-size:38px; "> . . . . . . . . </p>
+                    <p style="font-size:38px; "> . . . P . . . . </p>
+                    <p style="font-size:38px; "> . . . . . . . . </p>
+                    <p style="font-size:38px; "> P P P . P P P P </p>
+                    <p style="font-size:38px; "> R N B Q K B N R </p>
+                    
+                    <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
+                    <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
+                    <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
+                    <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
+                    <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
+                    <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
+                    <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
+                    <p style="font-size:18px; "> 三　ン　十　円 </p>
+                    <p style="font-size:18px; "> 八　万　円 </p>
+                    <p style="font-size:18px; "> 万　円 </p>
+                    <p style="font-size:18px; "> 円　</p>
+                        </div>
+                        </body>
+                    </html>
+                    "#;
+
+
+                let response = Response::from_string(landing_page_content);
+
+                match request.respond(response) {
+                    Ok(_) => {
+                        // Successfully responded, do something if needed
+                    }
+                    Err(error) => {
+                        // Handle the error gracefully
+                        println!("Error: {:?}", error);
+                        // Or perform some other error handling actions
+                    }
+                }
+            }
+            // game setup
+
+
+
+                // sanitize and validate inputs from get request
+                match validate_input(&move_data) {
+                    Err(err_msg) => {
+                        let response = Response::from_string(err_msg).with_status_code(400);
+                        if let Err(e) = request.respond(response) {
+                            eprintln!("Failed to respond to request: {}", e);
+                        }
+                        continue;
+                    },
+                    Ok(()) => {},
+                }
+
+
+                // File Setup
+                let dir_path = format!("./games/{}", game_name);
+                std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
+                
+                let file_path = format!("{}/moves.csv", dir_path);
+
+                let file = match OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .append(true)
+                    .open(&file_path) {
+                    Ok(file) => file,
+                    Err(e) => {
+                        eprintln!("Failed to open file: {}", e);
+                        continue;
+                    }
+                };
+            
+                let mut wtr = csv::Writer::from_writer(file);
+
+                // Write new move to CSV file
+                if let Err(e) = wtr.write_record(&[move_data.clone()]) {
+                    eprintln!("Failed to write to file: {}", e);
+                    continue;
+                }
+                
+                if let Err(e) = wtr.flush() {
+                    eprintln!("Failed to flush writer: {}", e);
+                    continue;
+                }
+                
+
+                // Load the game board state
+                let mut board = match load_game_board_state(&game_name) {
+                    Ok(board) => board,
+                    Err(e) => {
+                        eprintln!("Failed to load game state: {}", e);
+                        continue;
+                    }
+                };
+
+                let (piece, from, to);
+
+                match parse_move(&move_data) {
+                    Ok(parsed) => {
+                        piece = parsed.0;
+                        from = parsed.1;
+                        to = parsed.2;
+                    }
+                    Err(e) => {
+                        eprintln!("Invalid move format: {}", e);
+                        continue; // Skip this iteration and go to next loop iteration
+                    }
+                }
+
+                match to_coords(&format!("{}{}", from.0, from.1)) {
+                    Ok(coords) => {
+                        let (x, y) = coords;
+                        board[x][y] = ' ';
+                    },
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        continue;
+                    },
+                };
+
+                match to_coords(&format!("{}{}", to.0, to.1)) {
+                    Ok(coords) => {
+                        let (x, y) = coords;
+                        board[x][y] = piece;
+                    },
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        continue;
+                    },
+                };
+
+                // // New use of the apply_move function
+                // let new_board = board_state_after_move(&board, piece, from, to);
+                // *board = new_board;  // Assign the new board back to the shared board state
+
+                // Save game (save game_board_state to .txt file)
+                if let Err(e) = save_game_board_state(&game_name, board) {
+                    eprintln!("Failed to save game state: {}", e);
+                }
+
+
+                // Terminal-print the updated board
+                print_board(&board);
+
+                let board_string = board_to_string(&board);
+
+    
+                response_string.push_str(&format!(
+                    "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
+                    game_name,
+                    piece,
+                    to.1,
+                    to.0,
+                    board_string
+                ));
+
+                let response = Response::from_string(response_string);
+
+
+
+
+                fn handle_chess_move(game_name: String, move_data: String, request: &Request) {
+                    // This is where all the logic for handling a chess move will go.
+                
+                        
+                    // sanitize and validate inputs from get request
+                    match validate_input(&move_data) {
+                        Err(err_msg) => {
+                            let response = Response::from_string(err_msg).with_status_code(400);
+                            if let Err(e) = request.respond(response) {
+                                eprintln!("Failed to respond to request: {}", e);
+                            }
+                            continue;
+                        },
+                        Ok(()) => {},
+                    }
+                
+                
+                    // File Setup
+                    let dir_path = format!("./games/{}", game_name);
+                    std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
+                
+                    let file_path = format!("{}/moves.csv", dir_path);
+                
+                    let file = match OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .append(true)
+                        .open(&file_path) {
+                        Ok(file) => file,
+                        Err(e) => {
+                            eprintln!("Failed to open file: {}", e);
+                            continue;
+                        }
+                    };
+                
+                    let mut wtr = csv::Writer::from_writer(file);
+                
+                    // Write new move to CSV file
+                    if let Err(e) = wtr.write_record(&[move_data.clone()]) {
+                        eprintln!("Failed to write to file: {}", e);
+                        continue;
+                    }
+                
+                    if let Err(e) = wtr.flush() {
+                        eprintln!("Failed to flush writer: {}", e);
+                        continue;
+                    }
+                
+                
+                    // Load the game board state
+                    let mut board = match load_game_board_state(&game_name) {
+                        Ok(board) => board,
+                        Err(e) => {
+                            eprintln!("Failed to load game state: {}", e);
+                            continue;
+                        }
+                    };
+                
+                    let (piece, from, to);
+                
+                    match parse_move(&move_data) {
+                        Ok(parsed) => {
+                            piece = parsed.0;
+                            from = parsed.1;
+                            to = parsed.2;
+                        }
+                        Err(e) => {
+                            eprintln!("Invalid move format: {}", e);
+                            continue; // Skip this iteration and go to next loop iteration
+                        }
+                    }
+                
+                    match to_coords(&format!("{}{}", from.0, from.1)) {
+                        Ok(coords) => {
+                            let (x, y) = coords;
+                            board[x][y] = ' ';
+                        },
+                        Err(err) => {
+                            eprintln!("Error: {}", err);
+                            continue;
+                        },
+                    };
+                
+                    match to_coords(&format!("{}{}", to.0, to.1)) {
+                        Ok(coords) => {
+                            let (x, y) = coords;
+                            board[x][y] = piece;
+                        },
+                        Err(err) => {
+                            eprintln!("Error: {}", err);
+                            continue;
+                        },
+                    };
+                
+                    // // New use of the apply_move function
+                    // let new_board = board_state_after_move(&board, piece, from, to);
+                    // *board = new_board;  // Assign the new board back to the shared board state
+                
+                    // Save game (save game_board_state to .txt file)
+                    if let Err(e) = save_game_board_state(&game_name, board) {
+                        eprintln!("Failed to save game state: {}", e);
+                    }
+                
+                
+                    // Terminal-print the updated board
+                    print_board(&board);
+                
+                    let board_string = board_to_string(&board);
+                
+                
+                    response_string.push_str(&format!(
+                        "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
+                        game_name,
+                        piece,
+                        to.1,
+                        to.0,
+                        board_string
+                    ));
+                
+                    let response = Response::from_string(response_string);
+                
+                }
+
+
+                for request in server.incoming_requests() {
+                    // get request containing game and move
+                    if request.method() == &Method::Get {
+                        let url_parts: Vec<&str> = request.url().split('/').collect();
+                        let mut response_string = String::new();  // moved to here
+                
+                        // if chess game move
+                        if url_parts.len() == 3 {
+                            let game_name = url_parts[1].to_string();
+                            let move_data = url_parts[2].to_string();  
+                
+                            // sanitize and validate inputs from get request
+                            match validate_input(&move_data) {
+                                Err(err_msg) => {
+                                    response_string = err_msg;  // update the response string
+                                    // continue;  // note: `continue` might skip the response, which might not be what you want
+                                },
+                                Ok(()) => {},
+                            }
+                
+                            // call game move function
+                            match handle_chess_move(game_name, move_data) {
+                                Ok(result_string) => {
+                                    response_string = result_string;  // update the response string
+                                },
+                                Err(e) => {
+                                    eprintln!("Failed to handle move: {}", e);
+                                    response_string = format!("Failed to handle move: {}", e);  // update the response string
+                                }
+                            }
+                        } else {
+                            // ... Invalid request format
+                            response_string = "Invalid request format".to_string();  // update the response string
+                        }
+                
+                        // use request.respond() only once
+                        let response = Response::from_string(response_string);
+                        if let Err(error) = request.respond(response) {
+                            eprintln!("Failed to respond to request: {}", error);
+                        }
+                    }
+                }
+                
