@@ -593,7 +593,7 @@ if path == "/" {
 
 
 
-
+fn landing_page()
 
             // landing page
             // Check if it's the landing page (base domain only)

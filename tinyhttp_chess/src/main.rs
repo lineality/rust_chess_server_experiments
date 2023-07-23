@@ -146,9 +146,29 @@ fn main() {
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
+        // landing page
+        // Check if it's the landing page (base domain only)
+        if url_parts.len() == 2 {
+            let response = match landing_page() {
+                Ok(response_string) => {
+                    Response::from_string(response_string).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to generate landing page: {}", e);
+                    Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
+                }
+            };
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+
+            continue; // No need to run the rest of the loop for the landing page
+        }
+
 
             // if chess game maove
-            if url_parts.len() == 3 {
+            else if url_parts.len() == 3 {
 
                 let game_name = url_parts[1].to_string();
                 let move_data = url_parts[2].to_string();  
@@ -168,7 +188,6 @@ fn main() {
                     Ok(()) => {},
                 }
 
-                // call game move function
                 // call game move function
                 let response = match handle_chess_move(game_name, move_data) {
                     Ok(response_string) => {
@@ -195,6 +214,45 @@ fn main() {
 // Helper Functions
 /////////////////////
 
+
+fn landing_page() -> Result<String, Box<dyn std::error::Error>> {
+
+    // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
+    // For this example, I'll provide a simple response with a "Hello, World!" message.
+    let response_string: String = r#"<html>
+    <body>
+        <body style="background-color:black;">
+        <font color="00FF00">  
+            <div style="line-height:1px">
+        <tt> 
+        <p style="font-size:38px; "> r n b q k b n r </p>
+        <p style="font-size:38px; "> p p p p p p p p </p>
+        <p style="font-size:38px; "> . . . . . . . . </p>
+        <p style="font-size:38px; "> . . . . . . . . </p>
+        <p style="font-size:38px; "> . . . P . . . . </p>
+        <p style="font-size:38px; "> . . . . . . . . </p>
+        <p style="font-size:38px; "> P P P . P P P P </p>
+        <p style="font-size:38px; "> R N B Q K B N R </p>
+        
+        <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
+        <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
+        <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
+        <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
+        <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
+        <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
+        <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
+        <p style="font-size:18px; "> 三　ン　十　円 </p>
+        <p style="font-size:18px; "> 八　万　円 </p>
+        <p style="font-size:18px; "> 万　円 </p>
+        <p style="font-size:18px; "> 円　</p>
+            </div>
+            </body>
+        </html>
+        "#.to_string();
+
+        // return response string
+        Ok(response_string)
+    }
 
 fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box<dyn std::error::Error>> {
 
