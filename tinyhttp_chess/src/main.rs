@@ -132,12 +132,12 @@ use std::io::{self, Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
-struct GameData {
-    game_name: String,
-    activity_timestamp: i64,
-    game_type: String,
-    move_number: u32,
-}
+// struct GameData {
+//     game_name: String,
+//     activity_timestamp: i64,
+//     game_type: String,
+//     move_number: u32,
+// }
 
 
 fn main() {
@@ -235,21 +235,62 @@ fn main() {
             }
 
         } 
-        
+
+
         // setup (new game)
         else if url_parts.len() == 5 {
-            // Call setup_new_game here
-            let response = match setup_new_game("new_game", "chess") {
-                Ok(_) => Response::from_string("Game setup successfully.")
-                    .with_status_code(200),
-                Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
-                    .with_status_code(500),
-            };
+            let mode = url_parts[1].to_string();
+            if mode != "setup" {
+                // Return an error response if the mode is not "setup"
+                let response = Response::from_string("Invalid mode for setup.")
+                    .with_status_code(400);
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
+                }
+            } else {
+                let game_type = url_parts[2].to_string();
+                let game_name = url_parts[3].to_string();
+                let game_phrase = url_parts[4].to_string();
 
-            if let Err(e) = request.respond(response) {
-                eprintln!("Failed to respond to request: {}", e);
+                // Call setup_new_game here
+                let response = match setup_new_game(&game_type, &game_name, &game_phrase) {
+                    Ok(_) => Response::from_string("Game setup successfully.")
+                        .with_status_code(200),
+
+                    Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
+                        .with_status_code(500),
+                };
+
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
+                }
             }
         }
+
+        
+
+        // // setup (new game)
+        // else if url_parts.len() == 5 {
+        //     let mode = url_parts[1].to_string();
+        //     if mode != "setup"...exit error
+
+        //     let game_type = url_parts[2].to_string();            
+        //     let game_name = url_parts[3].to_string();
+        //     let game_phrase = url_parts[4].to_string();
+
+        //     // Call setup_new_game here
+        //     let response = match setup_new_game(game_type, game_name, game_phrase) {
+        //         Ok(_) => Response::from_string("Game setup successfully.")
+        //             .with_status_code(200),
+
+        //         Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
+        //             .with_status_code(500),
+        //     };
+
+        //     if let Err(e) = request.respond(response) {
+        //         eprintln!("Failed to respond to request: {}", e);
+        //     }
+        // }
 
 
 
@@ -568,24 +609,41 @@ fn validate_input(input: &str) -> Result<(), String> {
 }
 
 
-fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Result<()> {
+fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> io::Result<()> {
     let dir_path = format!("./games/{}", game_name);
-    std::fs::create_dir_all(&dir_path)?;
+    std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
 
     let file_path = format!("{}/game_board_state.txt", dir_path);
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(file_path)?;
+    let mut file = File::create(&file_path).expect("Failed to create file");
 
-    for row in board.iter() {
+    for row in &board {
         let line: String = row.iter().collect();
-        writeln!(file, "{}", line)?;
+        writeln!(file, "{}", line).expect("Failed to write to file");
     }
     
     Ok(())
 }
+
+
+
+// fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Result<()> {
+//     let dir_path = format!("./games/{}", game_name);
+//     std::fs::create_dir_all(&dir_path)?;
+
+//     let file_path = format!("{}/game_board_state.txt", dir_path);
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open(file_path)?;
+
+//     for row in board.iter() {
+//         let line: String = row.iter().collect();
+//         writeln!(file, "{}", line)?;
+//     }
+    
+//     Ok(())
+// }
 
 fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
     let dir_path = format!("./games/{}", game_name);
@@ -606,7 +664,7 @@ fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
 
 
 
-fn setup_new_game(game_name: &str, game_type: &str) -> std::io::Result<()> {
+fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::io::Result<()> {
 
     // Validate game_name: novel, permitted, ascii etc.
     if !is_valid_game_name(game_name) {
@@ -675,15 +733,23 @@ fn setup_new_game(game_name: &str, game_type: &str) -> std::io::Result<()> {
 
 // Helper function to validate game_name
 fn is_valid_game_name(game_name: &str) -> bool {
+    // sanity check
+    println!("game name: {:?}", game_name);
+
     // Check if game_name is a reserved word
     let reserved_words = vec!["setup", "restart", "y0ur_m0ve"];
+    // sanity check
+    println!("Reserved words: {:?}", reserved_words);
+
     if reserved_words.contains(&game_name) {
+        eprintln!("error # 1: Invalid game name: Reserved word used.");
         return false;
     }
 
     // Check if game_name contains only alphanumeric characters and underscores
     for c in game_name.chars() {
         if !c.is_ascii_alphanumeric() && c != '_' {
+            eprintln!("error # 2: Invalid game name: wrong characters.");
             return false;
         }
     }
@@ -691,6 +757,7 @@ fn is_valid_game_name(game_name: &str) -> bool {
     // Check if a directory with this game_name already exists
     let game_dir = format!("./games/{}", game_name);
     if Path::new(&game_dir).exists() {
+        eprintln!("error # 3: Invalid game name: already exists!");
         return false;
     }
 
@@ -715,11 +782,13 @@ fn create_gamedata_json(dir_path: &str, game_name: &str, game_type: &str, move_n
     let json_data = format!(
         r#"{{
             "game_name": "{}",
+            "game_timestamp": {},
             "activity_timestamp": {},
             "game_type": "{}",
             "move_number": {}
         }}"#,
         game_name,
+        timestamp_secs,
         timestamp_secs,
         game_type,
         move_number
@@ -759,4 +828,82 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
     file.write_all(new_timestamp.to_string().as_bytes())?;
 
     Ok(())
+}
+
+
+
+/*
+    designed to be a good-enough hash, not relying on libraries
+    that includes string and timestamp
+
+    the timestamp kind of functions as a 'secret key'
+    as in crypographic 'signing' and verification
+    again: not meant to be super world class,
+    but light weight and easy to debug,
+    not likely to have unexpected or incomprehensible issues
+    no external libraries, trust issues, etc. 
+    
+    the first few digits are less random, so -> removed
+    this also keeps the hash from getting huge so quickly
+
+    to make the numbers more significantly different if even one
+    input character is changed: add an additional hash if the 
+    current hash is odd/even (even picked here)
+
+    Recommended:
+    for timestamp: use this to get sub-second depth in a string
+
+    from datetime import datetime
+    # get time
+    timestamp_raw = datetime.utcnow()
+    # make readable string
+    timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
+*/
+fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
+    let mut string_to_hash = String::from(input_string);
+    string_to_hash.push_str(timestamp_string);
+
+    let mut hash: u128 = 1;
+    for this_character in string_to_hash.chars() {
+        // println!("this_character {}", this_character);
+        // println!("this_character as u128 {}", this_character as u128);
+
+        // Calculate the new hash value using integer arithmetic
+        hash = 101 * (hash + this_character as u128);
+
+        // println!("step 1 hash {}", hash);
+
+        // reflip if the hash is even
+        if hash % 2 == 0 {
+            hash = 101 * (hash + this_character as u128);
+        }
+        println!("step 2 flip hash {}", hash);
+
+        // Reduce the hash to a 6-digit number by parsing it as a string
+        let hash_str = hash.to_string();
+        if hash_str.len() > 6 {
+            hash = match hash_str[2..].parse() {
+                Ok(parsed_hash) => parsed_hash,
+                Err(_) => {
+                    eprintln!("Failed to parse hash: {}", hash_str);
+                    0 // Set a default value or take appropriate action on parsing failure
+                }
+            };
+        }
+        if hash_str.len() > 15 {
+            hash = match hash_str[4..].parse() {
+                Ok(parsed_hash) => parsed_hash,
+                Err(_) => {
+                    eprintln!("Failed to parse hash: {}", hash_str);
+                    0 // Set a default value or take appropriate action on parsing failure
+                }
+            };
+        }
+        
+        
+        
+    }
+    println!("finished hash {}", hash);
+    
+    hash
 }
