@@ -1,0 +1,279 @@
+<svg height="500" style="background-color: #2f0300;" viewBox="0 0 500 500" width="500" xmlns="http://www.w3.org/2000/svg">
+<text fill="#757575" font-size="20" text-anchor="middle" x="75" y="472">
+H
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="125" y="472">
+G
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="175" y="472">
+F
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="225" y="472">
+E
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="275" y="472">
+D
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="325" y="472">
+C
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="375" y="472">
+B
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="425" y="472">
+A
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="85">
+1
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="135">
+2
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="185">
+3
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="235">
+4
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="285">
+5
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="335">
+6
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="385">
+7
+</text>
+<text fill="#757575" font-size="20" text-anchor="middle" x="32" y="435">
+8
+</text>
+<rect fill="#ccc" height="50" width="50" x="50" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="75" y="85">
+R
+</text>
+<rect fill="#666" height="50" width="50" x="100" y="50"/>
+<rect fill="#ccc" height="50" width="50" x="150" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="175" y="85">
+B
+</text>
+<rect fill="#666" height="50" width="50" x="200" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="225" y="85">
+K
+</text>
+<rect fill="#ccc" height="50" width="50" x="250" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="275" y="85">
+Q
+</text>
+<rect fill="#666" height="50" width="50" x="300" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="325" y="85">
+B
+</text>
+<rect fill="#ccc" height="50" width="50" x="350" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="375" y="85">
+N
+</text>
+<rect fill="#666" height="50" width="50" x="400" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="425" y="85">
+R
+</text>
+<rect fill="#666" height="50" width="50" x="50" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="75" y="135">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="100" y="100"/>
+<rect fill="#666" height="50" width="50" x="150" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="175" y="135">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="200" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="225" y="135">
+P
+</text>
+<rect fill="#666" height="50" width="50" x="250" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="275" y="135">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="300" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="325" y="135">
+P
+</text>
+<rect fill="#666" height="50" width="50" x="350" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="375" y="135">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="425" y="135">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="50" y="150"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="75" y="185">
+N
+</text>
+<rect fill="#666" height="50" width="50" x="100" y="150"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="125" y="185">
+P
+</text>
+<rect fill="#ccc" height="50" width="50" x="150" y="150"/>
+<rect fill="#666" height="50" width="50" x="200" y="150"/>
+<rect fill="#ccc" height="50" width="50" x="250" y="150"/>
+<rect fill="#666" height="50" width="50" x="300" y="150"/>
+<rect fill="#ccc" height="50" width="50" x="350" y="150"/>
+<rect fill="#666" height="50" width="50" x="400" y="150"/>
+<rect fill="#666" height="50" width="50" x="50" y="200"/>
+<rect fill="#ccc" height="50" width="50" x="100" y="200"/>
+<rect fill="#666" height="50" width="50" x="150" y="200"/>
+<rect fill="#ccc" height="50" width="50" x="200" y="200"/>
+<rect fill="#666" height="50" width="50" x="250" y="200"/>
+<rect fill="#ccc" height="50" width="50" x="300" y="200"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="325" y="235">
+P
+</text>
+<rect fill="#666" height="50" width="50" x="350" y="200"/>
+<rect fill="#ccc" height="50" width="50" x="400" y="200"/>
+<rect fill="#ccc" height="50" width="50" x="50" y="250"/>
+<rect fill="#666" height="50" width="50" x="100" y="250"/>
+<rect fill="#ccc" height="50" width="50" x="150" y="250"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="175" y="285">
+p
+</text>
+<rect fill="#666" height="50" width="50" x="200" y="250"/>
+<rect fill="#ccc" height="50" width="50" x="250" y="250"/>
+<rect fill="#666" height="50" width="50" x="300" y="250"/>
+<rect fill="#ccc" height="50" width="50" x="350" y="250"/>
+<rect fill="#666" height="50" width="50" x="400" y="250"/>
+<rect fill="#666" height="50" width="50" x="50" y="300"/>
+<rect fill="#ccc" height="50" width="50" x="100" y="300"/>
+<rect fill="#666" height="50" width="50" x="150" y="300"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="175" y="335">
+k
+</text>
+<rect fill="#ccc" height="50" width="50" x="200" y="300"/>
+<rect fill="#666" height="50" width="50" x="250" y="300"/>
+<rect fill="#ccc" height="50" width="50" x="300" y="300"/>
+<rect fill="#666" height="50" width="50" x="350" y="300"/>
+<rect fill="#ccc" height="50" width="50" x="400" y="300"/>
+<rect fill="#ccc" height="50" width="50" x="50" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="75" y="385">
+p
+</text>
+<rect fill="#666" height="50" width="50" x="100" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="125" y="385">
+p
+</text>
+<rect fill="#ccc" height="50" width="50" x="150" y="350"/>
+<rect fill="#666" height="50" width="50" x="200" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="225" y="385">
+p
+</text>
+<rect fill="#ccc" height="50" width="50" x="250" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="275" y="385">
+p
+</text>
+<rect fill="#666" height="50" width="50" x="300" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="325" y="385">
+p
+</text>
+<rect fill="#ccc" height="50" width="50" x="350" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="375" y="385">
+p
+</text>
+<rect fill="#666" height="50" width="50" x="400" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="425" y="385">
+p
+</text>
+<rect fill="#666" height="50" width="50" x="50" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="75" y="435">
+r
+</text>
+<rect fill="#ccc" height="50" width="50" x="100" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="125" y="435">
+n
+</text>
+<rect fill="#666" height="50" width="50" x="150" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="175" y="435">
+b
+</text>
+<rect fill="#ccc" height="50" width="50" x="200" y="400"/>
+<rect fill="#666" height="50" width="50" x="250" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="275" y="435">
+q
+</text>
+<rect fill="#ccc" height="50" width="50" x="300" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="325" y="435">
+b
+</text>
+<rect fill="#666" height="50" width="50" x="350" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="375" y="435">
+n
+</text>
+<rect fill="#ccc" height="50" width="50" x="400" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="200" y="200"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="425" y="435">
+r
+</text>
+</svg>
