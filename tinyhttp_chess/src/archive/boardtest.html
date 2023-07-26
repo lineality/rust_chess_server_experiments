@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ASCII Chessboard</title>
+  <style>
+    body {
+      font-family: monospace;
+    }
+
+    .board {
+      display: inline-block;
+      font-size: 20px;
+      line-height: 16px;
+    }
+
+    .square {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+    }
+
+    .dark {
+      background-color: #888;
+    }
+
+    .light {
+      background-color: #ccc;
+    }
+
+    .uppercase {
+      color: red;
+    }
+
+    .lowercase {
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+  <div class="board">
+    <div class="square dark"></div><div class="square light uppercase">A</div><div class="square dark"></div><div class="square light lowercase">b</div>
+    <div class="square light uppercase">C</div><div class="square dark"></div><div class="square light uppercase">D</div><div class="square dark"></div>
+    <div class="square dark"></div><div class="square light uppercase">E</div><div class="square dark"></div><div class="square light lowercase">f</div>
+    <div class="square light uppercase">G</div><div class="square dark"></div><div class="square light uppercase">H</div><div class="square dark"></div>
+  </div>
+</body>
+</html>

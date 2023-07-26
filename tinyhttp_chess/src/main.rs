@@ -6,6 +6,25 @@ RUST_BACKTRACE=full cargo run
 
 /* 
 TODO:
+- get user IP and hash it
+
+- make white and black display
+- show html...
+
+- complete secure 'login' for game
+- move to loading in game_data
+- check user IP-lossy-hash
+- make somewhat longer (20-3?)
+- 
+
+- other secure-server aspects?
+
+- think about mudd game
+-- mudd-builder...
+- Doore
+- 
+
+
 - game setup:
     how to do as page or get request?
     what to do if files no found...redirect to setup-page...or instructions raw text/hmtl?
@@ -17,13 +36,12 @@ if error
 return text (not html) "that option is now available or allowed, try:
     setup/type_type/game_name/game_phrase
 
+- again    
+- start
+if move len 7 & == "restart"
+    reset board
 
-    if move len 7 & == "restart"
-        reset board
 
-- load game_board_state (instead of replaying all past moves)
-- new check and new system to start game:
-    start/gamename get request
 - remove all uses of "unwrap"
 - error-page for invalid get requests
 - get input start/gamename to set up game folder
@@ -31,6 +49,7 @@ return text (not html) "that option is now available or allowed, try:
 (ideally starting in RAM until threshold)
 
 - remove games if inactive for a week
+
 - game secure "login" via gamephrase and lossy-hashed user IP
 (redirect to game-phase page if IP hash not recognized)
 - load current game array vs. repeat past moves
@@ -832,7 +851,10 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
 
 
 
+
 /*
+    requires: use std::time::{SystemTime, UNIX_EPOCH};
+
     designed to be a good-enough hash, not relying on libraries
     that includes string and timestamp
 
@@ -858,29 +880,89 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
     timestamp_raw = datetime.utcnow()
     # make readable string
     timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
+
+
+    test with:
+
+    fn main() {
+        // get current timestamp
+        let now = SystemTime::now();
+        let timestamp = now.duration_since(UNIX_EPOCH)
+                        .expect("Time went backwards")
+                        .as_millis()
+                        .to_string();
+
+        println!("{}", make_hash("123:123:243:234", &timestamp));
+
+        // compare small change: just the last digit of the time
+        println!("{}", make_hash("123:123:243:234", "20221008133518385205"));
+        println!("{}", make_hash("123:123:243:234", "20221008133518385206"));
+
+        // small number input: edge case check
+        println!("{}", make_hash("1", "3"));
+        println!("{}", make_hash("2", "2"));
+
+
+        // small number input: edge case check
+        println!("{}", make_hash("1", "3"));
+        println!("{}", make_hash("1", "2"));
+}
+
+
 */
 fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
+
+    // first set the string-to-hash to be the input_string
     let mut string_to_hash = String::from(input_string);
+
+    // then add the timestamp to the string
     string_to_hash.push_str(timestamp_string);
 
+    // Before starting: set hash to value of 1
     let mut hash: u128 = 1;
+
+    // begin iterating through the hashstring, on character at at time
     for this_character in string_to_hash.chars() {
         // println!("this_character {}", this_character);
         // println!("this_character as u128 {}", this_character as u128);
 
-        // Calculate the new hash value using integer arithmetic
-        hash = 101 * (hash + this_character as u128);
 
+        /*  Step 1: Sum & Product
+            Calculate the new hash value using integer arithmetic
+            - Turn the character into a number
+            - sum (add) the hash and that character
+            - product: multiply that sum by 101 
+            (31 can be used alternatiely)
+        */
+        hash = 101 * (hash + this_character as u128);
         // println!("step 1 hash {}", hash);
 
-        // reflip if the hash is even
+
+        /*  Step 2: Flip
+            re-hash if the hash is even
+        */
         if hash % 2 == 0 {
             hash = 101 * (hash + this_character as u128);
         }
-        println!("step 2 flip hash {}", hash);
+        // println!("step 2 flip hash {}", hash);
 
-        // Reduce the hash to a 6-digit number by parsing it as a string
+
+        /*  Step 3: Trim 
+            Reduce the hash to a 6-digit number by parsing it as a string
+        */
         let hash_str = hash.to_string();
+
+
+        // remove the first character from everything
+        hash = match hash_str[1..].parse() {
+            Ok(parsed_hash) => parsed_hash,
+            Err(_) => {
+                eprintln!("Failed to parse hash: {}", hash_str);
+                0 // Set a default value or take appropriate action on parsing failure
+            }
+        };
+    
+        // remove 2 front characters from medium hashes
         if hash_str.len() > 6 {
             hash = match hash_str[2..].parse() {
                 Ok(parsed_hash) => parsed_hash,
@@ -890,8 +972,10 @@ fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
                 }
             };
         }
-        if hash_str.len() > 15 {
-            hash = match hash_str[4..].parse() {
+
+        // remove 3 front characters from long hashes
+        if hash_str.len() > 20 {
+            hash = match hash_str[3..].parse() {
                 Ok(parsed_hash) => parsed_hash,
                 Err(_) => {
                     eprintln!("Failed to parse hash: {}", hash_str);
@@ -900,10 +984,10 @@ fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
             };
         }
         
-        
-        
     }
-    println!("finished hash {}", hash);
+    // println!("finished hash {}", hash);
     
+    // return hash
     hash
 }
+
