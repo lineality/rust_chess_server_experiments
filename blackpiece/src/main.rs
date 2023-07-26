@@ -1,41 +1,28 @@
-
-/*
-TODO
-
-1. fix colors part 1: two different colors
-the black pieces should be red, the white colors should be
-grey
-
-2. the dark or lite shade of each color should be counter
-to the background color, so the piece is visible. 
-*/
-
+use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
-use svg::Document;
-use std::fs;
 
 
-// Function to generate the SVG chessboard
-fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
+// Function to generate the SVG chessboard with black orientation
+fn generate_black_oriented_chessboard(chessboard: &[[char; 8]; 8]) -> Document {
     let mut doc = Document::new()
-        .set("width", "500")  // Adjusting the width to account for labels
-        .set("height", "500")  // Adjusting the height to account for labels
+        .set("width", "500")  
+        .set("height", "500")  
         .set("viewBox", (0, 0, 500, 500))
-        .set("style", "background-color: #000;");  // Set background to black
+        .set("style", "background-color: #2f0300;");  // Set background to dark red
 
-    // Define labels
-    let column_labels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
+    // Define labels, reversed for black piece orientation
+    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     // Add column labels
     for (idx, label) in column_labels.iter().enumerate() {
         let label_text = Text::new()
-            .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-            .set("y", 465)  // Positioning the label slightly above the bottom edge
+            .set("x", 50 + idx * 50 + 25)  
+            .set("y", 472)  
             .set("text-anchor", "middle")
             .set("font-size", 20)
-            .set("fill", "#fff")  // Set text color to white
+            .set("fill", "#757575")  // Set text color to dark grey
             .add(svg::node::Text::new(label.to_string()));
         doc = doc.add(label_text);
     }
@@ -43,19 +30,19 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
     // Add row labels
     for (idx, label) in row_labels.iter().enumerate() {
         let label_text = Text::new()
-            .set("x", 25)  // Positioning the label slightly to the right of the left edge
-            .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+            .set("x", 32)  
+            .set("y", 50 + idx * 50 + 35)  
             .set("text-anchor", "middle")
             .set("font-size", 20)
-            .set("fill", "#fff")  // Set text color to white
+            .set("fill", "#757575")  
             .add(svg::node::Text::new(label.to_string()));
         doc = doc.add(label_text);
     }
 
-    for (row, row_pieces) in chessboard.iter().enumerate() {
-        for (col, &piece) in row_pieces.iter().enumerate() {
-            let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
-            let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+            let x = 50 + col * 50;  
+            let y = 50 + row * 50;  
 
             let square_color = if (row + col) % 2 == 0 {
                 "#ccc"
@@ -73,22 +60,19 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
             doc = doc.add(square);
 
             if piece != ' ' {
-
-
-                let piece_color = if square_color == "#ccc" { // for lighter background
-                    if piece.is_lowercase() {
-                        "#cc0000" // darker red for dark pieces
+                let piece_color = if square_color == "#666" { // for darker background
+                    if piece.is_uppercase() {
+                        "#ffefc1" // lighter gray for light pieces
                     } else {
-                        "#333333" // darker gray for light pieces
+                        "#ff8e8e" // lighter red for dark pieces
                     }
-                } else { // for darker background
-                    if piece.is_lowercase() {
-                        "#ff4444" // lighter red for dark pieces
+                } else { // for lighter background
+                    if piece.is_uppercase() {
+                        "#665628" // darker gray for light pieces
                     } else {
-                        "#cccccc" // lighter gray for light pieces
+                        "#9e0b00" // darker red for dark pieces
                     }
                 };
-
 
                 let mut text = Text::new()
                     .set("x", x + 25)
@@ -108,9 +92,8 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
         }
     }
 
-    doc.to_string()
+    doc
 }
-
 
 fn main() {
     let chessboard_state: [[char; 8]; 8] = [
@@ -124,17 +107,14 @@ fn main() {
         ['R', 'N', 'B', 'Q', 'K', 'B', ' ', 'R'],
     ];
 
-    let svg_code = generate_chessboard(&chessboard_state);
+    let doc = generate_black_oriented_chessboard(&chessboard_state);
     
-    println!("{}", svg_code);
     // Define the file name
-    let file_name = "chessboard.svg";
+    let file_name = "chessboard_black_oriented.svg";
 
     // Write the svg code to the file
-    fs::write(file_name, svg_code).expect("Unable to write to file");
+    svg::save(file_name, &doc).expect("Unable to write to file");
 
     println!("SVG file has been created successfully.");
-    
-
 }
 

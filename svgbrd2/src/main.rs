@@ -1,13 +1,12 @@
 
 /*
 TODO
+https://www.color-hex.com/color/9e0b00
 
-1. fix colors part 1: two different colors
-the black pieces should be red, the white colors should be
-grey
-
-2. the dark or lite shade of each color should be counter
-to the background color, so the piece is visible. 
+1. make an alternate black-piece oriented version
+mostly the same, but the pieces are inverted
+the background is shifted
+the labels are reversed
 */
 
 use svg::node::element::Rectangle;
@@ -25,17 +24,17 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
         .set("style", "background-color: #000;");  // Set background to black
 
     // Define labels
-    let column_labels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
 
     // Add column labels
     for (idx, label) in column_labels.iter().enumerate() {
         let label_text = Text::new()
             .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-            .set("y", 465)  // Positioning the label slightly above the bottom edge
+            .set("y", 472)  // Positioning the label slightly above the bottom edge
             .set("text-anchor", "middle")
             .set("font-size", 20)
-            .set("fill", "#fff")  // Set text color to white
+            .set("fill", "#757575")  // Set text color to white
             .add(svg::node::Text::new(label.to_string()));
         doc = doc.add(label_text);
     }
@@ -43,11 +42,11 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
     // Add row labels
     for (idx, label) in row_labels.iter().enumerate() {
         let label_text = Text::new()
-            .set("x", 25)  // Positioning the label slightly to the right of the left edge
+            .set("x", 32)  // Positioning the label slightly to the right of the left edge
             .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
             .set("text-anchor", "middle")
             .set("font-size", 20)
-            .set("fill", "#fff")  // Set text color to white
+            .set("fill", "#757575")  // Set text color to white
             .add(svg::node::Text::new(label.to_string()));
         doc = doc.add(label_text);
     }
@@ -77,15 +76,15 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
 
                 let piece_color = if square_color == "#ccc" { // for lighter background
                     if piece.is_lowercase() {
-                        "#cc0000" // darker red for dark pieces
+                        "#9e0b00" // darker red for dark pieces
                     } else {
-                        "#333333" // darker gray for light pieces
+                        "#665628" // darker gray for light pieces
                     }
                 } else { // for darker background
                     if piece.is_lowercase() {
-                        "#ff4444" // lighter red for dark pieces
+                        "#ff8e8e" // lighter red for dark pieces
                     } else {
-                        "#cccccc" // lighter gray for light pieces
+                        "#ffefc1" // lighter gray for light pieces
                     }
                 };
 
