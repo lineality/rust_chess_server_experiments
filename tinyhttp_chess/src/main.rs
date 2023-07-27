@@ -150,6 +150,9 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use svg::Document;
+use svg::node::element::Rectangle;
+use svg::node::element::Text;
 
 // struct GameData {
 //     game_name: String,
@@ -237,6 +240,17 @@ fn main() {
                 },
                 Ok(()) => {},
             }
+
+            // // call game move function
+            // let response = match handle_chess_move(game_name, move_data) {
+            //     Ok(response_string) => {
+            //         Response::from_string(response_string).with_status_code(200)
+            //     },
+            //     Err(e) => {
+            //         eprintln!("Failed to handle move: {}", e);
+            //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+            //     }
+            // };
 
             // call game move function
             let response = match handle_chess_move(game_name, move_data) {
@@ -457,25 +471,53 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
     match parse_move(&move_data) {
         Ok((piece, from, to)) => {
             // This is the successful case. `piece`, `from`, and `to` are guaranteed to be initialized.
-            match to_coords(&format!("{}{}", from.0, from.1)) {
-                Ok(coords) => {
-                    let (x, y) = coords;
-                    board[x][y] = ' ';
-                },
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                },
-            };
 
-            match to_coords(&format!("{}{}", to.0, to.1)) {
-                Ok(coords) => {
-                    let (x, y) = coords;
-                    board[x][y] = piece;
-                },
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                },
-            };
+            // Initialize variables to hold converted coordinates
+            let mut from_x_y_coordinates: (usize, usize);
+            let mut to_x_y_coordinates: (usize, usize);
+
+            // // "FROM" moves
+            // match to_coords(&format!("{}{}", from.0, from.1)) {
+            //     Ok(coords) => {
+            //         let (x, y) = coords;
+            //         board[x][y] = ' ';
+            //         from_x_y_coordinates = coords;
+            //     },
+            //     Err(err) => {
+            //         eprintln!("Error: {}", err);
+            //         return; // Or set a default value, or propagate the error up
+            //     },
+            // };
+
+            // // "TO" moves
+            // match to_coords(&format!("{}{}", to.0, to.1)) {
+            //     Ok(coords) => {
+            //         let (x, y) = coords;
+            //         board[x][y] = piece;
+            //         to_x_y_coordinates = coords;
+            //     },
+            //     Err(err) => {
+            //         eprintln!("Error: {}", err);
+            //         return; // Or set a default value, or propagate the error up
+            //     },
+            // };
+
+
+            // "FROM" moves
+            let from_coords_result = to_coords(&format!("{}{}", from.0, from.1));
+            let from_coords = from_coords_result?;
+            let (x, y) = from_coords;
+            board[x][y] = ' ';
+            from_x_y_coordinates = from_coords;
+
+
+            // "TO" moves
+            let to_coords_result = to_coords(&format!("{}{}", to.0, to.1));
+            let to_coords = to_coords_result?;
+            let (x, y) = to_coords;
+            board[x][y] = piece;
+            to_x_y_coordinates = to_coords;
+
 
             // Save game (save game_board_state to .txt file)
             if let Err(e) = save_game_board_state(&game_name, board) {
@@ -487,6 +529,7 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
 
             let board_string = board_to_string(&board);
 
+
             response_string.push_str(&format!(
                 "Game: {}\nPiece: {}\nMove to: ({}, {})\n\n{}",
                 game_name,
@@ -495,6 +538,33 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
                 to.0,
                 board_string
             ));
+
+            // generate svg
+
+
+            // Inverting the coordinates for black's perspective
+            let from_black_oriented = (7 - from_x_y_coordinates.0, 7 - from_x_y_coordinates.1);
+            let to_black_oriented = (7 - to_x_y_coordinates.0, 7 - to_x_y_coordinates.1);
+
+            // Generate SVG with these coordinates
+            let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
+
+            // Define the file name
+            let file_name = "chessboard_black_oriented.svg";
+
+            // Write the svg code to the file
+            svg::save(file_name, &doc).expect("Unable to write to file");
+
+            println!("SVG file has been created successfully.");
+    
+
+            // return svg...
+            // After generating the SVG...
+            let svg_content = doc.to_string();
+            Ok(svg_content)
+
+
+            
         }
         Err(e) => {
             // This is the error case. Return or handle the error in some way here.
@@ -504,9 +574,166 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
         }
     }
 
-    // return response string
-    Ok(response_string)
+    // // return response string
+    // Ok(response_string)
 
+    // // After generating the SVG...
+    // let svg_content = doc.to_string();
+    // Ok(svg_content)
+
+}
+
+
+
+
+// Function to generate the SVG chessboard with black orientation
+fn generate_black_oriented_chessboard(
+    chessboard: &[[char; 8]; 8], 
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>
+) -> Document {
+
+    let mut doc = Document::new()
+        .set("width", "500")  
+        .set("height", "500")  
+        .set("viewBox", (0, 0, 500, 500))
+        .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+    // Define labels, reversed for black piece orientation
+    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    // Add column labels
+    for (idx, label) in column_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 50 + idx * 50 + 25)  
+            .set("y", 472)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  // Set text color to dark grey
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
+    }
+
+    // Add row labels
+    for (idx, label) in row_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 32)  
+            .set("y", 50 + idx * 50 + 35)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
+    }
+
+    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+            let x = 50 + col * 50;  
+            let y = 50 + row * 50;  
+
+            let square_color = if (row + col) % 2 == 0 {
+                "#ccc"
+            } else {
+                "#666"
+            };
+            
+            let square = Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", 50)
+                .set("height", 50)
+                .set("fill", square_color);
+
+            doc = doc.add(square);
+
+            if piece != ' ' {
+
+                if let Some(from_coords) = from {
+                    let (row, col) = from_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+                
+                if let Some(to_coords) = to {
+                    let (row, col) = to_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+
+                    
+                let piece_color = if square_color == "#666" { // for darker background
+                    if piece.is_uppercase() {
+                        "#ffefc1" // lighter gray for light pieces
+                    } else {
+                        "#ff8e8e" // lighter red for dark pieces
+                    }
+                } else { // for lighter background
+                    if piece.is_uppercase() {
+                        "#665628" // darker gray for light pieces
+                    } else {
+                        "#9e0b00" // darker red for dark pieces
+                    }
+                };
+
+                let mut text = Text::new()
+                    .set("x", x + 25)
+                    .set("y", y + 35)
+                    .set("text-anchor", "middle")
+                    .set("font-size", 30)
+                    .set("fill", piece_color);
+
+                if piece.is_uppercase() {
+                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+                } else {
+                    text = text.add(svg::node::Text::new(piece.to_string()));
+                }
+
+                doc = doc.add(text);
+            }
+        }
+    }
+
+    doc
+}
+
+fn black_to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
+    if chess_notation.len() != 2 {
+        return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
+    }
+    let col = chess_notation.chars().nth(0).unwrap();
+    let row = chess_notation.chars().nth(1).unwrap();
+
+    if !('a'..='h').contains(&col) || !('1'..='8').contains(&row) {
+        return Err(format!("Invalid chess notation: '{}'. It should be in the form 'e4'.", chess_notation));
+    }
+
+    let col = 'h' as usize - col as usize;  // Changed this line
+    let row = row.to_digit(10).unwrap() as usize - 1;  // And this line
+
+    Ok((row, col))
 }
 
 
