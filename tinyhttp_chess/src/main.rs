@@ -642,138 +642,139 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
 }
 
 
-// Function to generate the SVG chessboard with black orientation
-fn generate_white_oriented_chessboard(
-    chessboard: &[[char; 8]; 8], 
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>
-) -> Document {
+// // Function to generate the SVG chessboard with black orientation
+// fn generate_white_oriented_chessboard(
+//     chessboard: &[[char; 8]; 8], 
+//     from: Option<(usize, usize)>, 
+//     to: Option<(usize, usize)>
+// ) -> Document {
 
-    let mut doc = Document::new()
-        .set("width", "500")  
-        .set("height", "500")  
-        .set("viewBox", (0, 0, 500, 500))
-        .set("style", "background-color: #2f0300;");  // Set background to dark red
+//     let mut doc = Document::new()
+//         .set("width", "500")  
+//         .set("height", "500")  
+//         .set("viewBox", (0, 0, 500, 500))
+//         .set("style", "background-color: #2f0300;");  // Set background to dark red
 
-    // Define labels, reversed for black piece orientation
-    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
-    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+//     // Define labels, reversed for black piece orientation
+//     let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+//     let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
-    // Add column labels
-    for (idx, label) in column_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 50 + idx * 50 + 25)  
-            .set("y", 472)  
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  // Set text color to dark grey
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
+//     // Add column labels
+//     for (idx, label) in column_labels.iter().enumerate() {
+//         let label_text = Text::new()
+//             .set("x", 50 + idx * 50 + 25)  
+//             .set("y", 472)  
+//             .set("text-anchor", "middle")
+//             .set("font-size", 20)
+//             .set("fill", "#757575")  // Set text color to dark grey
+//             .add(svg::node::Text::new(label.to_string()));
+//         doc = doc.add(label_text);
+//     }
 
-    // Add row labels
-    for (idx, label) in row_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 32)  
-            .set("y", 50 + idx * 50 + 35)  
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
+//     // Add row labels
+//     for (idx, label) in row_labels.iter().enumerate() {
+//         let label_text = Text::new()
+//             .set("x", 32)  
+//             .set("y", 50 + idx * 50 + 35)  
+//             .set("text-anchor", "middle")
+//             .set("font-size", 20)
+//             .set("fill", "#757575")  
+//             .add(svg::node::Text::new(label.to_string()));
+//         doc = doc.add(label_text);
+//     }
 
-    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
-        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-            let x = 50 + col * 50;  
-            let y = 50 + row * 50;  
+//     for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+//         for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+//             let x = 50 + col * 50;  
+//             let y = 50 + row * 50;  
 
-            let square_color = if (row + col) % 2 == 0 {
-                "#ccc"
-            } else {
-                "#666"
-            };
+//             let square_color = if (row + col) % 2 == 0 {
+//                 "#ccc"
+//             } else {
+//                 "#666"
+//             };
             
-            let square = Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", 50)
-                .set("height", 50)
-                .set("fill", square_color);
+//             let square = Rectangle::new()
+//                 .set("x", x)
+//                 .set("y", y)
+//                 .set("width", 50)
+//                 .set("height", 50)
+//                 .set("fill", square_color);
 
-            doc = doc.add(square);
+//             doc = doc.add(square);
 
-            if piece != ' ' {
+//             if piece != ' ' {
 
-                if let Some(from_coords) = from {
-                    let (row, col) = from_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
+//                 // setting from an to color
+//                 if let Some(from_coords) = from {
+//                     let (row, col) = from_coords;
+//                     let x = 50 + col * 50;
+//                     let y = 50 + row * 50;
                 
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
+//                     let highlight = Rectangle::new()
+//                         .set("x", x)
+//                         .set("y", y)
+//                         .set("width", 50)
+//                         .set("height", 50)
+//                         .set("fill", "none") // Transparent fill
+//                         .set("stroke", "#3189D9")
+//                         .set("stroke-width", 3);
                 
-                    doc = doc.add(highlight);
-                }
+//                     doc = doc.add(highlight);
+//                 }
                 
-                if let Some(to_coords) = to {
-                    let (row, col) = to_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
+//                 if let Some(to_coords) = to {
+//                     let (row, col) = to_coords;
+//                     let x = 50 + col * 50;
+//                     let y = 50 + row * 50;
                 
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
+//                     let highlight = Rectangle::new()
+//                         .set("x", x)
+//                         .set("y", y)
+//                         .set("width", 50)
+//                         .set("height", 50)
+//                         .set("fill", "none") // Transparent fill
+//                         .set("stroke", "#3189D9")
+//                         .set("stroke-width", 3);
                 
-                    doc = doc.add(highlight);
-                }
+//                     doc = doc.add(highlight);
+//                 }
 
                     
-                let piece_color = if square_color == "#666" { // for darker background
-                    if piece.is_uppercase() {
-                        "#ffefc1" // lighter gray for light pieces
-                    } else {
-                        "#ff8e8e" // lighter red for dark pieces
-                    }
-                } else { // for lighter background
-                    if piece.is_uppercase() {
-                        "#665628" // darker gray for light pieces
-                    } else {
-                        "#9e0b00" // darker red for dark pieces
-                    }
-                };
+//                 let piece_color = if square_color == "#666" { // for darker background
+//                     if piece.is_uppercase() {
+//                         "#ffefc1" // lighter gray for light pieces
+//                     } else {
+//                         "#ff8e8e" // lighter red for dark pieces
+//                     }
+//                 } else { // for lighter background
+//                     if piece.is_uppercase() {
+//                         "#665628" // darker gray for light pieces
+//                     } else {
+//                         "#9e0b00" // darker red for dark pieces
+//                     }
+//                 };
 
-                let mut text = Text::new()
-                    .set("x", x + 25)
-                    .set("y", y + 35)
-                    .set("text-anchor", "middle")
-                    .set("font-size", 30)
-                    .set("fill", piece_color);
+//                 let mut text = Text::new()
+//                     .set("x", x + 25)
+//                     .set("y", y + 35)
+//                     .set("text-anchor", "middle")
+//                     .set("font-size", 30)
+//                     .set("fill", piece_color);
 
-                if piece.is_uppercase() {
-                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
-                } else {
-                    text = text.add(svg::node::Text::new(piece.to_string()));
-                }
+//                 if piece.is_uppercase() {
+//                     text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+//                 } else {
+//                     text = text.add(svg::node::Text::new(piece.to_string()));
+//                 }
 
-                doc = doc.add(text);
-            }
-        }
-    }
+//                 doc = doc.add(text);
+//             }
+//         }
+//     }
 
-    doc
-}
+//     doc
+// }
 
 fn black_to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
     if chess_notation.len() != 2 {
@@ -792,139 +793,6 @@ fn black_to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
     Ok((row, col))
 }
 
-
-// Function to generate the SVG chessboard with black orientation
-fn generate_black_oriented_chessboard(
-    chessboard: &[[char; 8]; 8], 
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>
-) -> Document {
-
-    let mut doc = Document::new()
-        .set("width", "500")  
-        .set("height", "500")  
-        .set("viewBox", (0, 0, 500, 500))
-        .set("style", "background-color: #2f0300;");  // Set background to dark red
-
-    // Define labels, reversed for black piece orientation
-    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
-    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
-
-    // Add column labels
-    for (idx, label) in column_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 50 + idx * 50 + 25)  
-            .set("y", 472)  
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  // Set text color to dark grey
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
-
-    // Add row labels
-    for (idx, label) in row_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 32)  
-            .set("y", 50 + idx * 50 + 35)  
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
-
-    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
-        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-            let x = 50 + col * 50;  
-            let y = 50 + row * 50;  
-
-            let square_color = if (row + col) % 2 == 0 {
-                "#ccc"
-            } else {
-                "#666"
-            };
-            
-            let square = Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", 50)
-                .set("height", 50)
-                .set("fill", square_color);
-
-            doc = doc.add(square);
-
-            if piece != ' ' {
-
-                if let Some(from_coords) = from {
-                    let (row, col) = from_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
-                
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
-                
-                    doc = doc.add(highlight);
-                }
-                
-                if let Some(to_coords) = to {
-                    let (row, col) = to_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
-                
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
-                
-                    doc = doc.add(highlight);
-                }
-
-                    
-                let piece_color = if square_color == "#666" { // for darker background
-                    if piece.is_uppercase() {
-                        "#ffefc1" // lighter gray for light pieces
-                    } else {
-                        "#ff8e8e" // lighter red for dark pieces
-                    }
-                } else { // for lighter background
-                    if piece.is_uppercase() {
-                        "#665628" // darker gray for light pieces
-                    } else {
-                        "#9e0b00" // darker red for dark pieces
-                    }
-                };
-
-                let mut text = Text::new()
-                    .set("x", x + 25)
-                    .set("y", y + 35)
-                    .set("text-anchor", "middle")
-                    .set("font-size", 30)
-                    .set("fill", piece_color);
-
-                if piece.is_uppercase() {
-                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
-                } else {
-                    text = text.add(svg::node::Text::new(piece.to_string()));
-                }
-
-                doc = doc.add(text);
-            }
-        }
-    }
-
-    doc
-}
 
 
 
@@ -1464,3 +1332,275 @@ fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
     hash
 }
 
+
+
+
+// Function to generate the SVG chessboard
+fn generate_white_oriented_chessboard(
+    chessboard: &[[char; 8]; 8], 
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>
+) -> Document {
+let mut doc = Document::new()
+    .set("width", "500")  // Adjusting the width to account for labels
+    .set("height", "500")  // Adjusting the height to account for labels
+    .set("viewBox", (0, 0, 500, 500))
+    .set("style", "background-color: #000;");  // Set background to black
+
+// Define labels
+let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
+
+// Add column labels
+for (idx, label) in column_labels.iter().enumerate() {
+    let label_text = Text::new()
+        .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
+        .set("y", 472)  // Positioning the label slightly above the bottom edge
+        .set("text-anchor", "middle")
+        .set("font-size", 20)
+        .set("fill", "#757575")  // Set text color to white
+        .add(svg::node::Text::new(label.to_string()));
+    doc = doc.add(label_text);
+}
+
+// Add row labels
+for (idx, label) in row_labels.iter().enumerate() {
+    let label_text = Text::new()
+        .set("x", 32)  // Positioning the label slightly to the right of the left edge
+        .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+        .set("text-anchor", "middle")
+        .set("font-size", 20)
+        .set("fill", "#757575")  // Set text color to white
+        .add(svg::node::Text::new(label.to_string()));
+    doc = doc.add(label_text);
+}
+
+for (row, row_pieces) in chessboard.iter().enumerate() {
+    for (col, &piece) in row_pieces.iter().enumerate() {
+        let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
+        let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+
+        let square_color = if (row + col) % 2 == 0 {
+            "#ccc"
+        } else {
+            "#666"
+        };
+
+        let square = Rectangle::new()
+            .set("x", x)
+            .set("y", y)
+            .set("width", 50)
+            .set("height", 50)
+            .set("fill", square_color);
+
+        doc = doc.add(square);
+
+        if piece != ' ' {
+
+
+            // setting from an to color
+            if let Some(from_coords) = from {
+                let (row, col) = from_coords;
+                let x = 50 + col * 50;
+                let y = 50 + row * 50;
+            
+                let highlight = Rectangle::new()
+                    .set("x", x)
+                    .set("y", y)
+                    .set("width", 50)
+                    .set("height", 50)
+                    .set("fill", "none") // Transparent fill
+                    .set("stroke", "#3189D9")
+                    .set("stroke-width", 3);
+            
+                doc = doc.add(highlight);
+            }
+            
+            if let Some(to_coords) = to {
+                let (row, col) = to_coords;
+                let x = 50 + col * 50;
+                let y = 50 + row * 50;
+            
+                let highlight = Rectangle::new()
+                    .set("x", x)
+                    .set("y", y)
+                    .set("width", 50)
+                    .set("height", 50)
+                    .set("fill", "none") // Transparent fill
+                    .set("stroke", "#3189D9")
+                    .set("stroke-width", 3);
+            
+                doc = doc.add(highlight);
+            }
+
+
+            let piece_color = if square_color == "#ccc" { // for lighter background
+                if piece.is_lowercase() {
+                    "#9e0b00" // darker red for dark pieces
+                } else {
+                    "#665628" // darker gray for light pieces
+                }
+            } else { // for darker background
+                if piece.is_lowercase() {
+                    "#ff8e8e" // lighter red for dark pieces
+                } else {
+                    "#ffefc1" // lighter gray for light pieces
+                }
+            };
+
+
+            let mut text = Text::new()
+                .set("x", x + 25)
+                .set("y", y + 35)
+                .set("text-anchor", "middle")
+                .set("font-size", 30)
+                .set("fill", piece_color);
+
+            if piece.is_uppercase() {
+                text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+            } else {
+                text = text.add(svg::node::Text::new(piece.to_string()));
+            }
+
+            doc = doc.add(text);
+        }
+    }
+}
+
+doc
+}
+
+
+
+// Function to generate the SVG chessboard with black orientation
+fn generate_black_oriented_chessboard(
+    chessboard: &[[char; 8]; 8], 
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>
+    ) -> Document {
+
+    let mut doc = Document::new()
+        .set("width", "500")  
+        .set("height", "500")  
+        .set("viewBox", (0, 0, 500, 500))
+        .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+    // Define labels, reversed for black piece orientation
+    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    // Add column labels
+    for (idx, label) in column_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 50 + idx * 50 + 25)  
+            .set("y", 472)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  // Set text color to dark grey
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
+    }
+
+    // Add row labels
+    for (idx, label) in row_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 32)  
+            .set("y", 50 + idx * 50 + 35)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
+    }
+
+    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+            let x = 50 + col * 50;  
+            let y = 50 + row * 50;  
+
+            let square_color = if (row + col) % 2 == 0 {
+                "#ccc"
+            } else {
+                "#666"
+            };
+            
+            let square = Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", 50)
+                .set("height", 50)
+                .set("fill", square_color);
+
+            doc = doc.add(square);
+
+            if piece != ' ' {
+
+                if let Some(from_coords) = from {
+                    let (row, col) = from_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+                
+                if let Some(to_coords) = to {
+                    let (row, col) = to_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+
+                    
+                let piece_color = if square_color == "#666" { // for darker background
+                    if piece.is_uppercase() {
+                        "#ffefc1" // lighter gray for light pieces
+                    } else {
+                        "#ff8e8e" // lighter red for dark pieces
+                    }
+                } else { // for lighter background
+                    if piece.is_uppercase() {
+                        "#665628" // darker gray for light pieces
+                    } else {
+                        "#9e0b00" // darker red for dark pieces
+                    }
+                };
+
+                let mut text = Text::new()
+                    .set("x", x + 25)
+                    .set("y", y + 35)
+                    .set("text-anchor", "middle")
+                    .set("font-size", 30)
+                    .set("fill", piece_color);
+
+                if piece.is_uppercase() {
+                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+                } else {
+                    text = text.add(svg::node::Text::new(piece.to_string()));
+                }
+
+                doc = doc.add(text);
+            }
+        }
+    }
+
+    doc
+}

@@ -16,7 +16,11 @@ use std::fs;
 
 
 // Function to generate the SVG chessboard
-fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
+fn generate_white_oriented_chessboard(
+        chessboard: &[[char; 8]; 8], 
+        from: Option<(usize, usize)>, 
+        to: Option<(usize, usize)>
+    ) -> String {
     let mut doc = Document::new()
         .set("width", "500")  // Adjusting the width to account for labels
         .set("height", "500")  // Adjusting the height to account for labels
@@ -74,6 +78,42 @@ fn generate_chessboard(chessboard: &[[char; 8]; 8]) -> String {
             if piece != ' ' {
 
 
+                // setting from an to color
+                if let Some(from_coords) = from {
+                    let (row, col) = from_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+                
+                if let Some(to_coords) = to {
+                    let (row, col) = to_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+
+
                 let piece_color = if square_color == "#ccc" { // for lighter background
                     if piece.is_lowercase() {
                         "#9e0b00" // darker red for dark pieces
@@ -123,7 +163,7 @@ fn main() {
         ['R', 'N', 'B', 'Q', 'K', 'B', ' ', 'R'],
     ];
 
-    let svg_code = generate_chessboard(&chessboard_state);
+    let svg_code = generate_white_oriented_chessboard(&chessboard_state);
     
     println!("{}", svg_code);
     // Define the file name
