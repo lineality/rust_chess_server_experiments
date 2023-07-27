@@ -605,7 +605,7 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
             };
 
             // Generate SVG with these coordinates
-            let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
+            // let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
 
             // Define the file name
             let file_name = "board.svg";
