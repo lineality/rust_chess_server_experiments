@@ -7,20 +7,9 @@ RUST_BACKTRACE=full cargo run
 /* 
 TODO:
 
-game_data:
-function to save game_data
-function to load game_data
-testing?
+-- stryct gamee_data dict...
+seave as json file
 
-...maybe add this to setup-game...
-...maybe part of 'start' game?
-
-
-where to call functions...
-
-
-game_phrase route...
-maybe fork of setup?
 
 
 - make and get game_data json!
@@ -52,24 +41,31 @@ if that game_name's ip_hash list
 - then gamephrase_get will set their hashed IP in the game_data json
 
 
+
+
 - add restart...
     - trigger set up net game
 
 - get ip
 
+Qd1c2
+start
 
+- make white and black display
+- show html...
 
 - complete secure 'login' for game
 - move to loading in game_data
 - check user IP-lossy-hash
-- make somewhat longer (20-3?) 
+- make somewhat longer (20-3?)
+- 
 
 - other secure-server aspects?
 
 - think about mudd game
 -- mudd-builder...
 - Doore
-
+- 
 
 
 - game setup:
