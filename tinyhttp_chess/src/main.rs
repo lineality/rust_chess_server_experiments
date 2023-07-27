@@ -140,7 +140,7 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Response, Method}; // Header
+use tiny_http::{Server, Response, Method, Header}; 
 use std::path::Path;
 
 // Variables
@@ -252,16 +252,22 @@ fn main() {
             //     }
             // };
 
-            // call game move function
+
             let response = match handle_chess_move(game_name, move_data) {
-                Ok(response_string) => {
-                    Response::from_string(response_string).with_status_code(200)
+                Ok(svg_content) => {
+                    let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                        .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+            
+                    Response::from_string(svg_content).with_header(header).with_status_code(200)
                 },
                 Err(e) => {
                     eprintln!("Failed to handle move: {}", e);
                     Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
                 }
             };
+            
+            
+            
 
             if let Err(e) = request.respond(response) {
                 eprintln!("Failed to respond to request: {}", e);
