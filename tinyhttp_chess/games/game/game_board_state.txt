@@ -3,6 +3,6 @@ pp ppp
 n p     
   p   pp
  PP     
-nPP    N
-P  PPPPP
-R BQKB R
+nPQ    N
+P QPPPPP
+R B KB R

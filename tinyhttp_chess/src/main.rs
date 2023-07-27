@@ -6,7 +6,39 @@ RUST_BACKTRACE=full cargo run
 
 /* 
 TODO:
+
+- make and get game_data json!
+    - ip hash list
+    - move log?
+    - last move?
+    - game_board_state
+    - game timestamp
+    - activity timestamp
+    - hashed_gamephrase
+    - 
+
 - get user IP and hash it
+
+- add b in 
+
+- pass 'b' somehow to move_handler
+
+- check user IP somewhere
+
+- create a game_phrase resirect thing...or instructions to put in
+
+- then gamephrase_get will set their hashed IP in the game_data json
+
+
+
+
+- add restart...
+    - trigger set up net game
+
+- get ip
+
+Qd1c2
+start
 
 - make white and black display
 - show html...
@@ -179,6 +211,39 @@ fn main() {
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
+            // match request.remote_addr() {
+            //     Some(socket_addr) => {
+            //         let user_ip = socket_addr.ip();
+            //         println!("Client IP: {:?}", user_ip);
+        
+            //         // Place your code here where you handle the request using the IP information
+            //         // ...
+        
+            //     },
+            //     None => println!("Could not retrieve client IP"),
+            // }
+            
+
+            let ip_hash = match request.remote_addr() {
+                Some(socket_addr) => {
+                    let ip_string = socket_addr.ip().to_string();
+                    
+                    // Assuming you have a timestamp string at this point
+                    let timestamp_string = "your_timestamp_string_here";
+        
+                    // Now you can make a hash from the IP string and the timestamp string
+                    make_hash(&ip_string, &timestamp_string)
+
+                },
+                None => {
+                    println!("Could not retrieve client IP");
+                    continue;
+                },
+            };
+
+            println!("ip_hash: {:?}", ip_hash);
+            
+
             // // landing page html
             // // Check if it's the landing page (base domain only)
             // if url_parts.len() == 2 {
@@ -240,6 +305,11 @@ fn main() {
                 },
                 Ok(()) => {},
             }
+
+            // if 'start' reset and return blank board
+
+
+
 
             // // call game move function
             // let response = match handle_chess_move(game_name, move_data) {
@@ -475,39 +545,12 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
     };
 
     match parse_move(&move_data) {
-        Ok((piece, from, to)) => {
+        Ok((is_black, piece, from, to)) => {
             // This is the successful case. `piece`, `from`, and `to` are guaranteed to be initialized.
 
             // Initialize variables to hold converted coordinates
-            let mut from_x_y_coordinates: (usize, usize);
-            let mut to_x_y_coordinates: (usize, usize);
-
-            // // "FROM" moves
-            // match to_coords(&format!("{}{}", from.0, from.1)) {
-            //     Ok(coords) => {
-            //         let (x, y) = coords;
-            //         board[x][y] = ' ';
-            //         from_x_y_coordinates = coords;
-            //     },
-            //     Err(err) => {
-            //         eprintln!("Error: {}", err);
-            //         return; // Or set a default value, or propagate the error up
-            //     },
-            // };
-
-            // // "TO" moves
-            // match to_coords(&format!("{}{}", to.0, to.1)) {
-            //     Ok(coords) => {
-            //         let (x, y) = coords;
-            //         board[x][y] = piece;
-            //         to_x_y_coordinates = coords;
-            //     },
-            //     Err(err) => {
-            //         eprintln!("Error: {}", err);
-            //         return; // Or set a default value, or propagate the error up
-            //     },
-            // };
-
+            let from_x_y_coordinates: (usize, usize);
+            let to_x_y_coordinates: (usize, usize);
 
             // "FROM" moves
             let from_coords_result = to_coords(&format!("{}{}", from.0, from.1));
@@ -548,15 +591,24 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
             // generate svg
 
 
+
+
             // Inverting the coordinates for black's perspective
             let from_black_oriented = (7 - from_x_y_coordinates.0, 7 - from_x_y_coordinates.1);
             let to_black_oriented = (7 - to_x_y_coordinates.0, 7 - to_x_y_coordinates.1);
 
             // Generate SVG with these coordinates
+            let doc = if is_black {
+                generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented))
+            } else {
+                generate_white_oriented_chessboard(&board, Some(from_x_y_coordinates), Some(to_x_y_coordinates))  
+            };
+
+            // Generate SVG with these coordinates
             let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
 
             // Define the file name
-            let file_name = "chessboard_black_oriented.svg";
+            let file_name = "board.svg";
 
             // Write the svg code to the file
             svg::save(file_name, &doc).expect("Unable to write to file");
@@ -590,10 +642,8 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
 }
 
 
-
-
 // Function to generate the SVG chessboard with black orientation
-fn generate_black_oriented_chessboard(
+fn generate_white_oriented_chessboard(
     chessboard: &[[char; 8]; 8], 
     from: Option<(usize, usize)>, 
     to: Option<(usize, usize)>
@@ -743,12 +793,186 @@ fn black_to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
 }
 
 
-fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
-    if move_data.len() != 5 {
-        return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+// Function to generate the SVG chessboard with black orientation
+fn generate_black_oriented_chessboard(
+    chessboard: &[[char; 8]; 8], 
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>
+) -> Document {
+
+    let mut doc = Document::new()
+        .set("width", "500")  
+        .set("height", "500")  
+        .set("viewBox", (0, 0, 500, 500))
+        .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+    // Define labels, reversed for black piece orientation
+    let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    // Add column labels
+    for (idx, label) in column_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 50 + idx * 50 + 25)  
+            .set("y", 472)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  // Set text color to dark grey
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
     }
 
-    let chars: Vec<char> = move_data.chars().collect();
+    // Add row labels
+    for (idx, label) in row_labels.iter().enumerate() {
+        let label_text = Text::new()
+            .set("x", 32)  
+            .set("y", 50 + idx * 50 + 35)  
+            .set("text-anchor", "middle")
+            .set("font-size", 20)
+            .set("fill", "#757575")  
+            .add(svg::node::Text::new(label.to_string()));
+        doc = doc.add(label_text);
+    }
+
+    for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+        for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+            let x = 50 + col * 50;  
+            let y = 50 + row * 50;  
+
+            let square_color = if (row + col) % 2 == 0 {
+                "#ccc"
+            } else {
+                "#666"
+            };
+            
+            let square = Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", 50)
+                .set("height", 50)
+                .set("fill", square_color);
+
+            doc = doc.add(square);
+
+            if piece != ' ' {
+
+                if let Some(from_coords) = from {
+                    let (row, col) = from_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+                
+                if let Some(to_coords) = to {
+                    let (row, col) = to_coords;
+                    let x = 50 + col * 50;
+                    let y = 50 + row * 50;
+                
+                    let highlight = Rectangle::new()
+                        .set("x", x)
+                        .set("y", y)
+                        .set("width", 50)
+                        .set("height", 50)
+                        .set("fill", "none") // Transparent fill
+                        .set("stroke", "#3189D9")
+                        .set("stroke-width", 3);
+                
+                    doc = doc.add(highlight);
+                }
+
+                    
+                let piece_color = if square_color == "#666" { // for darker background
+                    if piece.is_uppercase() {
+                        "#ffefc1" // lighter gray for light pieces
+                    } else {
+                        "#ff8e8e" // lighter red for dark pieces
+                    }
+                } else { // for lighter background
+                    if piece.is_uppercase() {
+                        "#665628" // darker gray for light pieces
+                    } else {
+                        "#9e0b00" // darker red for dark pieces
+                    }
+                };
+
+                let mut text = Text::new()
+                    .set("x", x + 25)
+                    .set("y", y + 35)
+                    .set("text-anchor", "middle")
+                    .set("font-size", 30)
+                    .set("fill", piece_color);
+
+                if piece.is_uppercase() {
+                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+                } else {
+                    text = text.add(svg::node::Text::new(piece.to_string()));
+                }
+
+                doc = doc.add(text);
+            }
+        }
+    }
+
+    doc
+}
+
+
+
+// fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
+//     if move_data.len() != 5 {
+//         return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+//     }
+
+//     let chars: Vec<char> = move_data.chars().collect();
+
+//     let piece = chars.get(0).ok_or("Failed to get piece")?;
+//     let from_col = chars.get(1).ok_or("Failed to get from_col")?;
+//     let from_row_digit = chars.get(2)
+//         .ok_or("Failed to get from_row_digit")?
+//         .to_digit(10)
+//         .ok_or("Failed to parse from_row_digit to number")?;
+//     let to_col = chars.get(3).ok_or("Failed to get to_col")?;
+//     let to_row_digit = chars.get(4)
+//         .ok_or("Failed to get to_row_digit")?
+//         .to_digit(10)
+//         .ok_or("Failed to parse to_row_digit to number")?;
+
+//     let from = (*from_col, from_row_digit as u8);
+//     let to = (*to_col, to_row_digit as u8);
+
+//     Ok((*piece, from, to))
+// }
+
+fn parse_move(move_data: &str) -> Result<(bool, char, (char, u8), (char, u8)), String> {
+    let mut adjusted_move_data = String::from(move_data);
+    let is_black;
+
+    if move_data.len() > 6 {
+        return Err(format!("Invalid input length. Input should be 5 or 6 characters."));
+    }
+    
+    if move_data.len() == 6 {
+        if move_data.starts_with('b') {
+            adjusted_move_data.remove(0);  // Remove first character 'b'
+            is_black = true;
+        } else {
+            return Err(format!("If input length is 6, it must start with 'b'."));
+        }
+    } else {
+        is_black = false;
+    }
+
+    let chars: Vec<char> = adjusted_move_data.chars().collect();
 
     let piece = chars.get(0).ok_or("Failed to get piece")?;
     let from_col = chars.get(1).ok_or("Failed to get from_col")?;
@@ -765,7 +989,7 @@ fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String>
     let from = (*from_col, from_row_digit as u8);
     let to = (*to_col, to_row_digit as u8);
 
-    Ok((*piece, from, to))
+    Ok((is_black, *piece, from, to))
 }
 
 
@@ -835,16 +1059,61 @@ fn board_to_string(board: &[[char; 8]; 8]) -> String {
 }
 
 
-// Return Result with appropriate error messages instead of bool
+// // Return Result with appropriate error messages instead of bool
+// fn validate_input(input: &str) -> Result<(), String> {
+//     if input.len() != 5 {
+//         return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+//     }
+
+//     if input == "start" {
+//         return Ok(());
+//     }
+
+//     let chars: Vec<char> = input.chars().collect();
+
+//     let valid_pieces = ['p', 'r', 'n', 'b', 'q', 'k', 'P', 'R', 'N', 'B', 'Q', 'K'];
+//     let valid_cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+//     let valid_rows = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+//     if !valid_pieces.contains(&chars[0]) {
+//         return Err(format!("Invalid piece identifier. The first character should be one of 'prnbqkPRNBQK'. e.g. Pc2c4 or pc7c6 "));
+//     }
+//     if !valid_cols.contains(&chars[1]) || !valid_cols.contains(&chars[3]) {
+//         return Err(format!("Invalid column identifier. The 2nd and 4th characters should be one of 'abcdefgh'. e.g. Pc2c4 or pc7c6 "));
+//     }
+//     if !valid_rows.contains(&chars[2]) || !valid_rows.contains(&chars[4]) {
+//         return Err(format!("Invalid row identifier. The 3rd and 5th characters should be one of '12345678'.e.g. Pc2c4 or pc7c6  "));
+//     }
+    
+//     Ok(())
+// }
+
+
+
 fn validate_input(input: &str) -> Result<(), String> {
-    if input.len() != 5 {
-        return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+    // Check if the input is "start"
+    if input == "start" {
+        return Ok(());
     }
 
-    let chars: Vec<char> = input.chars().collect();
+    let mut adjusted_input = String::from(input);
+
+    if input.len() > 6 {
+        return Err(format!("Invalid input length. Input should be 5 or 6 characters."));
+    }
+
+    if input.len() == 6 {
+        if input.starts_with('b') {
+            adjusted_input.remove(0);  // Remove first character 'b'
+        } else {
+            return Err(format!("If input length is 6, it must start with 'b'."));
+        }
+    }
+
+    let chars: Vec<char> = adjusted_input.chars().collect();
 
     let valid_pieces = ['p', 'r', 'n', 'b', 'q', 'k', 'P', 'R', 'N', 'B', 'Q', 'K'];
-    let valid_cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    let valid_cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     let valid_rows = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     if !valid_pieces.contains(&chars[0]) {
@@ -854,11 +1123,12 @@ fn validate_input(input: &str) -> Result<(), String> {
         return Err(format!("Invalid column identifier. The 2nd and 4th characters should be one of 'abcdefgh'. e.g. Pc2c4 or pc7c6 "));
     }
     if !valid_rows.contains(&chars[2]) || !valid_rows.contains(&chars[4]) {
-        return Err(format!("Invalid row identifier. The 3rd and 5th characters should be one of '12345678'.e.g. Pc2c4 or pc7c6  "));
+        return Err(format!("Invalid row identifier. The 3rd and 5th characters should be one of '12345678'. e.g. Pc2c4 or pc7c6  "));
     }
     
     Ok(())
 }
+
 
 
 fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> io::Result<()> {
@@ -1084,10 +1354,9 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
 
 
 
+// use std::time::{SystemTime, UNIX_EPOCH};
 
 /*
-    requires: use std::time::{SystemTime, UNIX_EPOCH};
-
     designed to be a good-enough hash, not relying on libraries
     that includes string and timestamp
 
@@ -1113,35 +1382,6 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
     timestamp_raw = datetime.utcnow()
     # make readable string
     timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
-
-
-    test with:
-
-    fn main() {
-        // get current timestamp
-        let now = SystemTime::now();
-        let timestamp = now.duration_since(UNIX_EPOCH)
-                        .expect("Time went backwards")
-                        .as_millis()
-                        .to_string();
-
-        println!("{}", make_hash("123:123:243:234", &timestamp));
-
-        // compare small change: just the last digit of the time
-        println!("{}", make_hash("123:123:243:234", "20221008133518385205"));
-        println!("{}", make_hash("123:123:243:234", "20221008133518385206"));
-
-        // small number input: edge case check
-        println!("{}", make_hash("1", "3"));
-        println!("{}", make_hash("2", "2"));
-
-
-        // small number input: edge case check
-        println!("{}", make_hash("1", "3"));
-        println!("{}", make_hash("1", "2"));
-}
-
-
 */
 fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
 
