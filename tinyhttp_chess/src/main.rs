@@ -198,6 +198,81 @@ type Board = [[char; 8]; 8];
 fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
 ```
 does this need to changed throughout the code?
+
+
+
+github open source rust server code:
+
+
+data privacy policy/procedures:
+    The intent is to store as little (as few) data as possbile.
+    An encrypted game-state is stored.
+    No game history is stored.
+    No record of 'who' made any more is stored.
+    There is no information of any kind about
+    wins, losses, move-legality, etc.,
+    only a 'game-board'
+
+    
+    Given that manually typing in a long secure password every time
+    you made a chess-move would make the process to cumbersome.
+
+there is an inherent paradox here,
+either you are bad because A. you are identifying and tracking the uesr,
+making it possible to associate a specific user with information used by the system
+
+or you are bad because B. you are NOT identifying and tracking the uesr, making it 
+possible for some OTHER person to enguage with their server sessions, because you
+did not identify the individual person and track them with enough detail. 
+
+But you cannot be bath in both of these two ways at the same time.
+
+This design errs on the side of not storing any private information,
+which means a highly likelihood of accidentally confusing you with someone else
+(because the site delibrorately pays not attention to who you are.)
+
+If you want more security, you can opt in to the secure-chess mode, 
+which will be more secure but also more annoying to use.
+
+
+
+
+
+
+data retention policy/procedures:
+    There is no personal information. 
+    There is no account.
+    There are no cookies.
+    There is no user information or user identification.
+
+secure-mode gaming:
+- check entropy of passphrase
+- encrypt game-state
+- use passphrase for every move
+
+privacy:
+
+
+As the lesser of two wrongs, 
+Default (GPT-3.5)
+
+User
+could every other digit from an ip be used to identify an ip?
+
+ChatGPT
+No, using every other digit from an IP address would not be sufficient to identify the IP address accurately. An IP (Internet Protocol) address is a numerical label assigned to each device connected to a computer network that uses the Internet Protocol for communication. IP addresses are used to identify and locate devices on the internet.
+
+An IP address consists of four sets of numbers, separated by periods (e.g., 192.168.1.1). Each set can range from 0 to 255, and there are over four billion possible combinations.
+
+If you were to use every other digit from an IP address, you would lose critical information and could potentially identify multiple IP addresses with the same pattern. For example:
+
+Original IP address: 192.168.1.1
+Using every other digit: 92811
+
+There could be other IP addresses like 9.2.8.1.1, 9.2.8.11, etc., that would also share the same pattern of digits. Hence, using every other digit would not uniquely identify an IP address.
+
+To accurately identify an IP address, you need to consider all four sets of numbers in the correct order. This is why the complete IP address is necessary for network communication and administration.
+
 */
 
 
@@ -222,15 +297,15 @@ use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
 
-struct GameData {
-    activity_timestamp: i64,
-    game_type: String,
-    ip_hash_list: Vec<i32>,
-    game_board_state: [[char; 8]; 8], // Assuming 8x8 2D array of characters (change size as needed)
-    game_timestamp: i64,
-    hashed_gamephrase: String,
-    svg_string: String,
-}
+// struct GameData {
+//     activity_timestamp: i64,
+//     game_type: String,
+//     ip_hash_list: Vec<i32>,
+//     game_board_state: [[char; 8]; 8], // Assuming 8x8 2D array of characters (change size as needed)
+//     game_timestamp: i64,
+//     hashed_gamephrase: String,
+//     svg_string: String,
+// }
 
 
 fn main() {
@@ -250,15 +325,16 @@ fn main() {
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
-            let ip_hash = match request.remote_addr() {
+
+            let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
+                    
                     let ip_string = socket_addr.ip().to_string();
                     
-                    // Assuming you have a timestamp string at this point
-                    let timestamp_string = "your_timestamp_string_here";
+                    println!("{}", ip_string);
         
                     // Now you can make a hash from the IP string and the timestamp string
-                    make_hash(&ip_string, &timestamp_string)
+                    str_filter_alternating(&ip_string)
 
                 },
                 None => {
@@ -267,7 +343,27 @@ fn main() {
                 },
             };
 
-            println!("ip_hash: {:?}", ip_hash);
+            println!("ip_stamp: {}", ip_stamp);
+
+
+            
+
+            // let ip_stamp = match request.remote_addr() {
+            //     Some(socket_addr) => {
+            //         let ip_string = socket_addr.ip().to_string();
+                    
+        
+            //         // Now you can make a hash from the IP string and the timestamp string
+            //         make_hash(&ip_string, &timestamp_string)
+
+            //     },
+            //     None => {
+            //         println!("Could not retrieve client IP");
+            //         continue;
+            //     },
+            // };
+
+            // println!("ip_stamp: {:?}", ip_stamp);
 
         ////////////////
         // landing page
@@ -354,7 +450,7 @@ fn main() {
                 let game_phrase = url_parts[4].to_string();
 
                 // Call setup_new_game here
-                let response = match setup_new_game(&game_type, &game_name, &game_phrase) {
+                let response = match setup_new_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
                     Ok(_) => Response::from_string("Game setup successfully.")
                         .with_status_code(200),
 
@@ -1028,7 +1124,7 @@ fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
 
 
 
-fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::io::Result<()> {
+fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
     // Validate game_name: novel, permitted, ascii etc.
     if !is_valid_game_name(game_name) {
@@ -1060,7 +1156,21 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
 
     // make a game_data json
 
-    // Posix Timestamp in gamedata json file:
+    // Posix Timestamp for game_timestamp and activity_timestamp
+    let this_timestamp: i128 = timestamp();
+
+
+    // make gamephrase hash
+    let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
+
+
+    // make ip_hash
+    let hashed_ip_stamp = make_hash(ip_stamp, this_timestamp, 10);
+
+
+    // hash game phrase and ip stamp before constructing GameData
+
+    
 
     // Set up board
     let board: [[char; 8]; 8] = [
@@ -1080,9 +1190,6 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
         eprintln!("Failed to save game state: {}", e);
     }
 
-    // save svg in game diretory
-
-
 
     // create folder for game_name
     let dir_path = format!("./games/{}", game_name);
@@ -1097,12 +1204,119 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
 
     writeln!(file, "{}", game_type)?;
 
-    // write gametype, timestamp
-    if let Err(e) = create_gamedata_json(&dir_path, game_name, game_type, 0) {
-        eprintln!("Failed to create game data: {}", e);
-    }
+    // create first game_data struct
+    let ip_hash_list = vec![hashed_ip_stamp];
+    
+    let game_board_state:[[char; 8]; 8] = board;
+    let game_data = GameData::new(
+        hashed_gamephrase, 
+        game_type, 
+        this_timestamp,
+        this_timestamp,
+        ip_hash_list, 
+        game_board_state
+    )?;
+
+
+    // write
+    game_data.to_json(&dir_path)?;
+    
+
+
+    // // write gametype, timestamp
+    // if let Err(e) = create_gamedata_json(&dir_path, game_name, game_type, 0) {
+    //     eprintln!("Failed to create game data: {}", e);
+    // }
 
     Ok(())
+}
+
+// // GameData struct
+// use std::fs::OpenOptions;
+// use std::io::{self, Write};
+// use std::time::{SystemTime, UNIX_EPOCH};
+
+struct GameData {
+    hashed_gamephrase: u128,
+    game_type: String,
+    game_timestamp: i128,
+    activity_timestamp: i128,
+    ip_hash_list: Vec<u128>,
+    game_board_state: [[char; 8]; 8],
+}
+
+
+impl GameData {
+    fn new(
+        hashed_gamephrase: u128, 
+        game_type: &str, 
+        game_timestamp: i128,
+        activity_timestamp: i128,
+        ip_hash_list: Vec<u128>, 
+        game_board_state: [[char; 8]; 8]) -> io::Result<Self> {
+
+        let now = SystemTime::now();
+        let duration = now.duration_since(UNIX_EPOCH).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error while getting duration: {}", err),
+            )
+        })?;
+
+        Ok(Self {
+            hashed_gamephrase,
+            game_type: game_type.to_string(),
+            game_timestamp,
+            activity_timestamp,
+            ip_hash_list,
+            game_board_state,
+        })
+    }
+
+    fn to_json(&self, dir_path: &str) -> io::Result<()> {
+        let ip_hash_list = self.ip_hash_list.iter()
+            .map(|&n| n.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let game_board_state = self.game_board_state.iter()
+            .map(|row| {
+                row.iter()
+                    .map(|&c| c.to_string())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let json_data = format!(
+            r#"{{
+                "hashed_gamephrase": {},
+                "game_type": "{}",
+                "game_timestamp": {},
+                "activity_timestamp": {},
+                "ip_hash_list": [{}],
+                "game_board_state": ["{}"]
+            }}"#,
+            self.hashed_gamephrase,
+            self.game_type,
+            self.game_timestamp,
+            self.activity_timestamp,
+            ip_hash_list,
+            game_board_state
+        );
+
+        let json_path = format!("{}/game_data.json", dir_path);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&json_path)?;
+
+        writeln!(file, "{}", json_data)?;
+
+        Ok(())
+    }
 }
 
 
@@ -1140,18 +1354,50 @@ fn is_valid_game_name(game_name: &str) -> bool {
 }
 
 
+fn timestamp() -> i128 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_secs() as i128,
+        Err(error) => {
+            eprintln!("Error: {}", error);
+            0
+        }
+    }
+}
+
+
+// fn timestamp() -> u64 {
+//     match SystemTime::now().duration_since(UNIX_EPOCH) {
+//         Ok(duration) => duration.as_secs(),
+//         Err(error) => {
+//             // Handle the error (e.g., print an error message, log, etc.)
+//             eprintln!("Error: {}", error);
+//             1
+//         }
+//     }
+// }
+
+fn str_filter_alternating(input_string: &str) -> String {
+    // Filter out periods and convert the string into a vector of characters
+    let chars: Vec<char> = input_string.chars().filter(|&c| c != '.').collect();
+
+    // Create a new vector containing every other character from the filtered vector
+    let mut shorter_chars = Vec::new();
+    for (index, &c) in chars.iter().enumerate() {
+        if index % 2 == 0 {
+            shorter_chars.push(c);
+        }
+    }
+
+    // Convert the vector of characters back into a string
+    let shorter_string: String = shorter_chars.into_iter().collect();
+
+    shorter_string
+}
+
+
 fn create_gamedata_json(dir_path: &str, game_name: &str, game_type: &str, move_number: u32) -> io::Result<()> {
-    // Get the current time
-    let now = SystemTime::now();
-    // Calculate the duration since UNIX EPOCH
-    let duration = now.duration_since(UNIX_EPOCH).map_err(|err| {
-        io::Error::new(
-            io::ErrorKind::Other,
-            format!("Error while getting duration: {}", err),
-        )
-    })?;
-    // Extract the seconds from the duration
-    let timestamp_secs = duration.as_secs() as i64;
+
+    let current_timestamp = timestamp();
 
     // Create the JSON string
     let json_data = format!(
@@ -1163,8 +1409,8 @@ fn create_gamedata_json(dir_path: &str, game_name: &str, game_type: &str, move_n
             "move_number": {}
         }}"#,
         game_name,
-        timestamp_secs,
-        timestamp_secs,
+        current_timestamp,
+        current_timestamp,
         game_type,
         move_number
     );
@@ -1205,117 +1451,6 @@ fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
     Ok(())
 }
 
-
-
-// use std::time::{SystemTime, UNIX_EPOCH};
-
-/*
-    designed to be a good-enough hash, not relying on libraries
-    that includes string and timestamp
-
-    the timestamp kind of functions as a 'secret key'
-    as in crypographic 'signing' and verification
-    again: not meant to be super world class,
-    but light weight and easy to debug,
-    not likely to have unexpected or incomprehensible issues
-    no external libraries, trust issues, etc. 
-    
-    the first few digits are less random, so -> removed
-    this also keeps the hash from getting huge so quickly
-
-    to make the numbers more significantly different if even one
-    input character is changed: add an additional hash if the 
-    current hash is odd/even (even picked here)
-
-    Recommended:
-    for timestamp: use this to get sub-second depth in a string
-
-    from datetime import datetime
-    # get time
-    timestamp_raw = datetime.utcnow()
-    # make readable string
-    timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
-*/
-fn make_hash(input_string: &str, timestamp_string: &str) -> u128 {
-
-    // first set the string-to-hash to be the input_string
-    let mut string_to_hash = String::from(input_string);
-
-    // then add the timestamp to the string
-    string_to_hash.push_str(timestamp_string);
-
-    // Before starting: set hash to value of 1
-    let mut hash: u128 = 1;
-
-    // begin iterating through the hashstring, on character at at time
-    for this_character in string_to_hash.chars() {
-        // println!("this_character {}", this_character);
-        // println!("this_character as u128 {}", this_character as u128);
-
-
-        /*  Step 1: Sum & Product
-            Calculate the new hash value using integer arithmetic
-            - Turn the character into a number
-            - sum (add) the hash and that character
-            - product: multiply that sum by 101 
-            (31 can be used alternatiely)
-        */
-        hash = 101 * (hash + this_character as u128);
-        // println!("step 1 hash {}", hash);
-
-
-        /*  Step 2: Flip
-            re-hash if the hash is even
-        */
-        if hash % 2 == 0 {
-            hash = 101 * (hash + this_character as u128);
-        }
-        // println!("step 2 flip hash {}", hash);
-
-
-        /*  Step 3: Trim 
-            Reduce the hash to a 6-digit number by parsing it as a string
-        */
-        let hash_str = hash.to_string();
-
-
-        // remove the first character from everything
-        hash = match hash_str[1..].parse() {
-            Ok(parsed_hash) => parsed_hash,
-            Err(_) => {
-                eprintln!("Failed to parse hash: {}", hash_str);
-                0 // Set a default value or take appropriate action on parsing failure
-            }
-        };
-    
-        // remove 2 front characters from medium hashes
-        if hash_str.len() > 6 {
-            hash = match hash_str[2..].parse() {
-                Ok(parsed_hash) => parsed_hash,
-                Err(_) => {
-                    eprintln!("Failed to parse hash: {}", hash_str);
-                    0 // Set a default value or take appropriate action on parsing failure
-                }
-            };
-        }
-
-        // remove 3 front characters from long hashes
-        if hash_str.len() > 20 {
-            hash = match hash_str[3..].parse() {
-                Ok(parsed_hash) => parsed_hash,
-                Err(_) => {
-                    eprintln!("Failed to parse hash: {}", hash_str);
-                    0 // Set a default value or take appropriate action on parsing failure
-                }
-            };
-        }
-        
-    }
-    // println!("finished hash {}", hash);
-    
-    // return hash
-    hash
-}
 
 
 
@@ -1589,3 +1724,117 @@ fn generate_black_oriented_chessboard(
 
     doc
 }
+
+/*
+    designed to be a good-enough hash, not relying on libraries
+    that includes string and timestamp
+
+    the timestamp kind of functions as a 'secret key'
+    as in crypographic 'signing' and verification
+    again: not meant to be super world class,
+    but light weight and easy to debug,
+    not likely to have unexpected or incomprehensible issues
+    no external libraries, trust issues, etc. 
+    
+    the first few digits are less random, so -> removed
+    this also keeps the hash from getting huge so quickly
+
+    to make the numbers more significantly different if even one
+    input character is changed: add an additional hash if the 
+    current hash is odd/even (even picked here)
+
+    Recommended:
+    for timestamp: use this to get sub-second depth in a string
+
+    from datetime import datetime
+    # get time
+    timestamp_raw = datetime.utcnow()
+    # make readable string
+    timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
+*/
+fn make_hash(input_string: &str, timestamp_int: i128, iterate_hash: i32) -> u128 {
+
+    let timestamp_string = timestamp_int.to_string();
+
+    // first set the string-to-hash to be the input_string
+    let mut string_to_hash = String::from(input_string);
+
+    // then add the timestamp to the string
+    string_to_hash.push_str(&timestamp_string);
+
+    // Before starting: set hash to value of 1
+    let mut hash: u128 = 1;
+
+    for _ in 0..iterate_hash {
+
+    // begin iterating through the hashstring, on character at at time
+    for this_character in string_to_hash.chars() {
+        // println!("this_character {}", this_character);
+        // println!("this_character as u128 {}", this_character as u128);
+
+
+        /*  Step 1: Sum & Product
+            Calculate the new hash value using integer arithmetic
+            - Turn the character into a number
+            - sum (add) the hash and that character
+            - product: multiply that sum by 101 
+            (31 can be used alternatiely)
+        */
+        hash = 101 * (hash + this_character as u128);
+        // println!("step 1 hash {}", hash);
+
+
+        /*  Step 2: Flip
+            re-hash if the hash is even
+        */
+        if hash % 2 == 0 {
+            hash = 101 * (hash + this_character as u128);
+        }
+        // println!("step 2 flip hash {}", hash);
+
+
+        /*  Step 3: Trim 
+            Reduce the hash to a 6-digit number by parsing it as a string
+        */
+        let hash_str = hash.to_string();
+
+
+        // remove the first character from everything
+        hash = match hash_str[1..].parse() {
+            Ok(parsed_hash) => parsed_hash,
+            Err(_) => {
+                eprintln!("Failed to parse hash: {}", hash_str);
+                0 // Set a default value or take appropriate action on parsing failure
+            }
+        };
+    
+        // remove 2 front characters from medium hashes
+        if hash_str.len() > 6 {
+            hash = match hash_str[2..].parse() {
+                Ok(parsed_hash) => parsed_hash,
+                Err(_) => {
+                    eprintln!("Failed to parse hash: {}", hash_str);
+                    0 // Set a default value or take appropriate action on parsing failure
+                }
+            };
+        }
+
+        // remove 3 front characters from long hashes
+        if hash_str.len() > 20 {
+            hash = match hash_str[3..].parse() {
+                Ok(parsed_hash) => parsed_hash,
+                Err(_) => {
+                    eprintln!("Failed to parse hash: {}", hash_str);
+                    0 // Set a default value or take appropriate action on parsing failure
+                }
+            };
+        }
+        
+    }
+    
+    } // finished hash 10x loop
+    
+    // return hash
+    hash
+}
+

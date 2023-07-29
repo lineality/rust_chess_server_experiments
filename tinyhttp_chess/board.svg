@@ -48,11 +48,16 @@ H
 1
 </text>
 <rect fill="#ccc" height="50" width="50" x="50" y="50"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="75" y="85">
+r
+</text>
 <rect fill="#666" height="50" width="50" x="100" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
 <text fill="#ff8e8e" font-size="30" text-anchor="middle" x="125" y="85">
-r
+n
 </text>
 <rect fill="#ccc" height="50" width="50" x="150" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
@@ -103,6 +108,11 @@ p
 p
 </text>
 <rect fill="#666" height="50" width="50" x="150" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="175" y="135">
+p
+</text>
 <rect fill="#ccc" height="50" width="50" x="200" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
@@ -122,20 +132,20 @@ p
 p
 </text>
 <rect fill="#666" height="50" width="50" x="350" y="100"/>
-<rect fill="#ccc" height="50" width="50" x="400" y="100"/>
-<rect fill="#ccc" height="50" width="50" x="50" y="150"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#9e0b00" font-size="30" text-anchor="middle" x="75" y="185">
-n
-</text>
-<rect fill="#666" height="50" width="50" x="100" y="150"/>
-<rect fill="#ccc" height="50" width="50" x="150" y="150"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#9e0b00" font-size="30" text-anchor="middle" x="175" y="185">
+<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="375" y="135">
 p
 </text>
+<rect fill="#ccc" height="50" width="50" x="400" y="100"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#9e0b00" font-size="30" text-anchor="middle" x="425" y="135">
+p
+</text>
+<rect fill="#ccc" height="50" width="50" x="50" y="150"/>
+<rect fill="#666" height="50" width="50" x="100" y="150"/>
+<rect fill="#ccc" height="50" width="50" x="150" y="150"/>
 <rect fill="#666" height="50" width="50" x="200" y="150"/>
 <rect fill="#ccc" height="50" width="50" x="250" y="150"/>
 <rect fill="#666" height="50" width="50" x="300" y="150"/>
@@ -144,33 +154,13 @@ p
 <rect fill="#666" height="50" width="50" x="50" y="200"/>
 <rect fill="#ccc" height="50" width="50" x="100" y="200"/>
 <rect fill="#666" height="50" width="50" x="150" y="200"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="175" y="235">
-p
-</text>
 <rect fill="#ccc" height="50" width="50" x="200" y="200"/>
 <rect fill="#666" height="50" width="50" x="250" y="200"/>
 <rect fill="#ccc" height="50" width="50" x="300" y="200"/>
 <rect fill="#666" height="50" width="50" x="350" y="200"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="375" y="235">
-p
-</text>
 <rect fill="#ccc" height="50" width="50" x="400" y="200"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#9e0b00" font-size="30" text-anchor="middle" x="425" y="235">
-p
-</text>
 <rect fill="#ccc" height="50" width="50" x="50" y="250"/>
 <rect fill="#666" height="50" width="50" x="100" y="250"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#ffefc1" font-size="30" text-anchor="middle" x="125" y="285">
-P
-</text>
 <rect fill="#ccc" height="50" width="50" x="150" y="250"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
@@ -183,33 +173,13 @@ P
 <rect fill="#ccc" height="50" width="50" x="350" y="250"/>
 <rect fill="#666" height="50" width="50" x="400" y="250"/>
 <rect fill="#666" height="50" width="50" x="50" y="300"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#ff8e8e" font-size="30" text-anchor="middle" x="75" y="335">
-n
-</text>
 <rect fill="#ccc" height="50" width="50" x="100" y="300"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#665628" font-size="30" text-anchor="middle" x="125" y="335">
-P
-</text>
 <rect fill="#666" height="50" width="50" x="150" y="300"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#ffefc1" font-size="30" text-anchor="middle" x="175" y="335">
-Q
-</text>
 <rect fill="#ccc" height="50" width="50" x="200" y="300"/>
 <rect fill="#666" height="50" width="50" x="250" y="300"/>
 <rect fill="#ccc" height="50" width="50" x="300" y="300"/>
 <rect fill="#666" height="50" width="50" x="350" y="300"/>
 <rect fill="#ccc" height="50" width="50" x="400" y="300"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
-<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
-<text fill="#665628" font-size="30" text-anchor="middle" x="425" y="335">
-N
-</text>
 <rect fill="#ccc" height="50" width="50" x="50" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
@@ -217,6 +187,11 @@ N
 P
 </text>
 <rect fill="#666" height="50" width="50" x="100" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="125" y="385">
+P
+</text>
 <rect fill="#ccc" height="50" width="50" x="150" y="350"/>
 <rect fill="#666" height="50" width="50" x="200" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
@@ -255,6 +230,11 @@ P
 R
 </text>
 <rect fill="#ccc" height="50" width="50" x="100" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="125" y="435">
+N
+</text>
 <rect fill="#666" height="50" width="50" x="150" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
@@ -262,6 +242,11 @@ R
 B
 </text>
 <rect fill="#ccc" height="50" width="50" x="200" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#665628" font-size="30" text-anchor="middle" x="225" y="435">
+Q
+</text>
 <rect fill="#666" height="50" width="50" x="250" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
@@ -275,6 +260,11 @@ K
 B
 </text>
 <rect fill="#666" height="50" width="50" x="350" y="400"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
+<rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
+<text fill="#ffefc1" font-size="30" text-anchor="middle" x="375" y="435">
+N
+</text>
 <rect fill="#ccc" height="50" width="50" x="400" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="150" y="250"/>
