@@ -6,6 +6,27 @@ RUST_BACKTRACE=full cargo run
 
 /* 
 TODO:
+where is gamae-data set...
+https://chat.openai.com/share/f877e8d6-754b-47e6-90ec-4588223b893d 
+
+task scheduling...
+
+Duty Roster:
+    events have startby dates listed in duty_roster directory,
+    check duty_roster directory at start of each action
+    to see if there are tasks to do (e.g. delete old games)
+    if any startby date is smaller number than today's date,
+    make a gueue
+    open that folder
+    do the task
+
+
+slightly more orange ivory color for background
+try
+shapes...
+during setup...
+type of pieces...
+
 
 game_data:
 function to save game_data
@@ -212,7 +233,6 @@ struct GameData {
 }
 
 
-
 fn main() {
     let server = match Server::http("0.0.0.0:8000") {
         Ok(server) => server,
@@ -229,19 +249,6 @@ fn main() {
         // get request containing game and move
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
-
-            // match request.remote_addr() {
-            //     Some(socket_addr) => {
-            //         let user_ip = socket_addr.ip();
-            //         println!("Client IP: {:?}", user_ip);
-        
-            //         // Place your code here where you handle the request using the IP information
-            //         // ...
-        
-            //     },
-            //     None => println!("Could not retrieve client IP"),
-            // }
-            
 
             let ip_hash = match request.remote_addr() {
                 Some(socket_addr) => {
@@ -261,32 +268,10 @@ fn main() {
             };
 
             println!("ip_hash: {:?}", ip_hash);
-            
 
-            // // landing page html
-            // // Check if it's the landing page (base domain only)
-            // if url_parts.len() == 2 {
-            //     let response = match landing_page() {
-            //         Ok(response_string) => {
-            //             Response::from_data(response_string)
-            //                 .with_header(Header::from_bytes("Content-Type", "text/html").unwrap())
-            //                 .with_status_code(200)
-            //         },
-            //         Err(e) => {
-            //             eprintln!("Failed to generate landing page: {}", e);
-            //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
-            //         }
-            //     };
-
-            //     if let Err(e) = request.respond(response) {
-            //         eprintln!("Failed to respond to request: {}", e);
-            //     }
-            //     continue; // No need to run the rest of the loop for the landing page
-            // }
-
-
-        // landing page (NOT HTML, keep it)
-        // Check if it's the landing page (base domain only)
+        ////////////////
+        // landing page
+        ////////////////
         if url_parts.len() == 2 {
             let response = match landing_page_no_html() {
                 Ok(response_string) => {
@@ -304,7 +289,9 @@ fn main() {
             continue; // No need to run the rest of the loop for the landing page
             }
 
-        // if chess game maove
+        /////////
+        // m0ve
+        ////////
         else if url_parts.len() == 3 {
 
             let game_name = url_parts[1].to_string();
@@ -328,20 +315,7 @@ fn main() {
             // if 'start' reset and return blank board
 
 
-
-
             // // call game move function
-            // let response = match handle_chess_move(game_name, move_data) {
-            //     Ok(response_string) => {
-            //         Response::from_string(response_string).with_status_code(200)
-            //     },
-            //     Err(e) => {
-            //         eprintln!("Failed to handle move: {}", e);
-            //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-            //     }
-            // };
-
-
             let response = match handle_chess_move(game_name, move_data) {
                 Ok(svg_content) => {
                     let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
@@ -355,8 +329,6 @@ fn main() {
                 }
             };
             
-            
-            
 
             if let Err(e) = request.respond(response) {
                 eprintln!("Failed to respond to request: {}", e);
@@ -364,8 +336,9 @@ fn main() {
 
         } 
 
-
-        // setup (new game)
+        //////////
+        // setup    (new game)
+        /////////
         else if url_parts.len() == 5 {
             let mode = url_parts[1].to_string();
             if mode != "setup" {
@@ -394,34 +367,6 @@ fn main() {
                 }
             }
         }
-
-        
-
-        // // setup (new game)
-        // else if url_parts.len() == 5 {
-        //     let mode = url_parts[1].to_string();
-        //     if mode != "setup"...exit error
-
-        //     let game_type = url_parts[2].to_string();            
-        //     let game_name = url_parts[3].to_string();
-        //     let game_phrase = url_parts[4].to_string();
-
-        //     // Call setup_new_game here
-        //     let response = match setup_new_game(game_type, game_name, game_phrase) {
-        //         Ok(_) => Response::from_string("Game setup successfully.")
-        //             .with_status_code(200),
-
-        //         Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
-        //             .with_status_code(500),
-        //     };
-
-        //     if let Err(e) = request.respond(response) {
-        //         eprintln!("Failed to respond to request: {}", e);
-        //     }
-        // }
-
-
-
 
         else {
             // ... Invalid request format
@@ -488,12 +433,12 @@ fn main() {
 //         Ok(response_string)
 //     }
 
+
 fn landing_page_no_html() -> Result<String, Box<dyn std::error::Error>> {
 
     // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
     // For this example, I'll provide a simple response with a "Hello, World!" message.
     let response_string = r#"
-    Try https://y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE & https://y0urm0ve.com/YOUR_GAME_NAME/Pc2c4
 
         r n b q k b n r
         p p p p p p p p
@@ -504,12 +449,21 @@ fn landing_page_no_html() -> Result<String, Box<dyn std::error::Error>> {
         P P . P P P P P
         R N B Q K B N R
         
-        天　ラ　白
-        丼　ー　竜
-        ん　八　メ
-        八　ン
-        万
+        た　天　海　ラ　白
+        こ　丼　老　ー　竜
+        焼　ん　二　八　メ
+        き　八　匹　ン
+        三　万　
+        百　円
         円
+
+        y0urm0ve.com/setup/chess/
+        　　　　YOUR_GAME_NAME/
+        　　　　　　YOUR_GAME_PHRASE 
+
+        y0urm0ve.com/
+        　　YOUR_GAME_NAME/
+        　　　　Pc2c4
 
         "#.to_string();
 
@@ -524,6 +478,7 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
 
     // File Setup
     let dir_path = format!("./games/{}", game_name);
+
     std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
 
     let file_path = format!("{}/moves.csv", dir_path);
@@ -1085,7 +1040,8 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
     make files and folders...
     set up and save initial game board
 
-    store date in a file:
+    store date in a json file:
+
     last_activity = posix timestamp
 
     // make a game_data json:
@@ -1093,6 +1049,12 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
     game_type: chess
     move_number: 0
     set game type = chess
+
+    two gametypes for now
+
+    chess
+    chess960
+        chess_gomeclock
 
     */
 
@@ -1111,12 +1073,16 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str) -> std::i
         ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
     ];
-    
+
 
     // Save game (save game_board_state to .txt file)
     if let Err(e) = save_game_board_state(&game_name, board) {
         eprintln!("Failed to save game state: {}", e);
     }
+
+    // save svg in game diretory
+
+
 
     // create folder for game_name
     let dir_path = format!("./games/{}", game_name);
