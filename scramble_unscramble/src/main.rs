@@ -1,18 +1,26 @@
 fn scramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
-    // Convert seed into a sequence of numbers
-    let numbers: Vec<usize> = seed.chars().map(|c| c as usize).collect();
+    // Convert seed into a sequence of operations
+    let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
 
-    // Apply transformations
-    for (i, &num) in numbers.iter().enumerate() {
-        let num = num % array.len(); // ensure num is within valid range
+    // Apply operations
+    for (i, &(index, direction)) in operations.iter().enumerate() {
         if i % 2 == 0 {
-            // Apply transformation to rows
-            array.rotate_left(num);
+            // Apply operation to rows
+            if direction {
+                array[index].rotate_left(1);
+            } else {
+                array[index].rotate_right(1);
+            }
         } else {
-            // Apply transformation to columns
-            for row in array.iter_mut() {
-                let num = num % row.len(); // ensure num is within valid range
-                row.rotate_left(num);
+            // Apply operation to columns
+            let mut column: Vec<_> = array.iter().map(|row| row[index]).collect();
+            if direction {
+                column.rotate_left(1);
+            } else {
+                column.rotate_right(1);
+            }
+            for (row, &value) in array.iter_mut().zip(column.iter()) {
+                row[index] = value;
             }
         }
     }
@@ -21,20 +29,28 @@ fn scramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
 }
 
 fn unscramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
-    // Convert seed into a sequence of numbers
-    let numbers: Vec<usize> = seed.chars().map(|c| c as usize).collect();
+    // Convert seed into a sequence of operations
+    let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
 
-    // Apply transformations
-    for (i, &num) in numbers.iter().enumerate() {
-        let num = num % array.len(); // ensure num is within valid range
+    // Apply operations in reverse
+    for (i, &(index, direction)) in operations.iter().enumerate().rev() {
         if i % 2 == 0 {
-            // Apply transformation to rows
-            array.rotate_right(num);
+            // Apply operation to rows
+            if direction {
+                array[index].rotate_right(1);
+            } else {
+                array[index].rotate_left(1);
+            }
         } else {
-            // Apply transformation to columns
-            for row in array.iter_mut() {
-                let num = num % row.len(); // ensure num is within valid range
-                row.rotate_right(num);
+            // Apply operation to columns
+            let mut column: Vec<_> = array.iter().map(|row| row[index]).collect();
+            if direction {
+                column.rotate_right(1);
+            } else {
+                column.rotate_left(1);
+            }
+            for (row, &value) in array.iter_mut().zip(column.iter()) {
+                row[index] = value;
             }
         }
     }
