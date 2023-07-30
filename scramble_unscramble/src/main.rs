@@ -1,4 +1,6 @@
-fn scramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+fn scrambled_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+    // use with: let scrambled = scrambled_eggs(array, "SEED_HERE");
+
     // Convert seed into a sequence of operations
     let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
 
@@ -28,7 +30,9 @@ fn scramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
     array
 }
 
-fn unscramble_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+fn unscrambled_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+    // use with: let unscrambled = unscrambled_eggs(array, "SEED_HERE");
+
     // Convert seed into a sequence of operations
     let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
 
@@ -70,13 +74,14 @@ fn main() {
         println!("{:?}", row);
     }
 
-    let scrambled = scramble_eggs(array, "hello");
+    let scrambled = scrambled_eggs(array, "hello");
 
     for row in scrambled.iter() {
         println!("{:?}", row);
     }
 
-    let unscrambled = unscramble_eggs(scrambled, "hello");
+    let unscrambled = unscrambled
+_eggs(scrambled, "hello");
 
     for row in unscrambled.iter() {
         println!("{:?}", row);

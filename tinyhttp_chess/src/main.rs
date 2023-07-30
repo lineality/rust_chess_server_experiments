@@ -8,6 +8,14 @@ RUST_BACKTRACE=full cargo run
 TODO:
 
 - secure mode?
+
+- make a password blacklist
+
+- encript 
+
+- drop move-history
+- encrypt-scramble game
+
 - 
 
 
@@ -297,7 +305,7 @@ type Board = [[char; 8]; 8];
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
-
+use std::io::BufReader;
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
@@ -1225,8 +1233,6 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
 
     // write
     game_data.to_json(&dir_path)?;
-    
-
 
     // // write gametype, timestamp
     // if let Err(e) = create_gamedata_json(&dir_path, game_name, game_type, 0) {
@@ -1250,6 +1256,8 @@ struct GameData {
     game_board_state: [[char; 8]; 8],
 }
 
+
+use std::fs;
 
 impl GameData {
     fn new(
@@ -1278,50 +1286,168 @@ impl GameData {
         })
     }
 
-    fn to_json(&self, dir_path: &str) -> io::Result<()> {
-        let ip_hash_list = self.ip_hash_list.iter()
-            .map(|&n| n.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
+    // fn to_json(&self, dir_path: &str) -> io::Result<()> {
+    //     let ip_hash_list = self.ip_hash_list.iter()
+    //         .map(|&n| n.to_string())
+    //         .collect::<Vec<_>>()
+    //         .join(", ");
 
-        let game_board_state = self.game_board_state.iter()
-            .map(|row| {
-                row.iter()
-                    .map(|&c| c.to_string())
-                    .collect::<Vec<_>>()
-                    .join("")
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
+    //     let game_board_state = self.game_board_state.iter()
+    //         .map(|row| {
+    //             row.iter()
+    //                 .map(|&c| c.to_string())
+    //                 .collect::<Vec<_>>()
+    //                 .join("")
+    //         })
+    //         .collect::<Vec<_>>()
+    //         .join(", ");
 
-        let json_data = format!(
-            r#"{{
-                "hashed_gamephrase": {},
-                "game_type": "{}",
-                "game_timestamp": {},
-                "activity_timestamp": {},
-                "ip_hash_list": [{}],
-                "game_board_state": ["{}"]
-            }}"#,
-            self.hashed_gamephrase,
-            self.game_type,
-            self.game_timestamp,
-            self.activity_timestamp,
-            ip_hash_list,
-            game_board_state
-        );
+    //     let json_data = format!(
+    //         r#"{{
+    //             "hashed_gamephrase": {},
+    //             "game_type": "{}",
+    //             "game_timestamp": {},
+    //             "activity_timestamp": {},
+    //             "ip_hash_list": [{}],
+    //             "game_board_state": ["{}"]
+    //         }}"#,
+    //         self.hashed_gamephrase,
+    //         self.game_type,
+    //         self.game_timestamp,
+    //         self.activity_timestamp,
+    //         ip_hash_list,
+    //         game_board_state
+    //     );
 
-        let json_path = format!("{}/game_data.json", dir_path);
+    //     let json_path = format!("{}/game_data.json", dir_path);
+    //     let mut file = OpenOptions::new()
+    //         .write(true)
+    //         .create(true)
+    //         .truncate(true)
+    //         .open(&json_path)?;
+
+    //     writeln!(file, "{}", json_data)?;
+
+    //     Ok(())
+    // }
+
+
+    // fn from_json(json_data: &str) -> io::Result<Self> {
+    //     let json_data: Value = serde_json::from_str(json_data)?;
+    
+    //     let hashed_gamephrase = json_data["hashed_gamephrase"].as_u64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid hashed_gamephrase")
+    //     })?;
+    
+    //     let game_type = json_data["game_type"].as_str().unwrap_or("").to_string();
+    
+    //     let game_timestamp = json_data["game_timestamp"].as_i64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid game_timestamp")
+    //     })?;
+    
+    //     let activity_timestamp = json_data["activity_timestamp"].as_i64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid activity_timestamp")
+    //     })?;
+    
+    //     let ip_hash_list = json_data["ip_hash_list"].as_array().unwrap_or(&Vec::new())
+    //         .iter()
+    //         .filter_map(|val| val.as_u64())
+    //         .collect();
+    
+    //     let game_board_state: [[char; 8]; 8] = json_data["game_board_state"].as_array().unwrap_or(&Vec::new())
+    //         .iter()
+    //         .map(|val| val.as_str().unwrap_or("").chars().collect::<Vec<char>>())
+    //         .collect::<Vec<Vec<char>>>()
+    //         .try_into()
+    //         .map_err(|_| io::Error::new(io::ErrorKind::Other, "Invalid game_board_state"))?;
+    
+    //     Ok(Self {
+    //         hashed_gamephrase,
+    //         game_type,
+    //         game_timestamp,
+    //         activity_timestamp,
+    //         ip_hash_list,
+    //         game_board_state,
+    //     })
+    // }
+    
+
+    fn to_txt(&self, dir_path: &str) -> io::Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .truncate(true)
-            .open(&json_path)?;
+            .truncate(true);
+    
+        file.open(format!("{}/hashed_gamephrase.txt", dir_path))?
+            .write_all(self.hashed_gamephrase.to_string().as_bytes())?;
 
-        writeln!(file, "{}", json_data)?;
+        file.open(format!("{}/game_type.txt", dir_path))?
+            .write_all(self.game_type.as_bytes())?;
+
+        file.open(format!("{}/game_timestamp.txt", dir_path))?
+            .write_all(self.game_timestamp.to_string().as_bytes())?;
+
+        file.open(format!("{}/activity_timestamp.txt", dir_path))?
+            .write_all(self.activity_timestamp.to_string().as_bytes())?;
+
+        file.open(format!("{}/ip_hash_list.txt", dir_path))?
+            .write_all(self.ip_hash_list.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ").as_bytes())?;
+
+        let game_board_state: Vec<String> = self.game_board_state.iter()
+            .map(|row| row.iter().collect())
+            .collect();
+        file.open(format!("{}/game_board_state.txt", dir_path))?
+            .write_all(game_board_state.join(", ").as_bytes())?;
 
         Ok(())
     }
+
+    fn from_txt(dir_path: &str) -> io::Result<Self> {
+        let hashed_gamephrase = fs::read_to_string(format!("{}/hashed_gamephrase.txt", dir_path))?
+            .trim().parse::<u128>()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        let game_type = fs::read_to_string(format!("{}/game_type.txt", dir_path))?;
+
+        let game_timestamp = fs::read_to_string(format!("{}/game_timestamp.txt", dir_path))?
+            .trim().parse::<i128>()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        let activity_timestamp = fs::read_to_string(format!("{}/activity_timestamp.txt", dir_path))?
+            .trim().parse::<i128>()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+        let ip_hash_list = fs::read_to_string(format!("{}/ip_hash_list.txt", dir_path))?
+            .split(',').map(|n| n.trim().parse::<u128>().map_err(|e| io::Error::new(io::ErrorKind::Other, e)))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let game_board_state_str = fs::read_to_string(format!("{}/game_board_state.txt", dir_path))?;
+        let game_board_state_rows: Vec<Vec<char>> = game_board_state_str.split(',')
+            .map(|row_str| row_str.chars().collect())
+            .collect();
+
+        if game_board_state_rows.len() != 8 || game_board_state_rows.iter().any(|row| row.len() != 8) {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "game_board_state must be 8x8"));
+        }
+
+        let mut game_board_state: [[char; 8]; 8] = [[' '; 8]; 8];
+        for (i, row) in game_board_state_rows.into_iter().enumerate() {
+            for (j, c) in row.into_iter().enumerate() {
+                game_board_state[i][j] = c;
+            }
+        }
+
+        Ok(Self {
+            hashed_gamephrase,
+            game_type,
+            game_timestamp,
+            activity_timestamp,
+            ip_hash_list,
+            game_board_state,
+        })
+    }
+
+
 }
 
 
@@ -1843,3 +1969,66 @@ fn make_hash(input_string: &str, timestamp_int: i128, iterate_hash: i32) -> u128
     hash
 }
 
+fn scrambled_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+    // use with: let scrambled = scrambled_eggs(array, "SEED_HERE");
+
+    // Convert seed into a sequence of operations
+    let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
+
+    // Apply operations
+    for (i, &(index, direction)) in operations.iter().enumerate() {
+        if i % 2 == 0 {
+            // Apply operation to rows
+            if direction {
+                array[index].rotate_left(1);
+            } else {
+                array[index].rotate_right(1);
+            }
+        } else {
+            // Apply operation to columns
+            let mut column: Vec<_> = array.iter().map(|row| row[index]).collect();
+            if direction {
+                column.rotate_left(1);
+            } else {
+                column.rotate_right(1);
+            }
+            for (row, &value) in array.iter_mut().zip(column.iter()) {
+                row[index] = value;
+            }
+        }
+    }
+
+    array
+}
+
+fn unscrambled_eggs(mut array: Vec<Vec<char>>, seed: &str) -> Vec<Vec<char>> {
+    // use with: let unscrambled = unscrambled_eggs(array, "SEED_HERE");
+
+    // Convert seed into a sequence of operations
+    let operations: Vec<(usize, bool)> = seed.chars().map(|c| ((c as usize) % array.len(), c.is_ascii_uppercase())).collect();
+
+    // Apply operations in reverse
+    for (i, &(index, direction)) in operations.iter().enumerate().rev() {
+        if i % 2 == 0 {
+            // Apply operation to rows
+            if direction {
+                array[index].rotate_right(1);
+            } else {
+                array[index].rotate_left(1);
+            }
+        } else {
+            // Apply operation to columns
+            let mut column: Vec<_> = array.iter().map(|row| row[index]).collect();
+            if direction {
+                column.rotate_right(1);
+            } else {
+                column.rotate_left(1);
+            }
+            for (row, &value) in array.iter_mut().zip(column.iter()) {
+                row[index] = value;
+            }
+        }
+    }
+
+    array
+}
