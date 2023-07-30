@@ -1,7 +1,7 @@
 rnbqkbnr
 pppppppp
-        
-        
+  P     
+  P     
   P     
         
 PP PPPPP

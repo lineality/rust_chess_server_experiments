@@ -1,22 +1,11 @@
 /*
 http://0.0.0.0:8000/game/Pc2c4
 RUST_BACKTRACE=full cargo run
-
-http://0.0.0.0:8000/setup/chess/katsu/katsudan
-http://0.0.0.0:8000/game/Pc2c4
-
-
 */
 
 
 /* 
 TODO:
-
-
-- make ip_hash based on 
-
-1. raw password hash
-2. timestamp ip hash 
 
 - what to call 'secure' version?
 - incovenient_chess?
@@ -338,21 +327,20 @@ use std::path::Path;
 
 // Variables
 type Board = [[char; 8]; 8];
-use std::fs;
+
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
-use zeroize::Zeroize;
+
 
 struct GameData {
-    game_name: String,
     hashed_gamephrase: u128,
     game_type: String,
-    game_timestamp: u128,
-    activity_timestamp: u128,
+    game_timestamp: i128,
+    activity_timestamp: i128,
     ip_hash_list: Vec<u128>,
     game_board_state: [[char; 8]; 8],
 }
@@ -378,11 +366,12 @@ fn main() {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
 
-            // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
+                    
+                    println!("{}", ip_string);
         
                     // Now you can make a hash from the IP string and the timestamp string
                     str_filter_alternating(&ip_string)
@@ -392,8 +381,8 @@ fn main() {
                     println!("Could not retrieve client IP");
                     continue;
                 },
-                 
             };
+
             println!("ip_stamp: {}", ip_stamp);
 
 
@@ -1208,25 +1197,15 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     // make a game_data json
 
     // Posix Timestamp for game_timestamp and activity_timestamp
-    let this_timestamp: u128 = timestamp();
+    let this_timestamp: i128 = timestamp();
 
 
     // make gamephrase hash
     let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
 
-    let mut combined_string = ip_stamp.to_string() + game_phrase;
 
-    let hashed_ip_stamp: u128 = make_hash(&combined_string, this_timestamp, 10);
-
-    // Clear the memory occupied by the password.
-
-    combined_string.zeroize();
-
-
-    /* make ip_hash
-    1. the ip_hash needs to be made with the raw game_phrase
-    2. 
-    */
+    // make ip_hash
+    let hashed_ip_stamp = make_hash(ip_stamp, this_timestamp, 10);
 
 
     // hash game phrase and ip stamp before constructing GameData
@@ -1270,9 +1249,8 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     
     let game_board_state:[[char; 8]; 8] = board;
     let game_data = GameData::new(
-        game_name.to_string(),
         hashed_gamephrase, 
-        game_type.to_string(), 
+        game_type, 
         this_timestamp,
         this_timestamp,
         ip_hash_list, 
@@ -1296,20 +1274,18 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
 // use std::io::{self, Write};
 // use std::time::{SystemTime, UNIX_EPOCH};
 
-
+use std::fs;
 
 impl GameData {
     fn new(
-        game_name: String,
         hashed_gamephrase: u128, 
-        game_type: String, 
-        game_timestamp: u128,
-        activity_timestamp: u128,
+        game_type: &str, 
+        game_timestamp: i128,
+        activity_timestamp: i128,
         ip_hash_list: Vec<u128>, 
         game_board_state: [[char; 8]; 8]) -> io::Result<Self> {
 
         Ok(Self {
-            game_name,
             hashed_gamephrase,
             game_type: game_type.to_string(),
             game_timestamp,
@@ -1319,9 +1295,92 @@ impl GameData {
         })
     }
 
-    fn to_txt(&self, dir_path: &str) -> io::Result<()> {
-        let dir_path = format!("./games/{}", self.game_name);
+    // fn to_json(&self, dir_path: &str) -> io::Result<()> {
+    //     let ip_hash_list = self.ip_hash_list.iter()
+    //         .map(|&n| n.to_string())
+    //         .collect::<Vec<_>>()
+    //         .join(", ");
 
+    //     let game_board_state = self.game_board_state.iter()
+    //         .map(|row| {
+    //             row.iter()
+    //                 .map(|&c| c.to_string())
+    //                 .collect::<Vec<_>>()
+    //                 .join("")
+    //         })
+    //         .collect::<Vec<_>>()
+    //         .join(", ");
+
+    //     let json_data = format!(
+    //         r#"{{
+    //             "hashed_gamephrase": {},
+    //             "game_type": "{}",
+    //             "game_timestamp": {},
+    //             "activity_timestamp": {},
+    //             "ip_hash_list": [{}],
+    //             "game_board_state": ["{}"]
+    //         }}"#,
+    //         self.hashed_gamephrase,
+    //         self.game_type,
+    //         self.game_timestamp,
+    //         self.activity_timestamp,
+    //         ip_hash_list,
+    //         game_board_state
+    //     );
+
+    //     let json_path = format!("{}/game_data.json", dir_path);
+    //     let mut file = OpenOptions::new()
+    //         .write(true)
+    //         .create(true)
+    //         .truncate(true)
+    //         .open(&json_path)?;
+
+    //     writeln!(file, "{}", json_data)?;
+
+    //     Ok(())
+    // }
+
+
+    // fn from_json(json_data: &str) -> io::Result<Self> {
+    //     let json_data: Value = serde_json::from_str(json_data)?;
+    
+    //     let hashed_gamephrase = json_data["hashed_gamephrase"].as_u64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid hashed_gamephrase")
+    //     })?;
+    
+    //     let game_type = json_data["game_type"].as_str().unwrap_or("").to_string();
+    
+    //     let game_timestamp = json_data["game_timestamp"].as_i64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid game_timestamp")
+    //     })?;
+    
+    //     let activity_timestamp = json_data["activity_timestamp"].as_i64().ok_or_else(|| {
+    //         io::Error::new(io::ErrorKind::Other, "Invalid activity_timestamp")
+    //     })?;
+    
+    //     let ip_hash_list = json_data["ip_hash_list"].as_array().unwrap_or(&Vec::new())
+    //         .iter()
+    //         .filter_map(|val| val.as_u64())
+    //         .collect();
+    
+    //     let game_board_state: [[char; 8]; 8] = json_data["game_board_state"].as_array().unwrap_or(&Vec::new())
+    //         .iter()
+    //         .map(|val| val.as_str().unwrap_or("").chars().collect::<Vec<char>>())
+    //         .collect::<Vec<Vec<char>>>()
+    //         .try_into()
+    //         .map_err(|_| io::Error::new(io::ErrorKind::Other, "Invalid game_board_state"))?;
+    
+    //     Ok(Self {
+    //         hashed_gamephrase,
+    //         game_type,
+    //         game_timestamp,
+    //         activity_timestamp,
+    //         ip_hash_list,
+    //         game_board_state,
+    //     })
+    // }
+    
+    fn to_txt(&self, dir_path: &str) -> io::Result<()> {
         OpenOptions::new()
             .write(true)
             .create(true)
@@ -1357,23 +1416,32 @@ impl GameData {
             .open(format!("{}/ip_hash_list.txt", dir_path))?
             .write_all(self.ip_hash_list.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ").as_bytes())?;
     
+        // let game_board_state: Vec<String> = self.game_board_state.iter()
+        //     .map(|row| row.iter().collect())
+        //     .collect();
+        // OpenOptions::new()
+        //     .write(true)
+        //     .create(true)
+        //     .truncate(true)
+        //     .open(format!("{}/game_board_state.txt", dir_path))?
+        //     .write_all(game_board_state.join(", ").as_bytes())?;
+    
         // Save game (save game_board_state to .txt file)
         std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
 
         let file_path = format!("{}/game_board_state.txt", dir_path);
         let mut file = File::create(&file_path).expect("Failed to create file");
-
-        for row in &self.game_board_state {
+    
+        for row in &board {
             let line: String = row.iter().collect();
             writeln!(file, "{}", line).expect("Failed to write to file");
         }
 
         Ok(())
     }
+    
 
     fn from_txt(dir_path: &str) -> io::Result<Self> {
-        let game_name = fs::read_to_string(format!("{}/game_name.txt", dir_path))?;
-
         let hashed_gamephrase = fs::read_to_string(format!("{}/hashed_gamephrase.txt", dir_path))?
             .trim().parse::<u128>()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
@@ -1381,11 +1449,11 @@ impl GameData {
         let game_type = fs::read_to_string(format!("{}/game_type.txt", dir_path))?;
 
         let game_timestamp = fs::read_to_string(format!("{}/game_timestamp.txt", dir_path))?
-            .trim().parse::<u128>()
+            .trim().parse::<i128>()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
         let activity_timestamp = fs::read_to_string(format!("{}/activity_timestamp.txt", dir_path))?
-            .trim().parse::<u128>()
+            .trim().parse::<i128>()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
         let ip_hash_list = fs::read_to_string(format!("{}/ip_hash_list.txt", dir_path))?
@@ -1409,7 +1477,6 @@ impl GameData {
         }
 
         Ok(Self {
-            game_name,
             hashed_gamephrase,
             game_type,
             game_timestamp,
@@ -1418,6 +1485,7 @@ impl GameData {
             game_board_state,
         })
     }
+
 
 }
 
@@ -1456,9 +1524,9 @@ fn is_valid_game_name(game_name: &str) -> bool {
 }
 
 
-fn timestamp() -> u128 {
+fn timestamp() -> i128 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(duration) => duration.as_secs() as u128,
+        Ok(duration) => duration.as_secs() as i128,
         Err(error) => {
             eprintln!("Error: {}", error);
             0
@@ -1854,8 +1922,7 @@ fn generate_black_oriented_chessboard(
     # make readable string
     timestamp = timestamp_raw.strftime('%Y%m%d%H%M%S%f')
 */
-
-fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32) -> u128 {
+fn make_hash(input_string: &str, timestamp_int: i128, iterate_hash: i32) -> u128 {
 
     let timestamp_string = timestamp_int.to_string();
 
@@ -1868,7 +1935,7 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
     // Before starting: set hash to value of 1
     let mut hash: u128 = 1;
 
-    for _ in 0..iterate_hash_x_times {
+    for _ in 0..iterate_hash {
 
     // begin iterating through the hashstring, on character at at time
     for this_character in string_to_hash.chars() {
@@ -1924,7 +1991,7 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
 
         // remove 3 front characters from long hashes
         if hash_str.len() > 20 {
-            hash = match hash_str[4..].parse() {
+            hash = match hash_str[3..].parse() {
                 Ok(parsed_hash) => parsed_hash,
                 Err(_) => {
                     eprintln!("Failed to parse hash: {}", hash_str);
@@ -1933,17 +2000,6 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
             };
         }
         
-        // remove 3 front characters from long hashes
-        if hash_str.len() > 30 {
-            hash = match hash_str[8..].parse() {
-                Ok(parsed_hash) => parsed_hash,
-                Err(_) => {
-                    eprintln!("Failed to parse hash: {}", hash_str);
-                    0 // Set a default value or take appropriate action on parsing failure
-                }
-            };
-        }
-
     }
     
     } // finished hash 10x loop

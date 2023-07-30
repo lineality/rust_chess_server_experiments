@@ -1,11 +1,6 @@
 /*
 http://0.0.0.0:8000/game/Pc2c4
 RUST_BACKTRACE=full cargo run
-
-http://0.0.0.0:8000/setup/chess/katsu/katsudan
-http://0.0.0.0:8000/game/Pc2c4
-
-
 */
 
 
@@ -383,6 +378,8 @@ fn main() {
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
+                    
+                    println!("{}", ip_string);
         
                     // Now you can make a hash from the IP string and the timestamp string
                     str_filter_alternating(&ip_string)
@@ -392,8 +389,8 @@ fn main() {
                     println!("Could not retrieve client IP");
                     continue;
                 },
-                 
             };
+
             println!("ip_stamp: {}", ip_stamp);
 
 
@@ -1214,7 +1211,8 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     // make gamephrase hash
     let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
 
-    let mut combined_string = ip_stamp.to_string() + game_phrase;
+
+    let combined_string = ip_stamp.to_string() + game_phrase;
 
     let hashed_ip_stamp: u128 = make_hash(&combined_string, this_timestamp, 10);
 
@@ -1227,6 +1225,7 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     1. the ip_hash needs to be made with the raw game_phrase
     2. 
     */
+    let hashed_ip_stamp: u128 = make_hash(ip_stamp, this_timestamp, 10);
 
 
     // hash game phrase and ip stamp before constructing GameData
@@ -1272,7 +1271,7 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     let game_data = GameData::new(
         game_name.to_string(),
         hashed_gamephrase, 
-        game_type.to_string(), 
+        game_type, 
         this_timestamp,
         this_timestamp,
         ip_hash_list, 
@@ -1302,7 +1301,7 @@ impl GameData {
     fn new(
         game_name: String,
         hashed_gamephrase: u128, 
-        game_type: String, 
+        game_type: &str, 
         game_timestamp: u128,
         activity_timestamp: u128,
         ip_hash_list: Vec<u128>, 
@@ -1372,8 +1371,6 @@ impl GameData {
     }
 
     fn from_txt(dir_path: &str) -> io::Result<Self> {
-        let game_name = fs::read_to_string(format!("{}/game_name.txt", dir_path))?;
-
         let hashed_gamephrase = fs::read_to_string(format!("{}/hashed_gamephrase.txt", dir_path))?
             .trim().parse::<u128>()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
@@ -1409,7 +1406,6 @@ impl GameData {
         }
 
         Ok(Self {
-            game_name,
             hashed_gamephrase,
             game_type,
             game_timestamp,
@@ -1924,7 +1920,7 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
 
         // remove 3 front characters from long hashes
         if hash_str.len() > 20 {
-            hash = match hash_str[4..].parse() {
+            hash = match hash_str[3..].parse() {
                 Ok(parsed_hash) => parsed_hash,
                 Err(_) => {
                     eprintln!("Failed to parse hash: {}", hash_str);
@@ -1933,17 +1929,6 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
             };
         }
         
-        // remove 3 front characters from long hashes
-        if hash_str.len() > 30 {
-            hash = match hash_str[8..].parse() {
-                Ok(parsed_hash) => parsed_hash,
-                Err(_) => {
-                    eprintln!("Failed to parse hash: {}", hash_str);
-                    0 // Set a default value or take appropriate action on parsing failure
-                }
-            };
-        }
-
     }
     
     } // finished hash 10x loop
