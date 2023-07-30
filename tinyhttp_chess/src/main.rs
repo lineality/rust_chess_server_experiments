@@ -6,6 +6,11 @@ RUST_BACKTRACE=full cargo run
 
 /* 
 TODO:
+
+- secure mode?
+- 
+
+
 where is gamae-data set...
 https://chat.openai.com/share/f877e8d6-754b-47e6-90ec-4588223b893d 
 
