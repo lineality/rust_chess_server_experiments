@@ -4,14 +4,37 @@ RUST_BACKTRACE=full cargo run
 
 http://0.0.0.0:8000/setup/chess/katsu/katsudan
 http://0.0.0.0:8000/game/Pc2c4
-
-
 */
 
 
-/* 
-TODO:
+/* TODO:
 
+for just game_name
+show two svg images...black and white...
+
+
+
+- is game_data ip_hash
+list .csv based?
+
+- maybe make ip-hash function
+    - game setup
+
+- handle game move
+
+    - game restart
+
+- public_board
+- not_public_board
+
+- game_erase
+
+start
+erase
+
+page:
+
+instructions page
 
 - make ip_hash based on 
 
@@ -345,7 +368,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
-use zeroize::Zeroize;
+// use zeroize::Zeroize;
+
 
 struct GameData {
     game_name: String,
@@ -356,8 +380,6 @@ struct GameData {
     ip_hash_list: Vec<u128>,
     game_board_state: [[char; 8]; 8],
 }
-
-
 
 
 fn main() {
@@ -384,12 +406,15 @@ fn main() {
                     
                     let ip_string = socket_addr.ip().to_string();
         
-                    // Now you can make a hash from the IP string and the timestamp string
-                    str_filter_alternating(&ip_string)
+                    let alternating_stamp = str_filter_alternating(&ip_string);
+
+                    let reduced_ip_stamp = remove_duplicates(&alternating_stamp);
+
+                    reduced_ip_stamp
 
                 },
                 None => {
-                    println!("Could not retrieve client IP");
+                    // println!("Could not retrieve client IP");
                     continue;
                 },
                  
@@ -446,6 +471,24 @@ fn main() {
 
             // // // declare response outside match blocks so we can assign it in each match block
             // let response = Response::from_string(response_string);
+            if is_existing_game_name(&game_name) {
+                // println!("Game exists, proceed with the game logic.");
+            } else {
+                println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+            }
+
+            // // validate ip_stamp
+            // match validate_ip_hash(&ip_stamp) {
+            //     Err(err_msg) => {
+            //         let response = Response::from_string(err_msg).with_status_code(400);
+            //         if let Err(e) = request.respond(response) {
+            //             eprintln!("Failed to respond to request: {}", e);
+            //         }
+            //         continue; // No need to run the rest of the loop for invalid inputs
+            //     },
+            //     Ok(()) => {},
+            // }
+
 
             // sanitize and validate inputs from get request
             match validate_input(&move_data) {
@@ -458,6 +501,103 @@ fn main() {
                 },
                 Ok(()) => {},
             }
+
+
+            match check_ip_stamp_in_file(&ip_stamp, &game_name) {
+                Ok(_) => println!("OK"),
+                Err(message) => println!("Try: y0urm0ve.com/YOUR_GAME_NAME/Pc2c4/GAME_PHRASE{}", message),
+            }
+
+
+            // if 'start' reset and return blank board
+
+
+            // // call game move function
+            let response = match handle_chess_move(game_name, move_data) {
+                Ok(svg_content) => {
+                    let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                        .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+            
+                    Response::from_string(svg_content).with_header(header).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to handle move: {}", e);
+                    Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                }
+            };
+            
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+
+        } 
+
+
+        //////////////
+        // login m0ve
+        //////////////
+        else if url_parts.len() == 4 {
+
+            let game_name = url_parts[1].to_string();
+            let move_data = url_parts[2].to_string();  
+            let game_phrase = url_parts[3].to_string();  
+
+            if is_existing_game_name(&game_name) {
+                // println!("Game exists, proceed with the game logic.");
+            } else {
+                println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+            }
+
+            // // validate game_phrase
+            // // sanitize and validate inputs from get request
+            // match validate_game_phrase(&game_phrase) {
+            //     Err(err_msg) => {
+            //         let response = Response::from_string(err_msg).with_status_code(400);
+            //         if let Err(e) = request.respond(response) {
+            //             eprintln!("Failed to respond to request: {}", e);
+            //         }
+            //         continue; // No need to run the rest of the loop for invalid inputs
+            //     },
+            //     Ok(()) => {},
+            // }
+
+            let dir_path = format!("./games/{}", game_name);
+            let game_data = match GameData::from_txt(&dir_path) {
+                Ok(data) => data,
+                Err(e) => {
+                    eprintln!("Failed to load game data: {}", e);
+                    return; // or handle the error in a way that's appropriate for your application
+                }
+            };
+
+            let game_phrase = "game_phrase"; // replace with your game phrase
+            let is_valid = game_data.validate_game_phrase(game_phrase);
+
+            if is_valid {
+                println!("Game phrase is valid.");
+            } else {
+                println!("Game phrase is not valid.");
+            }
+
+            // sanitize and validate inputs from get request
+            match validate_input(&move_data) {
+                Err(err_msg) => {
+                    let response = Response::from_string(err_msg).with_status_code(400);
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop for invalid inputs
+                },
+                Ok(()) => {},
+            }
+
+
+            match check_ip_stamp_in_file(&ip_stamp, &game_name) {
+                Ok(_) => println!("OK"),
+                Err(message) => println!("Try: y0urm0ve.com/YOUR_GAME_NAME/Pc2c4/GAME_PHRASE{}", message),
+            }
+
 
             // if 'start' reset and return blank board
 
@@ -1029,6 +1169,21 @@ fn piece_to_unicode(piece: char) -> &'static str {
 }
 
 
+fn board_to_unicode(board: &[[char; 8]; 8]) -> [[&'static str; 8]; 8] {
+    let mut board_unicode: [[&'static str; 8]; 8] = [[" "; 8]; 8];
+
+    for (i, row) in board.iter().enumerate() {
+        for (j, cell) in row.iter().enumerate() {
+            let piece = piece_to_unicode(*cell);
+            board_unicode[i][j] = piece;
+        }
+    }
+
+    board_unicode
+}
+
+
+
 fn board_to_string(board: &[[char; 8]; 8]) -> String {
     let mut board_string = String::new();
     board_string.push_str("  a b c d e f g h\n");
@@ -1211,26 +1366,19 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
     let this_timestamp: u128 = timestamp();
 
 
-    // make gamephrase hash
+    // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
     let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
-
-    let mut combined_string = ip_stamp.to_string() + game_phrase;
-
-    let hashed_ip_stamp: u128 = make_hash(&combined_string, this_timestamp, 10);
-
-    // Clear the memory occupied by the password.
-
-    combined_string.zeroize();
 
 
     /* make ip_hash
-    1. the ip_hash needs to be made with the raw game_phrase
-    2. 
+    ip_hash made with only half of ip, every other number, so the actual ip is never used at all
+
+    Step 1. the ip_stamp needs to be unique enough to have few collisions between people
+    but non-unique enough to not be 'personal data'
+
+    Step 2. user game_timestamp (or what will be used to set game_timestamp) to make hashed_ip_stamp
     */
-
-
-    // hash game phrase and ip stamp before constructing GameData
-
+    let hashed_ip_stamp: u128 = make_hash(&ip_stamp, this_timestamp, 10);
     
 
     // Set up board
@@ -1244,12 +1392,14 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
         ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
     ];
+    let game_board_state:[[char; 8]; 8] = board;
 
 
-    // Save game (save game_board_state to .txt file)
-    if let Err(e) = save_game_board_state(&game_name, board) {
-        eprintln!("Failed to save game state: {}", e);
-    }
+    // // This is now done with game_data struct/impl
+    // // Save game (save game_board_state to .txt file)
+    // if let Err(e) = save_game_board_state(&game_name, board) {
+    //     eprintln!("Failed to save game state: {}", e);
+    // }
 
 
     // create folder for game_name
@@ -1265,10 +1415,12 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
 
     writeln!(file, "{}", game_type)?;
 
-    // create first game_data struct
+    // create list for initial game_data list
     let ip_hash_list = vec![hashed_ip_stamp];
     
-    let game_board_state:[[char; 8]; 8] = board;
+
+
+    // create first game_data struct
     let game_data = GameData::new(
         game_name.to_string(),
         hashed_gamephrase, 
@@ -1277,7 +1429,7 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
         this_timestamp,
         ip_hash_list, 
         game_board_state
-    )?;
+    );
 
 
     // write
@@ -1299,6 +1451,32 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
 
 
 impl GameData {
+    /*
+    struct GameData {
+    game_name: String,
+    hashed_gamephrase: u128,
+    game_type: String,
+    game_timestamp: u128,
+    activity_timestamp: u128,
+    ip_hash_list: Vec<u128>,
+    game_board_state: [[char; 8]; 8],
+    } */
+    // fn new(
+    //     game_name: String,
+    //     hashed_gamephrase: u128, 
+    //     game_type: String, 
+    //     game_timestamp: u128,
+    //     activity_timestamp: u128,
+    //     ip_hash_list: Vec<u128>, 
+    //     // game_board_state: [[char; 8]; 8]) -> io::Result<Self> {
+    //     game_board_state: [[char; 8]; 8]) -> Self {
+
+    // for (i, row) in game_board_state_rows.into_iter().enumerate() {
+    //     for (j, c) in row.into_iter().enumerate() {
+    //         game_board_state[i][j] = c;
+    //     }
+    // }
+
     fn new(
         game_name: String,
         hashed_gamephrase: u128, 
@@ -1306,18 +1484,29 @@ impl GameData {
         game_timestamp: u128,
         activity_timestamp: u128,
         ip_hash_list: Vec<u128>, 
-        game_board_state: [[char; 8]; 8]) -> io::Result<Self> {
-
-        Ok(Self {
+        game_board_state: [[char; 8]; 8]
+    ) -> Self {
+        Self {
             game_name,
             hashed_gamephrase,
-            game_type: game_type.to_string(),
+            game_type,
             game_timestamp,
             activity_timestamp,
             ip_hash_list,
             game_board_state,
-        })
+        }
     }
+
+    // Ok(Self {
+    //     game_name,
+    //     hashed_gamephrase,
+    //     game_type,
+    //     game_timestamp,
+    //     activity_timestamp,
+    //     ip_hash_list,
+    //     game_board_state,
+    // })
+    
 
     fn to_txt(&self, dir_path: &str) -> io::Result<()> {
         let dir_path = format!("./games/{}", self.game_name);
@@ -1372,7 +1561,7 @@ impl GameData {
     }
 
     fn from_txt(dir_path: &str) -> io::Result<Self> {
-        let game_name = fs::read_to_string(format!("{}/game_name.txt", dir_path))?;
+        let game_name = dir_path.split('/').last().unwrap_or("").to_string();
 
         let hashed_gamephrase = fs::read_to_string(format!("{}/hashed_gamephrase.txt", dir_path))?
             .trim().parse::<u128>()
@@ -1407,7 +1596,7 @@ impl GameData {
                 game_board_state[i][j] = c;
             }
         }
-
+    
         Ok(Self {
             game_name,
             hashed_gamephrase,
@@ -1419,6 +1608,125 @@ impl GameData {
         })
     }
 
+    fn validate_game_phrase(&self, game_phrase: &str) -> bool {
+        // Step 1: get the game_timestamp from the file
+        let game_timestamp = self.game_timestamp;
+
+        // Step 2: make hash of game_phrase
+        let check_this_hashed_gamephrase = make_hash(game_phrase, game_timestamp, 10);
+
+        // Check if check_this_hashed_gamephrase equals games/game_Name/hashed_gamephrase.txt
+        let game_dir = format!("./games/{}", self.game_name);
+        let hashed_gamephrase_path = format!("{}/hashed_gamephrase.txt", game_dir);
+
+        if let Ok(contents) = fs::read_to_string(&hashed_gamephrase_path) {
+            if contents.trim() == check_this_hashed_gamephrase.to_string() {
+                return true;
+            }
+        }
+
+        eprintln!("Invalid game phrase.");
+        false
+    }
+
+    fn validate_ip_hash(&self, ip_stamp: &str) -> bool {
+
+
+        // make ip_hash from game_timestamp and ip_stamp
+        let check_this_hashed_ip_stamp: u128 = make_hash(&ip_stamp, self.game_timestamp, 10);
+
+        // Check if a directory with this game_name exists
+        let game_dir = format!("./games/{}", self.game_name);
+        if !Path::new(&game_dir).exists() {
+            eprintln!("error # 3: Game name does not exist.");
+            return false;
+        }
+
+        // Check if ip_hash is in the ip_hash_list
+        if self.ip_hash_list.contains(&check_this_hashed_ip_stamp) {
+            return true;
+        }
+
+        eprintln!("Invalid IP hash.");
+        false
+    }
+
+}
+
+// fn validate_game_phrase(game_name: &str, game_phrase: &str) -> bool (
+
+//     // step 1: get the game_timestamp from the file
+    
+
+//     // step 2: make hash of game_phrase
+
+//     // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
+//     let check_this_hashed_gamephrase = make_hash(game_phrase, game_timestamp, 10);
+
+
+//     // see if check_this_hashed_gamephrase = 
+//     // games/game_Name/hashed_gamephrase.txt
+//     let game_dir = format!("./games/{}", game_name);
+//     if ... {
+//         eprintln!();
+//         return false;
+//     }
+
+//     true
+
+// )
+
+// fn validate_ip_hash(game_name: &str, game_phrase: &str) -> bool (
+
+//     // step 1: get the game_timestamp from the file
+
+
+//     // Check if a directory with this game_name already exists
+//     let game_dir = format!("./games/{}", game_name);
+//     if !Path::new(&game_dir).exists() {
+//         eprintln!("error # 3: Game name does not exist.");
+//         return false;
+//     }
+
+//     true
+
+// )
+
+
+
+// Helper function to validate game_name
+fn is_existing_game_name(game_name: &str) -> bool {
+
+    // Check if game_name is a reserved word
+    let reserved_words = vec![
+        "setup", 
+        "games",
+        "chess",
+        "y0ur_m0ve",
+        "start",
+        "erase"
+        ];
+    if reserved_words.contains(&game_name) {
+        eprintln!("error # 1: Invalid game name: Reserved word used.");
+        return false;
+    }
+
+    // Check if game_name contains only alphanumeric characters and underscores
+    for c in game_name.chars() {
+        if !c.is_ascii_alphanumeric() && c != '_' {
+            eprintln!("error # 2: Invalid game name: wrong characters.");
+            return false;
+        }
+    }
+
+    // Check if a directory with this game_name already exists
+    let game_dir = format!("./games/{}", game_name);
+    if !Path::new(&game_dir).exists() {
+        eprintln!("error # 3: Game name does not exist.");
+        return false;
+    }
+
+    true
 }
 
 
@@ -1477,6 +1785,41 @@ fn timestamp() -> u128 {
 //         }
 //     }
 // }
+
+fn check_ip_stamp_in_file(ip_stamp: &str, game_name: &str) -> Result<(), String> {
+    let file_path = format!("games/{}/ip_hash_list.txt", game_name);
+
+    match fs::read_to_string(&file_path) {
+        Ok(content) => {
+            // Split the file content into lines and check if ip_stamp is present in any of them
+            if content.lines().any(|line| line.trim() == ip_stamp) {
+                Ok(())
+            } else {
+                Err(String::from("IP not found in the list"))
+            }
+        }
+        Err(_) => Err(String::from("Could not read the file or the file does not exist")),
+    }
+}
+
+fn remove_duplicates(input_string: &str) -> String {
+    // Convert the string into a vector of characters
+    let chars: Vec<char> = input_string.chars().collect();
+
+    // Create a new vector, filtering out duplicates
+    let mut unique_chars = Vec::new();
+    for &c in chars.iter() {
+        if !unique_chars.contains(&c) {
+            unique_chars.push(c);
+        }
+    }
+
+    // Convert the vector of characters back into a string
+    let unique_string: String = unique_chars.into_iter().collect();
+
+    unique_string
+}
+
 
 fn str_filter_alternating(input_string: &str) -> String {
     // Filter out periods and convert the string into a vector of characters
