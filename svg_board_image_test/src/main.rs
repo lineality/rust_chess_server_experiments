@@ -1,15 +1,11 @@
 
-use std::path::Path;
+
 
 // Variables
-type Board = [[char; 8]; 8];
-use std::fs;
-use std::fs::File;
-use std::io::{self, Write};
-use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
+use svg::node::element::Image;
 
 fn main() {
     let chessboard_state: [[char; 8]; 8] = [
@@ -136,39 +132,97 @@ fn generate_black_oriented_chessboard(
                 }
 
                     
-                let piece_color = if square_color == "#666" { // for darker background
-                    if piece.is_uppercase() {
-                        "#ffefc1" // lighter gray for light pieces
-                    } else {
-                        "#ff8e8e" // lighter red for dark pieces
-                    }
-                } else { // for lighter background
-                    if piece.is_uppercase() {
-                        "#665628" // darker gray for light pieces
-                    } else {
-                        "#9e0b00" // darker red for dark pieces
-                    }
+                // let piece_color = if square_color == "#666" { // for darker background
+                //     if piece.is_uppercase() {
+                //         "#ffefc1" // lighter gray for light pieces
+                //     } else {
+                //         "#ff8e8e" // lighter red for dark pieces
+                //     }
+                // } else { // for lighter background
+                //     if piece.is_uppercase() {
+                //         "#665628" // darker gray for light pieces
+                //     } else {
+                //         "#9e0b00" // darker red for dark pieces
+                //     }
+                // };
+
+                // let mut text = Text::new()
+                //     .set("x", x + 25)
+                //     .set("y", y + 35)
+                //     .set("text-anchor", "middle")
+                //     .set("font-size", 30)
+                //     .set("fill", piece_color);
+
+                // if piece.is_uppercase() {
+                //     text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+                // } else {
+                //     text = text.add(svg::node::Text::new(piece.to_string()));
+                // }
+
+                // doc = doc.add(text);
+
+                // // map character to piece name
+                // let piece_name = match piece {
+                //     'p' => "black_pawn",
+                //     'r' => "black_rook",
+                //     'n' => "black_night",
+                //     'b' => "black_bishop",
+                //     'q' => "black_queen",
+                //     'k' => "black_king",
+                //     'P' => "white_pawn",
+                //     'R' => "white_rook",
+                //     'N' => "white_night",  
+                //     'B' => "white_bishop",
+                //     'Q' => "white_queen",
+                //     'K' => "white_king",
+                //     _   => panic!("Unknown piece"),
+                // };
+
+                // // Load SVG chess piece based on piece name
+                // let file_path = format!("pieces_svg/{}.svg", piece_name);
+
+                // let piece_image = Image::new()
+                //     .set("x", x)
+                //     .set("y", y)
+                //     .set("width", 50)
+                //     .set("height", 50)
+                //     .set("href", file_path);
+
+                // doc = doc.add(piece_image);
+
+                // map character to piece name and background
+                let (piece_name, background) = match piece {
+                    'p' => ("black_pawn", if square_color == "#666" {"dark"} else {"light"}),
+                    'r' => ("black_rook", if square_color == "#666" {"dark"} else {"light"}),
+                    'n' => ("black_night", if square_color == "#666" {"dark"} else {"light"}),
+                    'b' => ("black_bishop", if square_color == "#666" {"dark"} else {"light"}),
+                    'q' => ("black_queen", if square_color == "#666" {"dark"} else {"light"}),
+                    'k' => ("black_king", if square_color == "#666" {"dark"} else {"light"}),
+                    'P' => ("white_pawn", if square_color == "#666" {"dark"} else {"light"}),
+                    'R' => ("white_rook", if square_color == "#666" {"dark"} else {"light"}),
+                    'N' => ("white_night", if square_color == "#666" {"dark"} else {"light"}),
+                    'B' => ("white_bishop", if square_color == "#666" {"dark"} else {"light"}),
+                    'Q' => ("white_queen", if square_color == "#666" {"dark"} else {"light"}),
+                    'K' => ("white_king", if square_color == "#666" {"dark"} else {"light"}),
+                    _   => panic!("Unknown piece"),
                 };
 
-                let mut text = Text::new()
-                    .set("x", x + 25)
-                    .set("y", y + 35)
-                    .set("text-anchor", "middle")
-                    .set("font-size", 30)
-                    .set("fill", piece_color);
+                // Load SVG chess piece based on piece name and background
+                let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
 
-                if piece.is_uppercase() {
-                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
-                } else {
-                    text = text.add(svg::node::Text::new(piece.to_string()));
-                }
+                let piece_image = Image::new()
+                    .set("x", x)
+                    .set("y", y)
+                    .set("width", 50)
+                    .set("height", 50)
+                    .set("href", file_path);
 
-                doc = doc.add(text);
+                doc = doc.add(piece_image);
+
             }
         }
     }
 
     doc
 }
-
 

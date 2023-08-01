@@ -1,50 +1,10 @@
-
-use std::path::Path;
-
-// Variables
-type Board = [[char; 8]; 8];
-use std::fs;
-use std::fs::File;
-use std::io::{self, Write};
-use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
 
-fn main() {
-    let chessboard_state: [[char; 8]; 8] = [
-        ['r', 'n', 'b', 'q', ' ', 'b', 'n', 'r'],
-        ['p', 'p', 'p', 'p', 'p', ' ', 'p', 'p'],
-        [' ', ' ', ' ', ' ', ' ', 'k', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', 'p', ' ', ' '],
-        [' ', ' ', 'P', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', 'P', 'N'],
-        ['P', 'P', 'P', 'P', 'P', 'P', ' ', 'P'],
-        ['R', 'N', 'B', 'Q', 'K', 'B', ' ', 'R'],
-    ];
-
-    let from = Some((6, 4)); // e2
-    let to = Some((4, 4)); // e4
-
-    let doc = generate_black_oriented_chessboard(&chessboard_state, from, to);
-    
-    // Define the file name
-    let file_name = "chessboard_black_oriented.svg";
-
-    // Write the svg code to the file
-    svg::save(file_name, &doc).expect("Unable to write to file");
-
-    println!("SVG file has been created successfully.");
-}
-
 
 // Function to generate the SVG chessboard with black orientation
-fn generate_black_oriented_chessboard(
-    chessboard: &[[char; 8]; 8], 
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>
-    ) -> Document {
-
+fn generate_black_oriented_chessboard(chessboard: &[[char; 8]; 8]) -> Document {
     let mut doc = Document::new()
         .set("width", "500")  
         .set("height", "500")  
@@ -89,7 +49,7 @@ fn generate_black_oriented_chessboard(
             } else {
                 "#666"
             };
-            
+
             let square = Rectangle::new()
                 .set("x", x)
                 .set("y", y)
@@ -100,42 +60,6 @@ fn generate_black_oriented_chessboard(
             doc = doc.add(square);
 
             if piece != ' ' {
-
-                if let Some(from_coords) = from {
-                    let (row, col) = from_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
-                
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
-                
-                    doc = doc.add(highlight);
-                }
-                
-                if let Some(to_coords) = to {
-                    let (row, col) = to_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
-                
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
-                
-                    doc = doc.add(highlight);
-                }
-
-                    
                 let piece_color = if square_color == "#666" { // for darker background
                     if piece.is_uppercase() {
                         "#ffefc1" // lighter gray for light pieces
@@ -171,4 +95,26 @@ fn generate_black_oriented_chessboard(
     doc
 }
 
+fn main() {
+    let chessboard_state: [[char; 8]; 8] = [
+        ['r', 'n', 'b', 'q', ' ', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', 'p', ' ', 'p', 'p'],
+        [' ', ' ', ' ', ' ', ' ', 'k', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', 'p', ' ', ' '],
+        [' ', ' ', 'P', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', 'P', 'N'],
+        ['P', 'P', 'P', 'P', 'P', 'P', ' ', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', ' ', 'R'],
+    ];
+
+    let doc = generate_black_oriented_chessboard(&chessboard_state);
+    
+    // Define the file name
+    let file_name = "chessboard_black_oriented.svg";
+
+    // Write the svg code to the file
+    svg::save(file_name, &doc).expect("Unable to write to file");
+
+    println!("SVG file has been created successfully.");
+}
 

@@ -1241,3 +1241,291 @@ fn main() {
     println!("{}", svg_code);
 }
 
+
+// // Function to generate the SVG chessboard with black orientation
+// fn generate_white_oriented_chessboard(
+//     chessboard: &[[char; 8]; 8], 
+//     from: Option<(usize, usize)>, 
+//     to: Option<(usize, usize)>
+// ) -> Document {
+
+//     let mut doc = Document::new()
+//         .set("width", "500")  
+//         .set("height", "500")  
+//         .set("viewBox", (0, 0, 500, 500))
+//         .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+//     // Define labels, reversed for black piece orientation
+//     let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+//     let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+//     // Add column labels
+//     for (idx, label) in column_labels.iter().enumerate() {
+//         let label_text = Text::new()
+//             .set("x", 50 + idx * 50 + 25)  
+//             .set("y", 472)  
+//             .set("text-anchor", "middle")
+//             .set("font-size", 20)
+//             .set("fill", "#757575")  // Set text color to dark grey
+//             .add(svg::node::Text::new(label.to_string()));
+//         doc = doc.add(label_text);
+//     }
+
+//     // Add row labels
+//     for (idx, label) in row_labels.iter().enumerate() {
+//         let label_text = Text::new()
+//             .set("x", 32)  
+//             .set("y", 50 + idx * 50 + 35)  
+//             .set("text-anchor", "middle")
+//             .set("font-size", 20)
+//             .set("fill", "#757575")  
+//             .add(svg::node::Text::new(label.to_string()));
+//         doc = doc.add(label_text);
+//     }
+
+//     for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+//         for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+//             let x = 50 + col * 50;  
+//             let y = 50 + row * 50;  
+
+//             let square_color = if (row + col) % 2 == 0 {
+//                 "#ccc"
+//             } else {
+//                 "#666"
+//             };
+            
+//             let square = Rectangle::new()
+//                 .set("x", x)
+//                 .set("y", y)
+//                 .set("width", 50)
+//                 .set("height", 50)
+//                 .set("fill", square_color);
+
+//             doc = doc.add(square);
+
+//             if piece != ' ' {
+
+//                 // setting from an to color
+//                 if let Some(from_coords) = from {
+//                     let (row, col) = from_coords;
+//                     let x = 50 + col * 50;
+//                     let y = 50 + row * 50;
+                
+//                     let highlight = Rectangle::new()
+//                         .set("x", x)
+//                         .set("y", y)
+//                         .set("width", 50)
+//                         .set("height", 50)
+//                         .set("fill", "none") // Transparent fill
+//                         .set("stroke", "#3189D9")
+//                         .set("stroke-width", 3);
+                
+//                     doc = doc.add(highlight);
+//                 }
+                
+//                 if let Some(to_coords) = to {
+//                     let (row, col) = to_coords;
+//                     let x = 50 + col * 50;
+//                     let y = 50 + row * 50;
+                
+//                     let highlight = Rectangle::new()
+//                         .set("x", x)
+//                         .set("y", y)
+//                         .set("width", 50)
+//                         .set("height", 50)
+//                         .set("fill", "none") // Transparent fill
+//                         .set("stroke", "#3189D9")
+//                         .set("stroke-width", 3);
+                
+//                     doc = doc.add(highlight);
+//                 }
+
+                    
+//                 let piece_color = if square_color == "#666" { // for darker background
+//                     if piece.is_uppercase() {
+//                         "#ffefc1" // lighter gray for light pieces
+//                     } else {
+//                         "#ff8e8e" // lighter red for dark pieces
+//                     }
+//                 } else { // for lighter background
+//                     if piece.is_uppercase() {
+//                         "#665628" // darker gray for light pieces
+//                     } else {
+//                         "#9e0b00" // darker red for dark pieces
+//                     }
+//                 };
+
+//                 let mut text = Text::new()
+//                     .set("x", x + 25)
+//                     .set("y", y + 35)
+//                     .set("text-anchor", "middle")
+//                     .set("font-size", 30)
+//                     .set("fill", piece_color);
+
+//                 if piece.is_uppercase() {
+//                     text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+//                 } else {
+//                     text = text.add(svg::node::Text::new(piece.to_string()));
+//                 }
+
+//                 doc = doc.add(text);
+//             }
+//         }
+//     }
+
+//     doc
+// }
+
+// fn black_to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
+//     if chess_notation.len() != 2 {
+//         return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
+//     }
+//     let col = chess_notation.chars().nth(0).unwrap();
+//     let row = chess_notation.chars().nth(1).unwrap();
+
+//     if !('a'..='h').contains(&col) || !('1'..='8').contains(&row) {
+//         return Err(format!("Invalid chess notation: '{}'. It should be in the form 'e4'.", chess_notation));
+//     }
+
+//     let col = 'h' as usize - col as usize;  // Changed this line
+//     let row = row.to_digit(10).unwrap() as usize - 1;  // And this line
+
+//     Ok((row, col))
+// }
+
+
+// fn timestamp() -> u64 {
+//     match SystemTime::now().duration_since(UNIX_EPOCH) {
+//         Ok(duration) => duration.as_secs(),
+//         Err(error) => {
+//             // Handle the error (e.g., print an error message, log, etc.)
+//             eprintln!("Error: {}", error);
+//             1
+//         }
+//     }
+// }
+
+// fn check_ip_stamp_in_file(ip_stamp: &str, game_name: &str) -> Result<(), String> {
+//     let file_path = format!("games/{}/ip_hash_list.txt", game_name);
+
+//     match fs::read_to_string(&file_path) {
+//         Ok(content) => {
+//             // Split the file content into lines and check if ip_stamp is present in any of them
+//             if content.lines().any(|line| line.trim() == ip_stamp) {
+//                 Ok(())
+//             } else {
+//                 Err(String::from("IP not found in the list"))
+//             }
+//         }
+//         Err(_) => Err(String::from("Could not read the file or the file does not exist")),
+//     }
+// }
+
+// fn create_gamedata_json(dir_path: &str, game_name: &str, game_type: &str, move_number: u32) -> io::Result<()> {
+
+//     let current_timestamp = timestamp();
+
+//     // Create the JSON string
+//     let json_data = format!(
+//         r#"{{
+//             "game_name": "{}",
+//             "game_timestamp": {},
+//             "activity_timestamp": {},
+//             "game_type": "{}",
+//             "move_number": {}
+//         }}"#,
+//         game_name,
+//         current_timestamp,
+//         current_timestamp,
+//         game_type,
+//         move_number
+//     );
+
+//     // Open the file for writing
+//     let json_path = format!("{}/game_data.json", dir_path);
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open(json_path)?;
+
+//     // Write the JSON data to the file
+//     writeln!(file, "{}", json_data)?;
+
+//     Ok(())
+// }
+
+
+// // Return Result with appropriate error messages instead of bool
+// fn validate_input(input: &str) -> Result<(), String> {
+//     if input.len() != 5 {
+//         return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+//     }
+
+//     if input == "start" {
+//         return Ok(());
+//     }
+
+//     let chars: Vec<char> = input.chars().collect();
+
+//     let valid_pieces = ['p', 'r', 'n', 'b', 'q', 'k', 'P', 'R', 'N', 'B', 'Q', 'K'];
+//     let valid_cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+//     let valid_rows = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+//     if !valid_pieces.contains(&chars[0]) {
+//         return Err(format!("Invalid piece identifier. The first character should be one of 'prnbqkPRNBQK'. e.g. Pc2c4 or pc7c6 "));
+//     }
+//     if !valid_cols.contains(&chars[1]) || !valid_cols.contains(&chars[3]) {
+//         return Err(format!("Invalid column identifier. The 2nd and 4th characters should be one of 'abcdefgh'. e.g. Pc2c4 or pc7c6 "));
+//     }
+//     if !valid_rows.contains(&chars[2]) || !valid_rows.contains(&chars[4]) {
+//         return Err(format!("Invalid row identifier. The 3rd and 5th characters should be one of '12345678'.e.g. Pc2c4 or pc7c6  "));
+//     }
+    
+//     Ok(())
+// }
+
+
+// fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Result<()> {
+//     let dir_path = format!("./games/{}", game_name);
+//     std::fs::create_dir_all(&dir_path)?;
+
+//     let file_path = format!("{}/game_board_state.txt", dir_path);
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open(file_path)?;
+
+//     for row in board.iter() {
+//         let line: String = row.iter().collect();
+//         writeln!(file, "{}", line)?;
+//     }
+    
+//     Ok(())
+// }
+
+// fn parse_move(move_data: &str) -> Result<(char, (char, u8), (char, u8)), String> {
+//     if move_data.len() != 5 {
+//         return Err(format!("Invalid input length. Input should be 5 characters. e.g. Pc2c4 or pc7c6 "));
+//     }
+
+//     let chars: Vec<char> = move_data.chars().collect();
+
+//     let piece = chars.get(0).ok_or("Failed to get piece")?;
+//     let from_col = chars.get(1).ok_or("Failed to get from_col")?;
+//     let from_row_digit = chars.get(2)
+//         .ok_or("Failed to get from_row_digit")?
+//         .to_digit(10)
+//         .ok_or("Failed to parse from_row_digit to number")?;
+//     let to_col = chars.get(3).ok_or("Failed to get to_col")?;
+//     let to_row_digit = chars.get(4)
+//         .ok_or("Failed to get to_row_digit")?
+//         .to_digit(10)
+//         .ok_or("Failed to parse to_row_digit to number")?;
+
+//     let from = (*from_col, from_row_digit as u8);
+//     let to = (*to_col, to_row_digit as u8);
+
+//     Ok((*piece, from, to))
+// }
