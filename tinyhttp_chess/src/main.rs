@@ -4,6 +4,9 @@ RUST_BACKTRACE=full cargo run
 
 http://0.0.0.0:8000/setup/chess/katsu/katsudan
 http://0.0.0.0:8000/game/Pc2c4
+
+http://0.0.0.0:8000/setup/chess960/ramen/two
+http://0.0.0.0:8000/game/Pc2c4
 */
 
 
@@ -624,12 +627,26 @@ fn main() {
                 let game_phrase = url_parts[4].to_string();
 
                 // Call setup_new_game here
-                let response = match setup_new_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                    Ok(_) => Response::from_string("Game setup successfully.")
-                        .with_status_code(200),
-
-                    Err(e) => Response::from_string(format!("Failed to set up game: {}", e))
-                        .with_status_code(500),
+                
+                
+                // Check the game type and call the corresponding function
+                let response = if game_type == "chess960" {
+                    match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                        Ok(_) => Response::from_string("Chess960 game setup successfully.")
+                            .with_status_code(200),
+                        Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e))
+                            .with_status_code(500),
+                    }
+                } else if game_type == "chess" {
+                    match setup_new_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                        Ok(_) => Response::from_string("Chess game setup successfully.")
+                            .with_status_code(200),
+                        Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e))
+                            .with_status_code(500),
+                    }
+                } else {
+                    Response::from_string("Invalid game type.")
+                        .with_status_code(400)
                 };
 
                 if let Err(e) = request.respond(response) {
@@ -1086,6 +1103,110 @@ fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
 
 
 
+
+
+fn setup_new_chess960_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
+
+
+    // Validate game_name: novel, permitted, ascii etc.
+    if !is_valid_game_name(game_name) {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, 
+            "Invalid game name: ascii abc_123 novel names, try again. "));
+        }
+    /*
+
+    make files and folders...
+    set up and save initial game board
+
+    store date in a json file:
+
+    last_activity = posix timestamp
+
+    // make a game_data json:
+    activity_timestamp: posic timestamp
+    game_type: chess
+    move_number: 0
+    set game type = chess
+
+    two gametypes for now
+
+    chess
+    chess960
+        chess_gomeclock
+
+    */
+
+    // make a game_data json
+
+    // Posix Timestamp for game_timestamp and activity_timestamp
+    let this_timestamp: u128 = timestamp();
+
+
+    // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
+    let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
+
+
+    /* make ip_hash
+    ip_hash made with only half of ip, every other number, so the actual ip is never used at all
+
+    Step 1. the ip_stamp needs to be unique enough to have few collisions between people
+    but non-unique enough to not be 'personal data'
+
+    Step 2. user game_timestamp (or what will be used to set game_timestamp) to make hashed_ip_stamp
+    */
+    let hashed_ip_stamp: u128 = make_hash(&ip_stamp, this_timestamp, 10);
+    
+
+    // Set up board
+    let game_board_state_result = generate_chess960();
+    let game_board_state = match game_board_state_result {
+        Ok(board) => board,
+        Err(err) => return Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
+    };
+
+
+    // // This is now done with game_data struct/impl
+    // // Save game (save game_board_state to .txt file)
+    // if let Err(e) = save_game_board_state(&game_name, board) {
+    //     eprintln!("Failed to save game state: {}", e);
+    // }
+
+
+    // create folder for game_name
+    let dir_path = format!("./games/{}", game_name);
+    std::fs::create_dir_all(&dir_path)?;
+
+    let file_path = format!("{}/game_type.txt", dir_path);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(file_path)?;
+
+    writeln!(file, "{}", game_type)?;
+
+    // create list for initial game_data list
+    let ip_hash_list = vec![hashed_ip_stamp];
+    
+
+
+    // create first game_data struct
+    let game_data = GameData::new(
+        game_name.to_string(),
+        hashed_gamephrase, 
+        game_type.to_string(), 
+        this_timestamp,
+        this_timestamp,
+        ip_hash_list, 
+        game_board_state
+    );
+
+
+    // write
+    game_data.to_txt()?;
+
+    Ok(())
+}
 
 
 fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
@@ -1988,3 +2109,182 @@ fn make_hash(input_string: &str, timestamp_int: u128, iterate_hash_x_times: i32)
 
 //     array
 // }
+
+/*
+chess 960 board heuristic
+
+rules:
+- no unwrap
+- as few extra packages as possible
+
+1. time-seed a random number generator
+
+2. piece_array
+
+make an array 0-7
+
+all set to none/null
+
+or emtpy strings
+
+
+3. available_position_array
+
+make another array to hold all available position index numbers
+
+
+3. bishop_1_number
+
+pick any available random even number for first bishop_1_number
+
+put the bishop_1_number in that piece_array spot 'b'
+
+remove that number from the available_position_array
+
+
+
+4. bishop_2_number
+
+pick any available random even number for bishop_2_number
+
+put the bishop_2_number in that piece_array spot 'b'
+
+remove that number from the available_position_array
+
+
+5. king_number
+pick a number for king between 1-6 (cannot be at the end of a row)
+
+put the king in that spot 'k'
+
+remove that number from the available_position_array
+
+
+6. rook1_number
+pick any number < the king_number for the first rook
+(in range)
+
+put 'r' in that piece_array spot
+
+remove that number from the available_position_array
+
+
+7. rook2_number
+pick any number > the king_number for the 2nd rook
+
+put 'r' in that piece_array spot
+
+remove that number from the available_position_array
+
+
+8. two 'n' knight numbers
+
+pick any two available numbers, set those
+
+put 'n' in those piece_array spots
+
+remove those numbers from the available_position_array
+
+
+9. queen
+
+there should be one remaining available_position_array number
+
+put 'q' in that piece_array spot
+
+
+10. white and black
+
+set white and black pieces mirroring each-other
+
+in this format:
+let chessboard_state: [[char; 8]; 8] = [
+['r', 'n', 'b', 'q', ' ', 'b', 'n', 'r'],
+['p', 'p', 'p', 'p', 'p', ' ', 'p', 'p'],
+[' ', ' ', ' ', ' ', ' ', 'k', ' ', ' '],
+[' ', ' ', ' ', ' ', ' ', 'p', ' ', ' '],
+[' ', ' ', 'P', ' ', ' ', ' ', ' ', ' '],
+[' ', ' ', ' ', ' ', ' ', ' ', 'P', 'N'],
+['P', 'P', 'P', 'P', 'P', 'P', ' ', 'P'],
+['R', 'N', 'B', 'Q', 'K', 'B', ' ', 'R'],
+];
+
+fn main() -> Result<(), &'static str> {
+    let chessboard = generate_chess960()?;
+    for row in chessboard.iter() {
+        for cell in row.iter() {
+            print!("{} ", cell);
+        }
+        println!();
+    }
+    Ok(())
+}
+
+
+*/
+
+use rand::prelude::*;
+use std::convert::TryInto;
+
+fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
+    let mut rng = rand::thread_rng();
+    let mut piece_array = [' '; 8];
+    let mut available_position_array: Vec<u8> = (0..8).collect();
+
+    // Pick and remove the first bishop's number, then determine its parity
+    let bishop_1_idx = rng.gen_range(0..available_position_array.len());
+    let bishop_1_number = available_position_array.remove(bishop_1_idx);
+    let bishop_1_parity = bishop_1_number % 2;
+    piece_array[bishop_1_number as usize] = 'b';
+
+    // Pick and remove the second bishop's number, ensuring that its parity is the opposite of the first
+    let mut bishop_2_number;
+    let mut bishop_2_idx;
+    loop {
+        bishop_2_idx = rng.gen_range(0..available_position_array.len());
+        bishop_2_number = available_position_array[bishop_2_idx];
+        if bishop_2_number % 2 != bishop_1_parity {
+            break;
+        }
+    }
+    available_position_array.remove(bishop_2_idx);
+    piece_array[bishop_2_number as usize] = 'b';
+
+    // king_number
+    let king_idx = rng.gen_range(1..available_position_array.len() - 1);
+    let king_number = available_position_array.remove(king_idx);
+    piece_array[king_number as usize] = 'k';
+
+    // rook1_number
+    let rook1_number = available_position_array.iter().take_while(|&&x| x < king_number).last().unwrap().clone();
+    available_position_array.retain(|&x| x != rook1_number);
+    piece_array[rook1_number as usize] = 'r';
+
+    // rook2_number
+    let rook2_number = available_position_array.iter().skip_while(|&&x| x <= king_number).next().unwrap().clone();
+    available_position_array.retain(|&x| x != rook2_number);
+    piece_array[rook2_number as usize] = 'r';
+
+    // knights
+    for _ in 0..2 {
+        let knight_number = available_position_array.remove(0);
+        piece_array[knight_number as usize] = 'n';
+    }
+
+    // queen
+    let queen_number = available_position_array.remove(0);
+    piece_array[queen_number as usize] = 'q';
+
+    let mut chessboard_state: [[char; 8]; 8] = [[' '; 8]; 8];
+    chessboard_state[0] = piece_array.iter().map(|&p| p.to_ascii_uppercase()).collect::<Vec<_>>().try_into().unwrap();
+    chessboard_state[1] = ['P'; 8];
+    chessboard_state[6] = ['p'; 8];
+    chessboard_state[7] = piece_array;
+
+    Ok(chessboard_state)
+}
+
+
+
+
+

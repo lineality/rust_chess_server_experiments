@@ -192,18 +192,18 @@ fn generate_black_oriented_chessboard(
 
                 // map character to piece name and background
                 let (piece_name, background) = match piece {
-                    'p' => ("black_pawn", if square_color == "#666" {"dark"} else {"light"}),
-                    'r' => ("black_rook", if square_color == "#666" {"dark"} else {"light"}),
-                    'n' => ("black_night", if square_color == "#666" {"dark"} else {"light"}),
-                    'b' => ("black_bishop", if square_color == "#666" {"dark"} else {"light"}),
-                    'q' => ("black_queen", if square_color == "#666" {"dark"} else {"light"}),
-                    'k' => ("black_king", if square_color == "#666" {"dark"} else {"light"}),
-                    'P' => ("white_pawn", if square_color == "#666" {"dark"} else {"light"}),
-                    'R' => ("white_rook", if square_color == "#666" {"dark"} else {"light"}),
-                    'N' => ("white_night", if square_color == "#666" {"dark"} else {"light"}),
-                    'B' => ("white_bishop", if square_color == "#666" {"dark"} else {"light"}),
-                    'Q' => ("white_queen", if square_color == "#666" {"dark"} else {"light"}),
-                    'K' => ("white_king", if square_color == "#666" {"dark"} else {"light"}),
+                    'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+                    'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
                     _   => panic!("Unknown piece"),
                 };
 
