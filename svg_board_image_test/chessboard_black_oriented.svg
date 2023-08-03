@@ -50,69 +50,69 @@ A
 <rect fill="#ccc" height="50" width="50" x="50" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_rook_light.svg" width="50" x="50" y="50"/>
+<image height="50" href="pieces_svg/white_rook_lightsquare.svg" width="50" x="50" y="50"/>
 <rect fill="#666" height="50" width="50" x="100" y="50"/>
 <rect fill="#ccc" height="50" width="50" x="150" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_bishop_light.svg" width="50" x="150" y="50"/>
+<image height="50" href="pieces_svg/white_bishop_lightsquare.svg" width="50" x="150" y="50"/>
 <rect fill="#666" height="50" width="50" x="200" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_king_dark.svg" width="50" x="200" y="50"/>
+<image height="50" href="pieces_svg/white_king_darksquare.svg" width="50" x="200" y="50"/>
 <rect fill="#ccc" height="50" width="50" x="250" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_queen_light.svg" width="50" x="250" y="50"/>
+<image height="50" href="pieces_svg/white_queen_lightsquare.svg" width="50" x="250" y="50"/>
 <rect fill="#666" height="50" width="50" x="300" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_bishop_dark.svg" width="50" x="300" y="50"/>
+<image height="50" href="pieces_svg/white_bishop_darksquare.svg" width="50" x="300" y="50"/>
 <rect fill="#ccc" height="50" width="50" x="350" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_night_light.svg" width="50" x="350" y="50"/>
+<image height="50" href="pieces_svg/white_night_lightsquare.svg" width="50" x="350" y="50"/>
 <rect fill="#666" height="50" width="50" x="400" y="50"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_rook_dark.svg" width="50" x="400" y="50"/>
+<image height="50" href="pieces_svg/white_rook_darksquare.svg" width="50" x="400" y="50"/>
 <rect fill="#666" height="50" width="50" x="50" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_dark.svg" width="50" x="50" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_darksquare.svg" width="50" x="50" y="100"/>
 <rect fill="#ccc" height="50" width="50" x="100" y="100"/>
 <rect fill="#666" height="50" width="50" x="150" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_dark.svg" width="50" x="150" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_darksquare.svg" width="50" x="150" y="100"/>
 <rect fill="#ccc" height="50" width="50" x="200" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_light.svg" width="50" x="200" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_lightsquare.svg" width="50" x="200" y="100"/>
 <rect fill="#666" height="50" width="50" x="250" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_dark.svg" width="50" x="250" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_darksquare.svg" width="50" x="250" y="100"/>
 <rect fill="#ccc" height="50" width="50" x="300" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_light.svg" width="50" x="300" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_lightsquare.svg" width="50" x="300" y="100"/>
 <rect fill="#666" height="50" width="50" x="350" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_dark.svg" width="50" x="350" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_darksquare.svg" width="50" x="350" y="100"/>
 <rect fill="#ccc" height="50" width="50" x="400" y="100"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_light.svg" width="50" x="400" y="100"/>
+<image height="50" href="pieces_svg/white_pawn_lightsquare.svg" width="50" x="400" y="100"/>
 <rect fill="#ccc" height="50" width="50" x="50" y="150"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_night_light.svg" width="50" x="50" y="150"/>
+<image height="50" href="pieces_svg/white_night_lightsquare.svg" width="50" x="50" y="150"/>
 <rect fill="#666" height="50" width="50" x="100" y="150"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_dark.svg" width="50" x="100" y="150"/>
+<image height="50" href="pieces_svg/white_pawn_darksquare.svg" width="50" x="100" y="150"/>
 <rect fill="#ccc" height="50" width="50" x="150" y="150"/>
 <rect fill="#666" height="50" width="50" x="200" y="150"/>
 <rect fill="#ccc" height="50" width="50" x="250" y="150"/>
@@ -127,7 +127,7 @@ A
 <rect fill="#ccc" height="50" width="50" x="300" y="200"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/white_pawn_light.svg" width="50" x="300" y="200"/>
+<image height="50" href="pieces_svg/white_pawn_lightsquare.svg" width="50" x="300" y="200"/>
 <rect fill="#666" height="50" width="50" x="350" y="200"/>
 <rect fill="#ccc" height="50" width="50" x="400" y="200"/>
 <rect fill="#ccc" height="50" width="50" x="50" y="250"/>
@@ -135,7 +135,7 @@ A
 <rect fill="#ccc" height="50" width="50" x="150" y="250"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_light.svg" width="50" x="150" y="250"/>
+<image height="50" href="pieces_svg/black_pawn_lightsquare.svg" width="50" x="150" y="250"/>
 <rect fill="#666" height="50" width="50" x="200" y="250"/>
 <rect fill="#ccc" height="50" width="50" x="250" y="250"/>
 <rect fill="#666" height="50" width="50" x="300" y="250"/>
@@ -146,7 +146,7 @@ A
 <rect fill="#666" height="50" width="50" x="150" y="300"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_king_dark.svg" width="50" x="150" y="300"/>
+<image height="50" href="pieces_svg/black_king_darksquare.svg" width="50" x="150" y="300"/>
 <rect fill="#ccc" height="50" width="50" x="200" y="300"/>
 <rect fill="#666" height="50" width="50" x="250" y="300"/>
 <rect fill="#ccc" height="50" width="50" x="300" y="300"/>
@@ -155,59 +155,59 @@ A
 <rect fill="#ccc" height="50" width="50" x="50" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_light.svg" width="50" x="50" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_lightsquare.svg" width="50" x="50" y="350"/>
 <rect fill="#666" height="50" width="50" x="100" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_dark.svg" width="50" x="100" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_darksquare.svg" width="50" x="100" y="350"/>
 <rect fill="#ccc" height="50" width="50" x="150" y="350"/>
 <rect fill="#666" height="50" width="50" x="200" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_dark.svg" width="50" x="200" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_darksquare.svg" width="50" x="200" y="350"/>
 <rect fill="#ccc" height="50" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_light.svg" width="50" x="250" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_lightsquare.svg" width="50" x="250" y="350"/>
 <rect fill="#666" height="50" width="50" x="300" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_dark.svg" width="50" x="300" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_darksquare.svg" width="50" x="300" y="350"/>
 <rect fill="#ccc" height="50" width="50" x="350" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_light.svg" width="50" x="350" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_lightsquare.svg" width="50" x="350" y="350"/>
 <rect fill="#666" height="50" width="50" x="400" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_pawn_dark.svg" width="50" x="400" y="350"/>
+<image height="50" href="pieces_svg/black_pawn_darksquare.svg" width="50" x="400" y="350"/>
 <rect fill="#666" height="50" width="50" x="50" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_rook_dark.svg" width="50" x="50" y="400"/>
+<image height="50" href="pieces_svg/black_rook_darksquare.svg" width="50" x="50" y="400"/>
 <rect fill="#ccc" height="50" width="50" x="100" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_night_light.svg" width="50" x="100" y="400"/>
+<image height="50" href="pieces_svg/black_night_lightsquare.svg" width="50" x="100" y="400"/>
 <rect fill="#666" height="50" width="50" x="150" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_bishop_dark.svg" width="50" x="150" y="400"/>
+<image height="50" href="pieces_svg/black_bishop_darksquare.svg" width="50" x="150" y="400"/>
 <rect fill="#ccc" height="50" width="50" x="200" y="400"/>
 <rect fill="#666" height="50" width="50" x="250" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_queen_dark.svg" width="50" x="250" y="400"/>
+<image height="50" href="pieces_svg/black_queen_darksquare.svg" width="50" x="250" y="400"/>
 <rect fill="#ccc" height="50" width="50" x="300" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_bishop_light.svg" width="50" x="300" y="400"/>
+<image height="50" href="pieces_svg/black_bishop_lightsquare.svg" width="50" x="300" y="400"/>
 <rect fill="#666" height="50" width="50" x="350" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_night_dark.svg" width="50" x="350" y="400"/>
+<image height="50" href="pieces_svg/black_night_darksquare.svg" width="50" x="350" y="400"/>
 <rect fill="#ccc" height="50" width="50" x="400" y="400"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="350"/>
 <rect fill="none" height="50" stroke="#3189D9" stroke-width="3" width="50" x="250" y="250"/>
-<image height="50" href="pieces_svg/black_rook_light.svg" width="50" x="400" y="400"/>
+<image height="50" href="pieces_svg/black_rook_lightsquare.svg" width="50" x="400" y="400"/>
 </svg>
