@@ -80,6 +80,7 @@ fn generate_black_oriented_chessboard(
             let x = 50 + col * 50;  
             let y = 50 + row * 50;  
 
+            // Set Square Colours
             let square_color = if (row + col) % 2 == 0 {
                 "#ccc"
             } else {
