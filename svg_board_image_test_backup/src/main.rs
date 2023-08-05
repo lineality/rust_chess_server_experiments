@@ -2,15 +2,10 @@
 
 
 // Variables
-
-use std::fs::File;
-use std::io::{self, Read};
 use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
 use svg::node::element::Image;
-use base64::Engine; // Bring the Engine trait into scope
-use base64::engine::general_purpose::STANDARD;
 
 
 fn main() {
@@ -38,6 +33,8 @@ fn main() {
 
     println!("SVG file has been created successfully.");
 }
+
+
 
 
 // Function to generate the SVG chessboard with black orientation
@@ -156,34 +153,25 @@ fn generate_black_oriented_chessboard(
                     _   => panic!("Unknown piece"),
                 };
 
-                // // Load SVG chess piece based on piece name and background
+                // Load SVG chess piece based on piece name and background
                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-                let data_url = load_image_as_data_url(&file_path)
-                    .expect("Failed to load image as data URL");
 
                 let piece_image = Image::new()
                     .set("x", x)
                     .set("y", y)
                     .set("width", 50)
                     .set("height", 50)
-                    .set("href", data_url);
+                    .set("href", file_path);
 
                 doc = doc.add(piece_image);
+
             }
         }
+
+
+
+
     }
 
     doc
-}
-
-
-fn load_image_as_data_url(file_path: &str) -> io::Result<String> {
-    let mut file = File::open(file_path)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-
-    let encoded = STANDARD.encode(&buffer); // Now works since Engine is in scope
-    let mime_type = "image/svg+xml"; // Adjust if not using SVG images
-
-    Ok(format!("data:{};base64,{}", mime_type, encoded))
 }
