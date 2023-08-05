@@ -647,6 +647,24 @@ fn main() {
                 //     println!("Game phrase is not valid.");
                 // }
 
+                println!("move_data -> {}", move_data);
+                if move_data == "start" {
+                    match restore_original_game_board_state(&game_name) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Failed to restore game board state: {}", e),
+                    }
+                    continue;
+                }
+                
+                if move_data == "erase" {
+                    match remove_directory(&game_name) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Failed to remove directory: {}", e),
+                    }
+                    continue;
+                }
+                
+                
 
                 // sanitize and validate inputs from get request
                 match validate_input(&move_data) {
@@ -737,7 +755,7 @@ fn main() {
                                 // Load SVG content from file
                                 match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
                                     Ok(svg_content) => {
-                                        // Create header
+                                        // Create headerfsetu
                                         match Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]) {
                                             Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
                                             Err(_) => Response::from_string("Failed to create response header.").with_status_code(500),
@@ -1270,7 +1288,109 @@ fn main() {
         Ok(())
     }
 
+    fn save_original_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> io::Result<()> {
+        let dir_path = format!("./games/{}", game_name);
+        std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
 
+        let file_path = format!("{}/original_state.txt", dir_path);
+        let mut file = File::create(&file_path).expect("Failed to create file");
+
+        for row in &board {
+            let line: String = row.iter().collect();
+            writeln!(file, "{}", line).expect("Failed to write to file");
+        }
+        
+        Ok(())
+    }
+
+
+    // fn restore_original_game_board_state(game_name: &str) -> io::Result<()> {
+    //     // Define the file paths
+    //     let dir_path = format!("./games/{}", game_name);
+    //     let original_state_file_path = format!("{}/original_state.txt", dir_path);
+    //     let game_board_state_file_path = format!("{}/game_board_state.txt", dir_path);
+    
+    //     // Read the original state file
+    //     let original_state = std::fs::read_to_string(&original_state_file_path)?;
+    
+    //     // Write the contents of the original state file to the game board state file
+    //     std::fs::write(game_board_state_file_path, original_state)?;
+
+
+    //     // Convert the original_state string into a board
+    //     let board = string_to_board(&original_state);
+
+    //     // Generate and save SVG using the board
+    //     generate_and_save_svg(&board, game_name)?;
+
+    //     println!("Done! restore_original_game_board_state");
+    //     Ok(())
+    // }
+    
+    fn remove_directory(game_name: &str) -> io::Result<()> {
+        
+        // Define the directory path
+        let dir_path = format!("./games/{}", game_name);
+    
+        // Remove the directory and all its contents
+        std::fs::remove_dir_all(dir_path)?;
+    
+        println!("Done! remove_directory");
+
+        Ok(())
+    }
+    
+    fn restore_original_game_board_state(game_name: &str) -> io::Result<()> {
+        // Define the file paths
+        let dir_path = format!("./games/{}", game_name);
+        let original_state_file_path = format!("{}/original_state.txt", dir_path);
+        let game_board_state_file_path = format!("{}/game_board_state.txt", dir_path);
+    
+        // Read the original state file
+        let original_state = std::fs::read_to_string(&original_state_file_path)?;
+    
+        // Write the contents of the original state file to the game board state file
+        std::fs::write(game_board_state_file_path.clone(), original_state.clone())?;
+    
+        // Convert the original_state string into a board
+        let board_result = load_game_board_state(&game_name);
+        match board_result {
+            Ok(board) => {
+                // svg in game_name directory
+                generate_and_save_svg(&board, &game_name)?;
+                println!("Done! restore_original_game_board_state");
+            },
+            Err(e) => {
+                return Err(e)
+            }
+        };
+        Ok(())
+    }
+
+
+
+    // fn restore_original_game_board_state(game_name: &str) -> io::Result<()> {
+    //     // Define the file paths
+    //     let dir_path = format!("./games/{}", game_name);
+    //     let original_state_file_path = format!("{}/original_state.txt", dir_path);
+    //     let game_board_state_file_path = format!("{}/game_board_state.txt", dir_path);
+    
+    //     // Read the original state file
+    //     let original_state = std::fs::read_to_string(&original_state_file_path)?;
+    
+    //     // Convert the original_state string into a board
+    //     let board = load_game_board_state(&original_state);
+        
+    //     // Write the contents of the original state file to the game board state file
+    //     std::fs::write(game_board_state_file_path, &original_state)?;
+    
+    //     // Generate and save SVG using the board
+    //     generate_and_save_svg(&board, game_name)?;
+    
+    //     println!("Done! restore_original_game_board_state");
+    //     Ok(())
+    // }
+    
 
 
     fn load_game_board_state(game_name: &str) -> std::io::Result<Board> {
@@ -1291,9 +1411,7 @@ fn main() {
 
 
 
-
     fn setup_new_chess960_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
-
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -1395,6 +1513,12 @@ fn main() {
         // svg in game_name directory
         generate_and_save_svg(&game_board_state, game_name)?;
 
+        // // This is now done with game_data struct/impl
+        // // Save game (save game_board_state to .txt file)
+        if let Err(e) = save_original_game_board_state(&game_name, game_board_state) {
+            eprintln!("Failed to save game state: {}", e);
+        }
+
         Ok(())
     }
 
@@ -1451,10 +1575,9 @@ fn main() {
 
         // // This is now done with game_data struct/impl
         // // Save game (save game_board_state to .txt file)
-        // if let Err(e) = save_game_board_state(&game_name, board) {
-        //     eprintln!("Failed to save game state: {}", e);
-        // }
-
+        if let Err(e) = save_original_game_board_state(&game_name, board) {
+            eprintln!("Failed to save game state: {}", e);
+        }
 
         // create folder for game_name
         let dir_path = format!("./games/{}", game_name);
@@ -1998,140 +2121,140 @@ fn main() {
 
 
 
-    // Function to generate the SVG chessboard
-    fn generate_white_oriented_chessboard_letters(
-        chessboard: &[[char; 8]; 8], 
-        from: Option<(usize, usize)>, 
-        to: Option<(usize, usize)>
-    ) -> Document {
-    let mut doc = Document::new()
-        .set("width", "500")  // Adjusting the width to account for labels
-        .set("height", "500")  // Adjusting the height to account for labels
-        .set("viewBox", (0, 0, 500, 500))
-        .set("style", "background-color: #000;");  // Set background to black
+    // // Function to generate the SVG chessboard
+    // fn generate_white_oriented_chessboard_letters(
+    //     chessboard: &[[char; 8]; 8], 
+    //     from: Option<(usize, usize)>, 
+    //     to: Option<(usize, usize)>
+    // ) -> Document {
+    // let mut doc = Document::new()
+    //     .set("width", "500")  // Adjusting the width to account for labels
+    //     .set("height", "500")  // Adjusting the height to account for labels
+    //     .set("viewBox", (0, 0, 500, 500))
+    //     .set("style", "background-color: #000;");  // Set background to black
 
-    // Define labels
-    let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
+    // // Define labels
+    // let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    // let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
 
-    // Add column labels
-    for (idx, label) in column_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-            .set("y", 472)  // Positioning the label slightly above the bottom edge
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  // Set text color to white
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
+    // // Add column labels
+    // for (idx, label) in column_labels.iter().enumerate() {
+    //     let label_text = Text::new()
+    //         .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
+    //         .set("y", 472)  // Positioning the label slightly above the bottom edge
+    //         .set("text-anchor", "middle")
+    //         .set("font-size", 20)
+    //         .set("fill", "#757575")  // Set text color to white
+    //         .add(svg::node::Text::new(label.to_string()));
+    //     doc = doc.add(label_text);
+    // }
 
-    // Add row labels
-    for (idx, label) in row_labels.iter().enumerate() {
-        let label_text = Text::new()
-            .set("x", 32)  // Positioning the label slightly to the right of the left edge
-            .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
-            .set("text-anchor", "middle")
-            .set("font-size", 20)
-            .set("fill", "#757575")  // Set text color to white
-            .add(svg::node::Text::new(label.to_string()));
-        doc = doc.add(label_text);
-    }
+    // // Add row labels
+    // for (idx, label) in row_labels.iter().enumerate() {
+    //     let label_text = Text::new()
+    //         .set("x", 32)  // Positioning the label slightly to the right of the left edge
+    //         .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+    //         .set("text-anchor", "middle")
+    //         .set("font-size", 20)
+    //         .set("fill", "#757575")  // Set text color to white
+    //         .add(svg::node::Text::new(label.to_string()));
+    //     doc = doc.add(label_text);
+    // }
 
-    for (row, row_pieces) in chessboard.iter().enumerate() {
-        for (col, &piece) in row_pieces.iter().enumerate() {
-            let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
-            let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+    // for (row, row_pieces) in chessboard.iter().enumerate() {
+    //     for (col, &piece) in row_pieces.iter().enumerate() {
+    //         let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
+    //         let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
 
-            let square_color = if (row + col) % 2 == 0 {
-                "#ccc"
-            } else {
-                "#666"
-            };
+    //         let square_color = if (row + col) % 2 == 0 {
+    //             "#ccc"
+    //         } else {
+    //             "#666"
+    //         };
 
-            let square = Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", 50)
-                .set("height", 50)
-                .set("fill", square_color);
+    //         let square = Rectangle::new()
+    //             .set("x", x)
+    //             .set("y", y)
+    //             .set("width", 50)
+    //             .set("height", 50)
+    //             .set("fill", square_color);
 
-            doc = doc.add(square);
+    //         doc = doc.add(square);
 
-            if piece != ' ' {
+    //         if piece != ' ' {
 
 
-                // setting from an to color
-                if let Some(from_coords) = from {
-                    let (row, col) = from_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
+    //             // setting from an to color
+    //             if let Some(from_coords) = from {
+    //                 let (row, col) = from_coords;
+    //                 let x = 50 + col * 50;
+    //                 let y = 50 + row * 50;
                 
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
+    //                 let highlight = Rectangle::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("fill", "none") // Transparent fill
+    //                     .set("stroke", "#3189D9")
+    //                     .set("stroke-width", 3);
                 
-                    doc = doc.add(highlight);
-                }
+    //                 doc = doc.add(highlight);
+    //             }
                 
-                if let Some(to_coords) = to {
-                    let (row, col) = to_coords;
-                    let x = 50 + col * 50;
-                    let y = 50 + row * 50;
+    //             if let Some(to_coords) = to {
+    //                 let (row, col) = to_coords;
+    //                 let x = 50 + col * 50;
+    //                 let y = 50 + row * 50;
                 
-                    let highlight = Rectangle::new()
-                        .set("x", x)
-                        .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
-                        .set("fill", "none") // Transparent fill
-                        .set("stroke", "#3189D9")
-                        .set("stroke-width", 3);
+    //                 let highlight = Rectangle::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("fill", "none") // Transparent fill
+    //                     .set("stroke", "#3189D9")
+    //                     .set("stroke-width", 3);
                 
-                    doc = doc.add(highlight);
-                }
+    //                 doc = doc.add(highlight);
+    //             }
 
 
-                let piece_color = if square_color == "#ccc" { // for lighter background
-                    if piece.is_lowercase() {
-                        "#9e0b00" // darker red for dark pieces
-                    } else {
-                        "#665628" // darker gray for light pieces
-                    }
-                } else { // for darker background
-                    if piece.is_lowercase() {
-                        "#ff8e8e" // lighter red for dark pieces
-                    } else {
-                        "#ffefc1" // lighter gray for light pieces
-                    }
-                };
+    //             let piece_color = if square_color == "#ccc" { // for lighter background
+    //                 if piece.is_lowercase() {
+    //                     "#9e0b00" // darker red for dark pieces
+    //                 } else {
+    //                     "#665628" // darker gray for light pieces
+    //                 }
+    //             } else { // for darker background
+    //                 if piece.is_lowercase() {
+    //                     "#ff8e8e" // lighter red for dark pieces
+    //                 } else {
+    //                     "#ffefc1" // lighter gray for light pieces
+    //                 }
+    //             };
 
 
-                let mut text = Text::new()
-                    .set("x", x + 25)
-                    .set("y", y + 35)
-                    .set("text-anchor", "middle")
-                    .set("font-size", 30)
-                    .set("fill", piece_color);
+    //             let mut text = Text::new()
+    //                 .set("x", x + 25)
+    //                 .set("y", y + 35)
+    //                 .set("text-anchor", "middle")
+    //                 .set("font-size", 30)
+    //                 .set("fill", piece_color);
 
-                if piece.is_uppercase() {
-                    text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
-                } else {
-                    text = text.add(svg::node::Text::new(piece.to_string()));
-                }
+    //             if piece.is_uppercase() {
+    //                 text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+    //             } else {
+    //                 text = text.add(svg::node::Text::new(piece.to_string()));
+    //             }
 
-                doc = doc.add(text);
-            }
-        }
-    }
+    //             doc = doc.add(text);
+    //         }
+    //     }
+    // }
 
-    doc
-    }
+    // doc
+    // }
 
 
     // Function to generate the SVG chessboard with black orientation
@@ -2283,138 +2406,138 @@ fn main() {
     }
 
 
-    // Function to generate the SVG chessboard with black orientation
-    fn generate_black_oriented_chessboard_letters(
-        chessboard: &[[char; 8]; 8], 
-        from: Option<(usize, usize)>, 
-        to: Option<(usize, usize)>
-        ) -> Document {
+//     // Function to generate the SVG chessboard with black orientation
+//     fn generate_black_oriented_chessboard_letters(
+//         chessboard: &[[char; 8]; 8], 
+//         from: Option<(usize, usize)>, 
+//         to: Option<(usize, usize)>
+//         ) -> Document {
 
-        let mut doc = Document::new()
-            .set("width", "500")  
-            .set("height", "500")  
-            .set("viewBox", (0, 0, 500, 500))
-            .set("style", "background-color: #2f0300;");  // Set background to dark red
+//         let mut doc = Document::new()
+//             .set("width", "500")  
+//             .set("height", "500")  
+//             .set("viewBox", (0, 0, 500, 500))
+//             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
-        // Define labels, reversed for black piece orientation
-        let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
-        let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+//         // Define labels, reversed for black piece orientation
+//         let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+//         let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
-        // Add column labels
-        for (idx, label) in column_labels.iter().enumerate() {
-            let label_text = Text::new()
-                .set("x", 50 + idx * 50 + 25)  
-                .set("y", 472)  
-                .set("text-anchor", "middle")
-                .set("font-size", 20)
-                .set("fill", "#757575")  // Set text color to dark grey
-                .add(svg::node::Text::new(label.to_string()));
-            doc = doc.add(label_text);
-        }
+//         // Add column labels
+//         for (idx, label) in column_labels.iter().enumerate() {
+//             let label_text = Text::new()
+//                 .set("x", 50 + idx * 50 + 25)  
+//                 .set("y", 472)  
+//                 .set("text-anchor", "middle")
+//                 .set("font-size", 20)
+//                 .set("fill", "#757575")  // Set text color to dark grey
+//                 .add(svg::node::Text::new(label.to_string()));
+//             doc = doc.add(label_text);
+//         }
 
-        // Add row labels
-        for (idx, label) in row_labels.iter().enumerate() {
-            let label_text = Text::new()
-                .set("x", 32)  
-                .set("y", 50 + idx * 50 + 35)  
-                .set("text-anchor", "middle")
-                .set("font-size", 20)
-                .set("fill", "#757575")  
-                .add(svg::node::Text::new(label.to_string()));
-            doc = doc.add(label_text);
-        }
+//         // Add row labels
+//         for (idx, label) in row_labels.iter().enumerate() {
+//             let label_text = Text::new()
+//                 .set("x", 32)  
+//                 .set("y", 50 + idx * 50 + 35)  
+//                 .set("text-anchor", "middle")
+//                 .set("font-size", 20)
+//                 .set("fill", "#757575")  
+//                 .add(svg::node::Text::new(label.to_string()));
+//             doc = doc.add(label_text);
+//         }
 
-        for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
-            for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-                let x = 50 + col * 50;  
-                let y = 50 + row * 50;  
+//         for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+//             for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+//                 let x = 50 + col * 50;  
+//                 let y = 50 + row * 50;  
 
-                let square_color = if (row + col) % 2 == 0 {
-                    "#ccc"
-                } else {
-                    "#666"
-                };
+//                 let square_color = if (row + col) % 2 == 0 {
+//                     "#ccc"
+//                 } else {
+//                     "#666"
+//                 };
                 
-                let square = Rectangle::new()
-                    .set("x", x)
-                    .set("y", y)
-                    .set("width", 50)
-                    .set("height", 50)
-                    .set("fill", square_color);
+//                 let square = Rectangle::new()
+//                     .set("x", x)
+//                     .set("y", y)
+//                     .set("width", 50)
+//                     .set("height", 50)
+//                     .set("fill", square_color);
 
-                doc = doc.add(square);
+//                 doc = doc.add(square);
 
-                if piece != ' ' {
+//                 if piece != ' ' {
 
-                    if let Some(from_coords) = from {
-                        let (row, col) = from_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+//                     if let Some(from_coords) = from {
+//                         let (row, col) = from_coords;
+//                         let x = 50 + col * 50;
+//                         let y = 50 + row * 50;
                     
-                        let highlight = Rectangle::new()
-                            .set("x", x)
-                            .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
-                            .set("fill", "none") // Transparent fill
-                            .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
+//                         let highlight = Rectangle::new()
+//                             .set("x", x)
+//                             .set("y", y)
+//                             .set("width", 50)
+//                             .set("height", 50)
+//                             .set("fill", "none") // Transparent fill
+//                             .set("stroke", "#3189D9")
+//                             .set("stroke-width", 3);
                     
-                        doc = doc.add(highlight);
-                    }
+//                         doc = doc.add(highlight);
+//                     }
                     
-                    if let Some(to_coords) = to {
-                        let (row, col) = to_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+//                     if let Some(to_coords) = to {
+//                         let (row, col) = to_coords;
+//                         let x = 50 + col * 50;
+//                         let y = 50 + row * 50;
                     
-                        let highlight = Rectangle::new()
-                            .set("x", x)
-                            .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
-                            .set("fill", "none") // Transparent fill
-                            .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
+//                         let highlight = Rectangle::new()
+//                             .set("x", x)
+//                             .set("y", y)
+//                             .set("width", 50)
+//                             .set("height", 50)
+//                             .set("fill", "none") // Transparent fill
+//                             .set("stroke", "#3189D9")
+//                             .set("stroke-width", 3);
                     
-                        doc = doc.add(highlight);
-                    }
+//                         doc = doc.add(highlight);
+//                     }
 
                         
-                    let piece_color = if square_color == "#666" { // for darker background
-                        if piece.is_uppercase() {
-                            "#ffefc1" // lighter gray for light pieces
-                        } else {
-                            "#ff8e8e" // lighter red for dark pieces
-                        }
-                    } else { // for lighter background
-                        if piece.is_uppercase() {
-                            "#665628" // darker gray for light pieces
-                        } else {
-                            "#9e0b00" // darker red for dark pieces
-                        }
-                    };
+//                     let piece_color = if square_color == "#666" { // for darker background
+//                         if piece.is_uppercase() {
+//                             "#ffefc1" // lighter gray for light pieces
+//                         } else {
+//                             "#ff8e8e" // lighter red for dark pieces
+//                         }
+//                     } else { // for lighter background
+//                         if piece.is_uppercase() {
+//                             "#665628" // darker gray for light pieces
+//                         } else {
+//                             "#9e0b00" // darker red for dark pieces
+//                         }
+//                     };
 
-                    let mut text = Text::new()
-                        .set("x", x + 25)
-                        .set("y", y + 35)
-                        .set("text-anchor", "middle")
-                        .set("font-size", 30)
-                        .set("fill", piece_color);
+//                     let mut text = Text::new()
+//                         .set("x", x + 25)
+//                         .set("y", y + 35)
+//                         .set("text-anchor", "middle")
+//                         .set("font-size", 30)
+//                         .set("fill", piece_color);
 
-                    if piece.is_uppercase() {
-                        text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
-                    } else {
-                        text = text.add(svg::node::Text::new(piece.to_string()));
-                    }
+//                     if piece.is_uppercase() {
+//                         text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+//                     } else {
+//                         text = text.add(svg::node::Text::new(piece.to_string()));
+//                     }
 
-                    doc = doc.add(text);
-                }
-            }
-    }
+//                     doc = doc.add(text);
+//                 }
+//             }
+//     }
 
-    doc
-}
+//     doc
+// }
 
 
 
@@ -2784,3 +2907,13 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 
 
 
+// fn string_to_board(s: &str) -> [[char; 8]; 8] {
+//     let mut board = [[' '; 8]; 8];
+//     let s = s.chars().filter(|c| !c.is_whitespace()).collect::<Vec<_>>();
+//     for i in 0..8 {
+//         for j in 0..8 {
+//             board[i][j] = s[i * 8 + j];
+//         }
+//     }
+//     board
+// }
