@@ -355,8 +355,6 @@ To accurately identify an IP address, you need to consider all four sets of numb
 
 */
 
-
-
 // Import Packages / Dependencies
 extern crate tiny_http;
 extern crate csv;
@@ -365,9 +363,8 @@ extern crate csv;
 use std::fs::OpenOptions;
 use tiny_http::{Server, Response, Method, Header}; 
 use std::path::Path;
-
-// Variables
-type Board = [[char; 8]; 8];
+use rand::prelude::*;
+use std::convert::TryInto;
 use std::fs;
 use std::fs::File;
 use std::io::{self, Write, Read};
@@ -376,12 +373,13 @@ use svg::Document;
 use svg::node::element::Rectangle;
 use svg::node::element::Text;
 use svg::node::element::Image;
-
 use base64::Engine; // Bring the Engine trait into scope
 use base64::engine::general_purpose::STANDARD;
 
 // use zeroize::Zeroize;
 
+// Variables
+type Board = [[char; 8]; 8];
 
 struct GameData {
     game_name: String,
@@ -704,38 +702,114 @@ fn main() {
                         .with_status_code(400);
                     if let Err(e) = request.respond(response) {
                         eprintln!("Failed to respond to request: {}", e);
+                    continue;    
                     }
                 } else {
                     let game_type = url_parts[2].to_string();
                     let game_name = url_parts[3].to_string();
                     let game_phrase = url_parts[4].to_string();
 
-                    // Call setup_new_game here
+                    // Call setup_new_chess_game here
 
+                    // Check the game type and call the corresponding function
 
                     // Check the game type and call the corresponding function
                     let response = if game_type == "chess960" {
                         match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                            Ok(_) => Response::from_string("Chess960 game setup successfully.")
-                                .with_status_code(200),
-                            Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e))
-                                .with_status_code(500),
+                            Ok(_) => {
+                                // Load SVG content from file
+                                match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
+                                    Ok(svg_content) => {
+                                        // Create header
+                                        match Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]) {
+                                            Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
+                                            Err(_) => Response::from_string("Failed to create response header.").with_status_code(500),
+                                        }
+                                    },
+                                    Err(_) => Response::from_string("Failed to read SVG file.").with_status_code(500),
+                                }
+                            },
+                            Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e)).with_status_code(500),
                         }
                     } else if game_type == "chess" {
-                        match setup_new_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                            Ok(_) => Response::from_string("Chess game setup successfully.")
-                                .with_status_code(200),
-                            Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e))
-                                .with_status_code(500),
+                        match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                            Ok(_) => {
+                                // Load SVG content from file
+                                match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
+                                    Ok(svg_content) => {
+                                        // Create header
+                                        match Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]) {
+                                            Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
+                                            Err(_) => Response::from_string("Failed to create response header.").with_status_code(500),
+                                        }
+                                    },
+                                    Err(_) => Response::from_string("Failed to read SVG file.").with_status_code(500),
+                                }
+                            },
+                            Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e)).with_status_code(500),
                         }
                     } else {
-                        Response::from_string("Invalid game type.")
-                            .with_status_code(400)
+                        Response::from_string("Invalid game type.").with_status_code(400)
                     };
 
                     if let Err(e) = request.respond(response) {
                         eprintln!("Failed to respond to request: {}", e);
                     }
+
+                    // let response = if game_type == "chess960" {
+                    //     match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                    //         Ok(_) => {
+                    //             // Load SVG content from file
+                    //             let svg_content = std::fs::read_to_string(format!("games/{}/board.svg", game_name))?;
+                                
+                    //             let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]).unwrap_or_else(|_| panic!("Invalid header!"));
+                    //             Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //         },
+                    //         Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e)).with_status_code(500),
+                    //     }
+                    // } else if game_type == "chess" {
+                    //     match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                    //         Ok(_) => {
+                    //             // Load SVG content from file
+                    //             let svg_content = std::fs::read_to_string(format!("games/{}/board.svg", game_name))?;
+                                
+                    //             let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]).unwrap_or_else(|_| panic!("Invalid header!"));
+                    //             Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //         },
+                    //         Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e)).with_status_code(500),
+                    //     }
+                    // } else {
+                    //     Response::from_string("Invalid game type.").with_status_code(400)
+                    // };
+
+                    // if let Err(e) = request.respond(response) {
+                    //     eprintln!("Failed to respond to request: {}", e);
+                    // }
+
+
+                    // // Check the game type and call the corresponding function
+                    // let response = if game_type == "chess960" {
+                    //     match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                    //         Ok(_) => Response::from_string("Chess960 game setup successfully.")
+                    //             .with_status_code(200),
+                    //         Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e))
+                    //             .with_status_code(500),
+                    //     }
+                    // } else if game_type == "chess" {
+                    //     match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                    //         Ok(_) => Response::from_string("Chess game setup successfully.")
+                    //             .with_status_code(200),
+                    //         Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e))
+                    //             .with_status_code(500),
+                    //     }
+                    // } else {
+                    //     Response::from_string("Invalid game type.")
+                    //         .with_status_code(400)
+                    // };
+
+                    // if let Err(e) = request.respond(response) {
+                    //     eprintln!("Failed to respond to request: {}", e);
+                    // }
                 }
             }
 
@@ -1318,11 +1392,14 @@ fn main() {
         // write
         game_data.to_txt()?;
 
+        // svg in game_name directory
+        generate_and_save_svg(&game_board_state, game_name)?;
+
         Ok(())
     }
 
 
-    fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
+    fn setup_new_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -1396,7 +1473,6 @@ fn main() {
         let ip_hash_list = vec![hashed_ip_stamp];
         
 
-
         // create first game_data struct
         let game_data = GameData::new(
             game_name.to_string(),
@@ -1408,14 +1484,46 @@ fn main() {
             game_board_state
         );
 
-
         // write
         game_data.to_txt()?;
+
+        // // Generate SVG
+        // let doc = generate_white_oriented_chessboard(&game_board_state, None, None);
+
+        // // Define the file path
+        // let svg_file_path = format!("games/{}/board.svg", game_name);
+
+        // // Write the SVG code to the file
+        // svg::save(svg_file_path, &doc).expect("Unable to write SVG to file");
+
+        // Generate and save SVG
+        generate_and_save_svg(&game_board_state, game_name)?;
 
         Ok(())
     }
 
-
+    // fn generate_and_save_svg(board: &[[char; 8]; 8], game_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    //     // Generate SVG
+    //     let doc = generate_white_oriented_chessboard(board, None, None);
+    
+    //     // Define the file path
+    //     let svg_file_path = format!("games/{}/board.svg", game_name);
+    
+    //     // Write the SVG code to the file
+    //     svg::save(svg_file_path, &doc).map_err(|e| e.into())
+    // }
+    
+    fn generate_and_save_svg(board: &[[char; 8]; 8], game_name: &str) -> std::io::Result<()> {
+        // Generate SVG
+        let doc = generate_white_oriented_chessboard(board, None, None);
+    
+        // Define the file path
+        let svg_file_path = format!("games/{}/board.svg", game_name);
+    
+        // Write the SVG code to the file
+        svg::save(svg_file_path, &doc).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    }
+    
 
     impl GameData {
         /*
@@ -2614,8 +2722,6 @@ fn main() -> Result<(), &'static str> {
 
 */
 
-use rand::prelude::*;
-use std::convert::TryInto;
 
 fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
     let mut rng = rand::thread_rng();
@@ -2667,10 +2773,10 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
     piece_array[queen_number as usize] = 'q';
 
     let mut chessboard_state: [[char; 8]; 8] = [[' '; 8]; 8];
-    chessboard_state[0] = piece_array.iter().map(|&p| p.to_ascii_uppercase()).collect::<Vec<_>>().try_into().unwrap();
-    chessboard_state[1] = ['P'; 8];
-    chessboard_state[6] = ['p'; 8];
-    chessboard_state[7] = piece_array;
+    chessboard_state[7] = piece_array.iter().map(|&p| p.to_ascii_uppercase()).collect::<Vec<_>>().try_into().unwrap();
+    chessboard_state[6] = ['P'; 8];
+    chessboard_state[1] = ['p'; 8];
+    chessboard_state[0] = piece_array;
 
     Ok(chessboard_state)
 }
