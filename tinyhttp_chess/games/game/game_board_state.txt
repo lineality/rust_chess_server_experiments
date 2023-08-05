@@ -1,6 +1,6 @@
 rnbqkbnr
 pppp ppp
-        
+  P     
   P     
   P p   
         

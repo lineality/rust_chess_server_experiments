@@ -411,6 +411,19 @@ fn main() {
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
+            // Terminal Inspection of Request
+            println!("url_parts.len: {}",url_parts.len());
+
+            // Print the whole url_parts list as a single string
+            let url_parts_string = url_parts.join(", ");
+            println!("url_parts: [{}]", url_parts_string);
+
+            // Iterate over url_parts and print each item
+            for (i, part) in url_parts.iter().enumerate() {
+                println!("url_parts[{}]: {}", i, part);
+            }
+
+
             // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
@@ -428,8 +441,9 @@ fn main() {
                 },
                  
             };
-            println!("ip_stamp: {}", ip_stamp);
-            println!("url_parts.len: {}",url_parts.len());
+
+            // Testing Only
+            // println!("ip_stamp: {}", ip_stamp);
             
 
             /////////////////////
@@ -579,10 +593,25 @@ fn main() {
                 let move_data = url_parts[2].to_string();  
                 let game_phrase = url_parts[3].to_string();  
 
-                if is_existing_game_name(&game_name) {
-                    // println!("Game exists, proceed with the game logic.");
+                // if is_existing_game_name(&game_name) {
+                //     // println!("Game exists, proceed with the game logic.");
+                // } else {
+                //     println!("none such game_name and or game_phrase: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                // }
+
+                let is_existing_game = is_existing_game_name(&game_name);
+
+                if is_existing_game {
+                    println!("Game name is valid.");
+                    // add ip_hash to list...
                 } else {
-                    println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                    let err_msg = "none such game_name and or game_phrase: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE";
+                    println!("{}", err_msg);
+                    let response = Response::from_string(err_msg).with_status_code(400);
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // Skip the rest of the loop for this request
                 }
 
 
@@ -601,11 +630,24 @@ fn main() {
                 if is_valid {
                     println!("Game phrase is valid.");
                     // add ip_hash to list...
-
-
                 } else {
-                    println!("Game phrase is not valid.");
+                    let err_msg = "none such game_name and or game_phrase: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE";
+                    println!("{}", err_msg);
+                    let response = Response::from_string(err_msg).with_status_code(400);
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // Skip the rest of the loop for this request
                 }
+
+                // if is_valid {
+                //     println!("Game phrase is valid.");
+                //     // add ip_hash to list...
+
+
+                // } else {
+                //     println!("Game phrase is not valid.");
+                // }
 
 
                 // sanitize and validate inputs from get request
