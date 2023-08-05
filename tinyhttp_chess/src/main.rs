@@ -403,25 +403,11 @@ fn main() {
     
     println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| " );
 
-    for mut request in server.incoming_requests() {
-
-        // Inside your request handler function
-        println!("Method: {:?}", request.method());
-        println!("URL: {:?}", request.url());
-        println!("HTTP Version: {:?}", request.http_version());
-        println!("Headers: {:?}", request.headers());
-        println!("Remote address: {:?}", request.remote_addr());
-
-        let mut buffer = String::new();
-        match request.as_reader().read_to_string(&mut buffer) {
-            Ok(_) => println!("Body: {}", buffer),
-            Err(e) => eprintln!("Failed to read request body: {}", e),
-        };
+    for request in server.incoming_requests() {
 
         // get request containing game and move
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
-
 
             // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
@@ -445,29 +431,10 @@ fn main() {
             println!("ip_stamp: {}", ip_stamp);
 
 
-            
-
-            // let ip_stamp = match request.remote_addr() {
-            //     Some(socket_addr) => {
-            //         let ip_string = socket_addr.ip().to_string();
-                    
-        
-            //         // Now you can make a hash from the IP string and the timestamp string
-            //         make_hash(&ip_string, &timestamp_string)
-
-            //     },
-            //     None => {
-            //         println!("Could not retrieve client IP");
-            //         continue;
-            //     },
-            // };
-
-            // println!("ip_stamp: {:?}", ip_stamp);
-
-        ////////////////
-        // landing page
-        ////////////////
-        if url_parts.len() == 2 {
+        /////////////////////
+        //  landing page
+        /////////////////////
+        if url_parts.len() == 1 {
             let response = match landing_page_no_html() {
                 Ok(response_string) => {
                     Response::from_string(response_string).with_status_code(200)
@@ -485,10 +452,90 @@ fn main() {
             }
 
 
+        /////////////////
+        // landing pages
+        /////////////////
+        if url_parts.len() == 2 {
+
+
+            let game_name = url_parts[1].to_string();
+            println!("{}",game_name);
+
+            // // // declare response outside match blocks so we can assign it in each match block
+            // let response = Response::from_string(response_string);
+            if is_existing_game_name(&game_name) {
+                // println!("Game exists, proceed with the game logic.");
+            } else {
+                println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+            }
+
+            // validate_ip_hash
+            // let dir_path = format!("./games/{}", game_name);
+
+
+            // // // call game move function
+            // // call game move function
+            // let response = match show_board(game_name) {
+            //     Ok(svg_content) => {
+            //         // Attempt to create the header
+            //         let maybe_header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]);
+
+            //         match maybe_header {
+            //             Ok(header) => {
+            //                 // If the header was created successfully, return a response with the SVG content
+            //                 Response::from_string(svg_content).with_header(header).with_status_code(200)
+            //             }
+            //             Err(_) => {
+            //                 // If the header could not be created, return a response indicating an internal server error
+            //                 Response::from_string("Failed to create header".to_string()).with_status_code(500)
+            //             }
+            //         }
+            //     },
+            //     if let Err(e) = request.respond(response) {
+            //         eprintln!("Failed to respond to request: {}", e);
+            //     }
+            //     // Err(e) => {
+            //     //     // If an error occurred while attempting to show the board, return a response indicating an internal server error
+            //     //     eprintln!("Failed to show board: {}", e);
+            //     //     Response::from_string(format!("Failed to show board: {}", e)).with_status_code(500)
+            //     // }
+
+
+            // // call game move function
+            let response = match show_board(game_name) {
+                Ok(svg_content) => {
+                    let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                        .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+            
+                    Response::from_string(svg_content).with_header(header).with_status_code(200)
+                },
+                Err(e) => {
+                    eprintln!("Failed to handle move: {}", e);
+                    Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                }
+            };
+            
+
+            if let Err(e) = request.respond(response) {
+                eprintln!("Failed to respond to request: {}", e);
+            }
+            continue; // No need to run the rest of the loop for the landing page;
+            }
+            
+        
+    
+    
+
+
         /////////
         // m0ve
         ////////
         else if url_parts.len() == 3 {
+
+
+            // if 'start' reset and return blank board
+            // if erase delete game folder
+
 
             let game_name = url_parts[1].to_string();
             let move_data = url_parts[2].to_string();  
@@ -517,11 +564,6 @@ fn main() {
                 println!("Failed to validate_ip_hash");
                 return; // Return success: we've handled the request by generating a response
             }
-
-
-
-
-            // if 'start' reset and return blank board
 
 
             // // call game move function
@@ -887,10 +929,12 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
             // let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
 
             // Define the file name
-            let file_name = "board.svg";
+            // let file_name = "board.svg", game_name;
+            let file_path = format!("games/{}/board.svg", game_name);
+
 
             // Write the svg code to the file
-            svg::save(file_name, &doc).expect("Unable to write to file");
+            svg::save(file_path, &doc).expect("Unable to write to file");
 
             println!("SVG file has been created successfully.");
     
@@ -919,6 +963,32 @@ fn handle_chess_move(game_name: String, move_data: String) -> Result<String, Box
     // Ok(svg_content)
 
 }
+
+
+
+fn show_board(game_name: String) -> Result<String, Box<dyn std::error::Error>> {
+
+    // File Setup
+    let dir_path = format!("./games/{}", game_name);
+
+    std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
+
+            // Generate SVG with these coordinates
+            // let doc = generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented));
+
+            // Define the file name
+            // let file_name = "board.svg", game_name;
+            let file_path = format!("games/{}/board.svg", game_name);
+
+
+            // Read the content of the SVG file
+            let svg_content = std::fs::read_to_string(&file_path)?;
+
+            Ok(svg_content)
+
+    }
+
+
 
 
 
@@ -1238,23 +1308,8 @@ fn setup_new_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp:
 
     make files and folders...
     set up and save initial game board
-
-    store date in a json file:
-
-    last_activity = posix timestamp
-
-    // make a game_data json:
-    activity_timestamp: posic timestamp
-    game_type: chess
-    move_number: 0
-    set game type = chess
-
-    two gametypes for now
-
-    chess
-    chess960
-        chess_gomeclock
-
+    data in struct, separate files
+    
     */
 
     // make a game_data json
@@ -1528,6 +1583,9 @@ fn is_existing_game_name(game_name: &str) -> bool {
         "setup", 
         "games",
         "chess",
+        "settings",
+        "security",
+        "docs",
         "y0ur_m0ve",
         "start",
         "erase"

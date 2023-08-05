@@ -1,5 +1,5 @@
 rnbqkbnr
-pppppppp
+pppp ppp
         
   P     
   P p   

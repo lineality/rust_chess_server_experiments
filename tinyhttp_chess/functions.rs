@@ -1529,3 +1529,22 @@ fn main() {
 
 //     Ok((*piece, from, to))
 // }
+
+
+
+        /*
+        For testing, requires "mut request"
+        for inspecting incoming requests for debugging
+        */
+        // // Inside your request handler function
+        // println!("Method: {:?}", request.method());
+        // println!("URL: {:?}", request.url());
+        // println!("HTTP Version: {:?}", request.http_version());
+        // println!("Headers: {:?}", request.headers());
+        // println!("Remote address: {:?}", request.remote_addr());
+
+        // let mut buffer = String::new();
+        // match request.as_reader().read_to_string(&mut buffer) {
+        //     Ok(_) => println!("Body: {}", buffer),
+        //     Err(e) => eprintln!("Failed to read request body: {}", e),
+        // };
