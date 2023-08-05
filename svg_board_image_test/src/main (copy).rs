@@ -132,6 +132,64 @@ fn generate_black_oriented_chessboard(
                     doc = doc.add(highlight);
                 }
 
+                    
+                // let piece_color = if square_color == "#666" { // for darker background
+                //     if piece.is_uppercase() {
+                //         "#ffefc1" // lighter gray for light pieces
+                //     } else {
+                //         "#ff8e8e" // lighter red for dark pieces
+                //     }
+                // } else { // for lighter background
+                //     if piece.is_uppercase() {
+                //         "#665628" // darker gray for light pieces
+                //     } else {
+                //         "#9e0b00" // darker red for dark pieces
+                //     }
+                // };
+
+                // let mut text = Text::new()
+                //     .set("x", x + 25)
+                //     .set("y", y + 35)
+                //     .set("text-anchor", "middle")
+                //     .set("font-size", 30)
+                //     .set("fill", piece_color);
+
+                // if piece.is_uppercase() {
+                //     text = text.add(svg::node::Text::new(piece.to_uppercase().to_string()));
+                // } else {
+                //     text = text.add(svg::node::Text::new(piece.to_string()));
+                // }
+
+                // doc = doc.add(text);
+
+                // // map character to piece name
+                // let piece_name = match piece {
+                //     'p' => "black_pawn",
+                //     'r' => "black_rook",
+                //     'n' => "black_night",
+                //     'b' => "black_bishop",
+                //     'q' => "black_queen",
+                //     'k' => "black_king",
+                //     'P' => "white_pawn",
+                //     'R' => "white_rook",
+                //     'N' => "white_night",  
+                //     'B' => "white_bishop",
+                //     'Q' => "white_queen",
+                //     'K' => "white_king",
+                //     _   => panic!("Unknown piece"),
+                // };
+
+                // // Load SVG chess piece based on piece name
+                // let file_path = format!("pieces_svg/{}.svg", piece_name);
+
+                // let piece_image = Image::new()
+                //     .set("x", x)
+                //     .set("y", y)
+                //     .set("width", 50)
+                //     .set("height", 50)
+                //     .set("href", file_path);
+
+                // doc = doc.add(piece_image);
 
                 // map character to piece name and background
                 let (piece_name, background) = match piece {
