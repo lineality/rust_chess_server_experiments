@@ -1533,6 +1533,20 @@ fn main() {
 // }
 
 
+    // pub fn access_directory(&mut self, name: &str) {
+    //     if let Some(expiration_date) = self.expiration_by_name.get(name) {
+    //         let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
+    //         self.add_directory(name.to_string(), new_expiration_date);
+    //     }
+    // }
+    pub fn access_directory(&mut self, name: &str) {
+        if let Some(expiration_date) = self.expiration_by_name.get(name) {
+            let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
+            self.add_directory(name.to_string(), new_expiration_date);
+        }
+    }
+
+
 // fn save_game_board_state(game_name: &str, board: [[char; 8]; 8]) -> std::io::Result<()> {
 //     let dir_path = format!("./games/{}", game_name);
 //     std::fs::create_dir_all(&dir_path)?;

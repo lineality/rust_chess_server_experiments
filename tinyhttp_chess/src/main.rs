@@ -3060,12 +3060,14 @@ impl CleanerState {
         })
     }
 
-    pub fn access_directory(&mut self, name: &str) {
-        if let Some(expiration_date) = self.expiration_by_name.get(name) {
+
+    pub fn update_directory_expiration_if_exists(&mut self, name: &str) {
+        if self.expiration_by_name.contains_key(name) {
             let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
             self.add_directory(name.to_string(), new_expiration_date);
         }
     }
+    
 
 
     pub fn add_directory(&mut self, name: String, expiration_date: SystemTime) {
@@ -3093,19 +3095,16 @@ impl CleanerState {
         write_next_check_time_to_file(next_check_time_file, self.next_check_time)
     }
     
-
-    // pub fn access_directory(&mut self, name: &str) {
-    //     if let Some(expiration_date) = self.expiration_by_name.get(name) {
-    //         let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
-    //         self.add_directory(name.to_string(), new_expiration_date);
-    //     }
-    // }
-
     pub fn check_and_remove_expired(&mut self, next_check_time_file: &str) {
         let current_time = SystemTime::now();
         if let Ok(duration) = self.next_check_time.duration_since(current_time) {
             if duration.as_secs() == 0 {
-                self.update_next_check_time(next_check_time_file);
+
+                match self.update_next_check_time(next_check_time_file) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Failed to update next check time: {}", e),
+                }
+
                 let now = SystemTime::now();
                 let expired_keys: Vec<SystemTime> = self.names_by_expiration
                     .range(..now)
@@ -3176,7 +3175,7 @@ fn check_url_parts_against_directory(url_parts: &[&str]) -> std::io::Result<Opti
 fn update_directory_expiration_from_url(url_parts: &[&str], cleaner: &mut CleanerState) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(matched_directory) = check_url_parts_against_directory(url_parts)? {
         // Access the directory to update its expiration time
-        cleaner.access_directory(&matched_directory);
+        cleaner.update_directory_expiration_if_exists(&matched_directory);
     }
     Ok(())
 }
