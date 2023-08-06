@@ -17,6 +17,53 @@ fn to_chess_notation(coords: (usize, usize)) -> String {
     format!("{}{}", col, row)
 }
 
+fn current_week_of_year() -> u32 {
+    let duration_since_epoch = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    (duration_since_epoch.as_secs() / 60 / 60 / 24 / 7) as u32 % 52
+}
+
+
+
+// fn string_to_board(s: &str) -> [[char; 8]; 8] {
+//     let mut board = [[' '; 8]; 8];
+//     let s = s.chars().filter(|c| !c.is_whitespace()).collect::<Vec<_>>();
+//     for i in 0..8 {
+//         for j in 0..8 {
+//             board[i][j] = s[i * 8 + j];
+//         }
+//     }
+//     board
+// }
+
+    // pub fn new(next_check_time_file: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    //     let next_check_time = read_next_check_time_from_file(next_check_time_file)?;
+    //     Ok(Self {
+    //         next_check_time,
+    //         expiration_by_name: HashMap::new(),
+    //         names_by_expiration: BTreeMap::new(),
+    //     })
+    // }
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     let queue = in_memory_queue.lock().unwrap();
+//     // Implement the logic to write the batch of requests to disk asynchronously
+//     // For example, you can iterate over the queue and write each request to a file or an on-disk database.
+//     // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
+// }
+
+// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
+//     let mut queue = in_memory_queue.lock().unwrap();
+//     // Process requests in the in-memory queue
+//     while let Some(request) = queue.pop_front() {
+//         // Implement your request processing logic here
+//         println!("Processing in-memory request: {:?}", request);
+//         // For demonstration purposes, we'll just print the request content.
+//     }
+// }
+
 
 
 fn to_coords(chess_notation: &str) -> (usize, usize) {

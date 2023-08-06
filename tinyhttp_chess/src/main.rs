@@ -376,6 +376,12 @@ use svg::node::element::Image;
 use base64::Engine; // Bring the Engine trait into scope
 use base64::engine::general_purpose::STANDARD;
 
+
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::time::Duration;
+
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -400,6 +406,18 @@ struct GameData {
 
 
 fn main() {
+    // Use a constant for the filename
+    const NEXT_CHECK_TIME_FILE: &str = "next_check_time.txt";
+
+    // Instantiate CleanerState
+    let mut cleaner_state = match CleanerState::new(NEXT_CHECK_TIME_FILE) {
+        Ok(state) => state,
+        Err(e) => {
+            eprintln!("Failed to initialize CleanerState: {}", e);
+            return;
+        }
+    };
+
     let server = match Server::http("0.0.0.0:8000") {
         Ok(server) => server,
         Err(e) => {
@@ -445,7 +463,8 @@ fn main() {
         }
 
         // Process requests in the in-memory queue
-        process_in_memory_requests(&in_memory_queue);
+        // process_in_memory_requests(&in_memory_queue);
+        process_in_memory_requests(&in_memory_queue, &mut cleaner_state);
     }
 }
 
@@ -458,7 +477,9 @@ fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
     // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
 }
 
-fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
+// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
+fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, cleaner_state: &mut CleanerState) {
+
     let mut queue = in_memory_queue.lock().unwrap();
     // Process requests in the in-memory queue
     while let Some(request) = queue.pop_front() {
@@ -471,6 +492,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
             ///////////////
             // for request in server.incoming_requests() {
 
+            // inspection
             // Terminal Inspection of Request
             println!("url_parts.len: {}",url_parts.len());
 
@@ -482,6 +504,10 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
             for (i, part) in url_parts.iter().enumerate() {
                 println!("url_parts[{}]: {}", i, part);
             }
+
+            // process update expiration dates of projects
+            // process_url_and_update_expiration(&url_parts);
+            process_url_and_update_expiration(&url_parts, cleaner_state);
 
 
             // get reduced ip_stamp rather than whole ip
@@ -1597,8 +1623,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
 
         // create list for initial game_data list
         let ip_hash_list = vec![hashed_ip_stamp];
-        
 
+        
 
         // create first game_data struct
         let game_data = GameData::new(
@@ -3010,68 +3036,22 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 }
 
 
-
-
-// fn string_to_board(s: &str) -> [[char; 8]; 8] {
-//     let mut board = [[' '; 8]; 8];
-//     let s = s.chars().filter(|c| !c.is_whitespace()).collect::<Vec<_>>();
-//     for i in 0..8 {
-//         for j in 0..8 {
-//             board[i][j] = s[i * 8 + j];
-//         }
-//     }
-//     board
-// }
-
-
-
-// // Function to write a batch of requests to disk asynchronously
-// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
-//     let queue = in_memory_queue.lock().unwrap();
-//     // Implement the logic to write the batch of requests to disk asynchronously
-//     // For example, you can iterate over the queue and write each request to a file or an on-disk database.
-//     // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
-// }
-
-// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
-//     let mut queue = in_memory_queue.lock().unwrap();
-//     // Process requests in the in-memory queue
-//     while let Some(request) = queue.pop_front() {
-//         // Implement your request processing logic here
-//         println!("Processing in-memory request: {:?}", request);
-//         // For demonstration purposes, we'll just print the request content.
-//     }
-// }
-
-
-
-
-
-
-fn current_week_of_year() -> u32 {
-    let duration_since_epoch = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards");
-    (duration_since_epoch.as_secs() / 60 / 60 / 24 / 7) as u32 % 52
-}
-
-
-
-use std::collections::BTreeMap;
-use std::collections::HashMap;
-use std::time::Duration;
-
-
-
 pub struct CleanerState {
     next_check_time: SystemTime, // This is a variable of type `SystemTime`
     expiration_by_name: HashMap<String, SystemTime>,
     names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
 }
 
-
 impl CleanerState {
+
+
     pub fn new(next_check_time_file: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // Ensure the file exists, if not, create it
+        if !Path::new(next_check_time_file).exists() {
+            let default_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);
+            write_next_check_time_to_file(next_check_time_file, default_time)?;
+        }
+        
         let next_check_time = read_next_check_time_from_file(next_check_time_file)?;
         Ok(Self {
             next_check_time,
@@ -3079,7 +3059,6 @@ impl CleanerState {
             names_by_expiration: BTreeMap::new(),
         })
     }
-
 
     pub fn access_directory(&mut self, name: &str) {
         if let Some(expiration_date) = self.expiration_by_name.get(name) {
@@ -3173,3 +3152,76 @@ fn write_next_check_time_to_file(filename: &str, next_check_time: SystemTime) ->
     file.write_all(contents.as_bytes())?;
     Ok(())
 }
+
+
+fn check_url_parts_against_directory(url_parts: &[&str]) -> std::io::Result<Option<String>> {
+    // Read all directory names from games/
+    let directory_names: Vec<_> = fs::read_dir("games/")?
+        .filter_map(|entry| {
+            entry.ok().and_then(|e| e.path().file_name().and_then(|n| n.to_str().map(String::from)))
+        })
+        .collect();
+
+    let indices_to_check = [1, 3];
+
+    for &index in &indices_to_check {
+        if index < url_parts.len() && directory_names.contains(&url_parts[index].to_string()) {
+            return Ok(Some(url_parts[index].to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn update_directory_expiration_from_url(url_parts: &[&str], cleaner: &mut CleanerState) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(matched_directory) = check_url_parts_against_directory(url_parts)? {
+        // Access the directory to update its expiration time
+        cleaner.access_directory(&matched_directory);
+    }
+    Ok(())
+}
+
+// fn process_url_and_update_expiration2(url: &str) {
+//     let matched_dir = check_url_parts_against_directory(url);
+//     if let Some(dir_name) = matched_dir {
+//         update_directory_expiration_from_url(&dir_name);
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str]) {
+//     // Note: Assuming check_url_parts_against_directory returns an Option<String>
+//     match check_url_parts_against_directory(url_parts) {
+//         Ok(Some(dir_name)) => {
+//             // Assuming update_directory_expiration_from_url takes a directory name
+//             // and returns a Result<(), ErrorType>
+//             if let Err(e) = update_directory_expiration_from_url(&dir_name) {
+//                 eprintln!("Error updating directory expiration: {}", e);
+//             }
+//         },
+//         Ok(None) => println!("No matching directory found."),
+//         Err(e) => println!("Error checking input against directory: {}", e),
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+
+    // Note: Assuming check_url_parts_against_directory returns an Option<String>
+    match check_url_parts_against_directory(url_parts) {
+        Ok(Some(dir_name)) => {
+            // Convert dir_name to slice
+            let dir_name_slice = [&dir_name[..]];
+
+            // Now pass both arguments to update_directory_expiration_from_url
+            if let Err(e) = update_directory_expiration_from_url(&dir_name_slice, cleaner_state) {
+                eprintln!("Error updating directory expiration: {}", e);
+            }
+        },
+        Ok(None) => println!("No matching directory found."),
+        Err(e) => println!("Error checking input against directory: {}", e),
+    }
+}
+
+
