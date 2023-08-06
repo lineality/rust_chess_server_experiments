@@ -361,7 +361,7 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Request, Response, Method, Header}; 
+use tiny_http::{Server, Response, Method, Header}; 
 use std::path::Path;
 use rand::prelude::*;
 use std::convert::TryInto;
@@ -375,13 +375,6 @@ use svg::node::element::Text;
 use svg::node::element::Image;
 use base64::Engine; // Bring the Engine trait into scope
 use base64::engine::general_purpose::STANDARD;
-
-use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
-use std::thread;
-
-const RAM_QUEUE_THRESHOLD: usize = 100000;
-
 
 // use zeroize::Zeroize;
 
@@ -407,69 +400,14 @@ fn main() {
             return;
         }
     };
+    
+    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| " );
 
-    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| ");
+    for request in server.incoming_requests() {
 
-    // Create the in-memory queue as a thread-safe data structure using Arc and Mutex
-    let in_memory_queue: Arc<Mutex<VecDeque<Request>>> = Arc::new(Mutex::new(VecDeque::new()));
-
-    loop {
-        // Handle incoming requests
-        let incoming_request = match server.recv() {
-            Ok(request) => request,
-            Err(e) => {
-                eprintln!("Failed to receive request: {}", e);
-                continue;
-            }
-        };
-
-        // Push the incoming request to the in-memory queue
-        {
-            let mut queue = in_memory_queue.lock().unwrap();
-            queue.push_back(incoming_request);
-        }
-
-        // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
-        if {
-            let queue = in_memory_queue.lock().unwrap();
-            queue.len() >= RAM_QUEUE_THRESHOLD
-        } {
-            // Start a new thread to write the batch to disk asynchronously
-            let in_memory_queue_clone = in_memory_queue.clone();
-            thread::spawn(move || {
-                write_batch_to_disk(in_memory_queue_clone);
-            });
-            // Clear the in-memory queue after writing to disk
-            let mut queue = in_memory_queue.lock().unwrap();
-            queue.clear();
-        }
-
-        // Process requests in the in-memory queue
-        process_in_memory_requests(&in_memory_queue);
-    }
-}
-
-
-// Function to write a batch of requests to disk asynchronously
-fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
-    let queue = in_memory_queue.lock().unwrap();
-    // Implement the logic to write the batch of requests to disk asynchronously
-    // For example, you can iterate over the queue and write each request to a file or an on-disk database.
-    // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
-}
-
-fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
-    let mut queue = in_memory_queue.lock().unwrap();
-    // Process requests in the in-memory queue
-    while let Some(request) = queue.pop_front() {
-        // Implement your request processing logic here
+        // get request containing game and move
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
-
-            ///////////////
-            // Server Here
-            ///////////////
-            // for request in server.incoming_requests() {
 
             // Terminal Inspection of Request
             println!("url_parts.len: {}",url_parts.len());
@@ -955,7 +893,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
             }
             }
     }
-    }
+}
 
 
 
@@ -3022,26 +2960,3 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 //     }
 //     board
 // }
-
-
-
-// // Function to write a batch of requests to disk asynchronously
-// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
-//     let queue = in_memory_queue.lock().unwrap();
-//     // Implement the logic to write the batch of requests to disk asynchronously
-//     // For example, you can iterate over the queue and write each request to a file or an on-disk database.
-//     // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
-// }
-
-// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
-//     let mut queue = in_memory_queue.lock().unwrap();
-//     // Process requests in the in-memory queue
-//     while let Some(request) = queue.pop_front() {
-//         // Implement your request processing logic here
-//         println!("Processing in-memory request: {:?}", request);
-//         // For demonstration purposes, we'll just print the request content.
-//     }
-// }
-
-
-
