@@ -3064,16 +3064,17 @@ use std::time::Duration;
 
 
 pub struct CleanerState {
-    next_check_time: SystemTime, // This is a variable of type `SystemTime`
+    current_check: u32,
+    last_checked_week: u32,
     expiration_by_name: HashMap<String, SystemTime>,
     names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
 }
 
-
 impl CleanerState {
     pub fn new() -> Self {
         CleanerState {
-            next_check_time: SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7),  // one week from now
+            current_check: 0,
+            last_checked_week: 0,
             expiration_by_name: HashMap::new(),
             names_by_expiration: BTreeMap::new(),
         }
@@ -3108,10 +3109,13 @@ impl CleanerState {
         }
     }
 
-    pub fn update_next_check_time(&mut self) {
-        self.next_check_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);  // one week from now
+
+    pub fn increment_cleaning_counter(&mut self) {
+        self.current_check += 1;
+        if self.current_check > 52 {
+            self.current_check = 0;
+        }
     }
-    
 
     // pub fn access_directory(&mut self, name: &str) {
     //     if let Some(expiration_date) = self.expiration_by_name.get(name) {
@@ -3121,8 +3125,10 @@ impl CleanerState {
     // }
 
     pub fn check_and_remove_expired(&mut self) {
-        if SystemTime::now().duration_since(self.next_check_time).is_ok() {
-            self.update_next_check_time();
+        let current_week = current_week_of_year();
+        if current_week != self.last_checked_week {
+            self.increment_cleaning_counter();
+            self.last_checked_week = current_week;
     
             let now = SystemTime::now();
             let expired_keys: Vec<SystemTime> = self.names_by_expiration
@@ -3142,7 +3148,6 @@ impl CleanerState {
             }
         }
     }
-    
     
 }
     
