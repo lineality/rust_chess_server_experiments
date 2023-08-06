@@ -11,6 +11,43 @@ fn board_to_string_simple(board: &[[char; 8]; 8]) -> String {
 }
 
 
+        // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
+        if {
+            let queue = in_memory_queue.lock().unwrap();
+            queue.len() >= RAM_QUEUE_THRESHOLD
+        } {
+            // Start a new thread to write the batch to disk asynchronously
+            let in_memory_queue_clone = in_memory_queue.clone();
+            thread::spawn(move || {
+                write_batch_to_disk(in_memory_queue_clone);
+            });
+            // Clear the in-memory queue after writing to disk
+            let mut queue = in_memory_queue.lock().unwrap();
+            queue.clear();
+        }
+
+        // if in_memory_queue.len() >= RAM_QUEUE_THRESHOLD {
+        //     // Start a new thread to write the batch to disk asynchronously
+        //     let in_memory_queue_clone = in_memory_queue.clone();
+        //     thread::spawn(move || {
+        //         write_batch_to_disk(in_memory_queue_clone);
+        //     });
+        //     // Clear the in-memory queue after writing to disk
+        //     let mut queue = in_memory_queue.lock().unwrap();
+        //     queue.clear();
+        // }
+
+        if in_memory_queue.len() >= RAM_QUEUE_THRESHOLD {
+            // Start a new thread to write the batch to disk asynchronously
+            let in_memory_queue_clone = in_memory_queue.clone();
+            thread::spawn(move || {
+                write_batch_to_disk(in_memory_queue_clone);
+            });
+            // Clear the in-memory queue after writing to disk
+            let mut queue = in_memory_queue.lock().unwrap();
+            queue.clear();
+        }
+
 fn to_chess_notation(coords: (usize, usize)) -> String {
     let col = (coords.1 as u8 + 'a' as u8) as char;
     let row = (8 - coords.0).to_string();

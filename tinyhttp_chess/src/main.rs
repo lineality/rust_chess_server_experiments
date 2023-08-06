@@ -367,7 +367,7 @@ use rand::prelude::*;
 use std::convert::TryInto;
 use std::fs;
 use std::fs::File;
-use std::io::{self, Write, Read};
+use std::io::{self, BufWriter, Write, Read, Error};
 use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
@@ -384,7 +384,7 @@ use std::time::Duration;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use std::thread;
+// use std::thread;
 
 const RAM_QUEUE_THRESHOLD: usize = 100000;
 
@@ -403,6 +403,14 @@ struct GameData {
     ip_hash_list: Vec<u128>,
     game_board_state: [[char; 8]; 8],
 }
+
+
+pub struct CleanerState {
+    next_check_time: SystemTime, // This is a variable of type `SystemTime`
+    expiration_by_name: HashMap<String, SystemTime>,
+    names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
+}
+
 
 
 fn main() {
@@ -428,9 +436,13 @@ fn main() {
 
     println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| ");
 
+
+    /*
+    Hybrid Queue for Managing Requests
+    */
+
     // Create the in-memory queue as a thread-safe data structure using Arc and Mutex
     let in_memory_queue: Arc<Mutex<VecDeque<Request>>> = Arc::new(Mutex::new(VecDeque::new()));
-
     loop {
         // Handle incoming requests
         let incoming_request = match server.recv() {
@@ -446,36 +458,39 @@ fn main() {
             let mut queue = in_memory_queue.lock().unwrap();
             queue.push_back(incoming_request);
         }
+        
 
         // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
-        if {
-            let queue = in_memory_queue.lock().unwrap();
-            queue.len() >= RAM_QUEUE_THRESHOLD
-        } {
-            // Start a new thread to write the batch to disk asynchronously
-            let in_memory_queue_clone = in_memory_queue.clone();
-            thread::spawn(move || {
-                write_batch_to_disk(in_memory_queue_clone);
-            });
-            // Clear the in-memory queue after writing to disk
-            let mut queue = in_memory_queue.lock().unwrap();
-            queue.clear();
+        if let Ok(queue) = in_memory_queue.lock() {
+            if queue.len() >= RAM_QUEUE_THRESHOLD {
+                // Start a new thread to write the batch to disk asynchronously
+                // let in_memory_queue_clone = in_memory_queue.clone();
+                // if let Err(e) = thread::spawn(move || {
+                //     write_batch_to_disk(in_memory_queue_clone);
+                // }).join() {
+                //     eprintln!("Failed to write batch to disk: {:?}", e);
+                // }
+                if let Err(e) = write_batch_to_disk(in_memory_queue.clone()) {
+                    eprintln!("Error writing batch to disk: {:?}", e);
+                }
+                // Clear the in-memory queue after writing to disk
+                if let Ok(mut queue) = in_memory_queue.lock() {
+                    queue.clear();
+                } else {
+                    eprintln!("Failed to clear in-memory queue.");
+                }
+            }
+        } else {
+            eprintln!("Failed to lock in-memory queue.");
         }
 
         // Process requests in the in-memory queue
-        // process_in_memory_requests(&in_memory_queue);
         process_in_memory_requests(&in_memory_queue, &mut cleaner_state);
     }
 }
 
 
-// Function to write a batch of requests to disk asynchronously
-fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
-    let queue = in_memory_queue.lock().unwrap();
-    // Implement the logic to write the batch of requests to disk asynchronously
-    // For example, you can iterate over the queue and write each request to a file or an on-disk database.
-    // Remember to handle errors and use proper I/O operations (e.g., buffered writes) to optimize performance.
-}
+
 
 // fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
 fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, cleaner_state: &mut CleanerState) {
@@ -487,12 +502,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
 
-            ///////////////
-            // Server Here
-            ///////////////
-            // for request in server.incoming_requests() {
+            /*
+            Server Here
+            for request in server.incoming_requests() {
+            */ 
 
-            // inspection
             // Terminal Inspection of Request
             println!("url_parts.len: {}",url_parts.len());
 
@@ -506,7 +520,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             }
 
             // process update expiration dates of projects
-            // process_url_and_update_expiration(&url_parts);
             process_url_and_update_expiration(&url_parts, cleaner_state);
 
 
@@ -536,7 +549,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             // site landing page
             /////////////////////
 
-            // if url_parts.len() == 1 || url_parts[0] == "" {
             if url_parts.len() == 1 || url_parts[1] == "" {
 
                 // inspection
@@ -2506,8 +2518,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                     // // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-                    let data_url = load_image_as_data_url(&file_path)
-                        .expect("Failed to load image as data URL");
+                    let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
+                    let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
+                    
 
                     let piece_image = Image::new()
                         .set("x", x)
@@ -3036,12 +3049,6 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 }
 
 
-pub struct CleanerState {
-    next_check_time: SystemTime, // This is a variable of type `SystemTime`
-    expiration_by_name: HashMap<String, SystemTime>,
-    names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
-}
-
 impl CleanerState {
 
 
@@ -3224,3 +3231,232 @@ fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut Cle
 }
 
 
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+    
+//     // Implement the logic to write each request to disk asynchronously
+//     for request in queue.iter() {
+//         if let Some(body) = request.as_reader() {
+//             let mut buffer = Vec::new();
+//             if let Ok(_) = body.read_to_end(&mut buffer) {
+//                 if let Ok(mut file) = File::create("requests.txt") {
+//                     if let Ok(_) = file.write_all(&buffer) {
+//                         println!("Successfully wrote request to disk.");
+//                     } else {
+//                         println!("Failed to write request to disk.");
+//                     }
+//                 } else {
+//                     println!("Failed to create the file.");
+//                 }
+//             } else {
+//                 println!("Failed to read request body.");
+//             }
+//         }
+//     }
+// }
+
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+    
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//             }
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.as_reader() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+    
+    
+    
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+// use std::io::Read;
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) -> Result<(), Error> {
+    // Lock the in-memory queue for writing to disk
+    let mut queue = in_memory_queue.lock().unwrap();
+
+    // Create a buffer to store all requests' contents as Strings
+    let mut buffer = String::new();
+
+    // Collect all requests' contents into the buffer
+    for request in queue.drain(..) {
+        // Here, for simplicity, we are adding request methods and URLs to buffer
+        // Adjust as necessary
+        buffer.push_str(&format!("{} {}\n", request.method(), request.url()));
+    }
+
+    // If there's data to write
+    if !buffer.is_empty() {
+        // Append to the file to ensure previous data isn't overwritten
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open("requests.txt")?;
+        
+        let mut writer = BufWriter::new(&mut file);
+        writer.write_all(buffer.as_bytes())?;
+        println!("Successfully wrote batch of requests to disk.");
+    } else {
+        println!("No requests to write to disk.");
+    }
+
+    Ok(())
+}
