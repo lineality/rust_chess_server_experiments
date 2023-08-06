@@ -3071,12 +3071,13 @@ pub struct CleanerState {
 
 
 impl CleanerState {
-    pub fn new() -> Self {
-        CleanerState {
-            next_check_time: SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7),  // one week from now
+    pub fn new(next_check_time_file: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let next_check_time = read_next_check_time_from_file(next_check_time_file)?;
+        Ok(Self {
+            next_check_time,
             expiration_by_name: HashMap::new(),
             names_by_expiration: BTreeMap::new(),
-        }
+        })
     }
 
 
@@ -3108,8 +3109,9 @@ impl CleanerState {
         }
     }
 
-    pub fn update_next_check_time(&mut self) {
+    pub fn update_next_check_time(&mut self, next_check_time_file: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.next_check_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);  // one week from now
+        write_next_check_time_to_file(next_check_time_file, self.next_check_time)
     }
     
 
@@ -3120,22 +3122,24 @@ impl CleanerState {
     //     }
     // }
 
-    pub fn check_and_remove_expired(&mut self) {
-        if SystemTime::now().duration_since(self.next_check_time).is_ok() {
-            self.update_next_check_time();
+    pub fn check_and_remove_expired(&mut self, next_check_time_file: &str) {
+        let current_time = SystemTime::now();
+        if let Ok(duration) = self.next_check_time.duration_since(current_time) {
+            if duration.as_secs() == 0 {
+                self.update_next_check_time(next_check_time_file);
+                let now = SystemTime::now();
+                let expired_keys: Vec<SystemTime> = self.names_by_expiration
+                    .range(..now)
+                    .map(|(&key, _)| key)
+                    .collect();
     
-            let now = SystemTime::now();
-            let expired_keys: Vec<SystemTime> = self.names_by_expiration
-                .range(..now)
-                .map(|(&key, _)| key)
-                .collect();
-    
-            for key in expired_keys {
-                if let Some(names) = self.names_by_expiration.remove(&key) {
-                    for name in names {
-                        match remove_directory(&name) {
-                            Ok(_) => (),
-                            Err(e) => println!("Failed to remove directory '{}': {}", name, e),
+                for key in expired_keys {
+                    if let Some(names) = self.names_by_expiration.remove(&key) {
+                        for name in names {
+                            match remove_directory(&name) {
+                                Ok(_) => (),
+                                Err(e) => println!("Failed to remove directory '{}': {}", name, e),
+                            }
                         }
                     }
                 }
@@ -3144,7 +3148,28 @@ impl CleanerState {
     }
     
     
+    
 }
     
 
 
+
+// ...
+
+fn read_next_check_time_from_file(filename: &str) -> Result<SystemTime, Box<dyn std::error::Error>> {
+    let mut file = fs::File::open(filename)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let secs = contents.trim().parse::<u64>()?;
+    Ok(UNIX_EPOCH + Duration::from_secs(secs))
+}
+
+fn write_next_check_time_to_file(filename: &str, next_check_time: SystemTime) -> Result<(), Box<dyn std::error::Error>> {
+    let secs = next_check_time.duration_since(UNIX_EPOCH)?.as_secs();
+    let contents = secs.to_string();
+
+    let mut file = fs::File::create(filename)?;
+    file.write_all(contents.as_bytes())?;
+    Ok(())
+}
