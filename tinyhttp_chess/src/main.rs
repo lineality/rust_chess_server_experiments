@@ -485,6 +485,49 @@ fn main() {
                 println!("{}",url_parts[1].to_string());
                 println!("{}",game_name);
 
+                // Docs
+                if game_name == "docs" {
+                    // inspection
+                    println!{" docs ->  "};
+
+                    let response = std::fs::read_to_string("docs.txt").map_or_else(
+                        |e| {
+                            eprintln!("Failed to read docs: {}", e);
+                            Response::from_string(format!("Failed to read docs: {}", e)).with_status_code(500)
+                        },
+                        |docs_string| {
+                            Response::from_string(docs_string).with_status_code(200)
+                        },
+                    );
+
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop for the docs page
+                }
+
+                // if game_name == "docs" {
+                //     // inspection
+                //     println!{" docs ->  "};
+
+                //     let response = match landing_page_no_html() {
+                //         Ok(response_string) => {
+                //             Response::from_string(response_string).with_status_code(200)
+                //         },
+                //         Err(e) => {
+                //             eprintln!("Failed to generate landing page: {}", e);
+                //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
+                //         }
+                //     };
+
+                //     if let Err(e) = request.respond(response) {
+                //         eprintln!("Failed to respond to request: {}", e);
+                    
+                //     }
+                //     continue; // No need to run the rest of the loop for the landing page
+                //     }
+
+
                 // // // declare response outside match blocks so we can assign it in each match block
                 // let response = Response::from_string(response_string);
                 if is_existing_game_name(&game_name) {
