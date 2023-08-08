@@ -2105,35 +2105,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         shorter_string
     }
 
-
-
-
-    // // for delating old games...
-    // fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
-    //     let mut file = File::open(file_path)?;
-    //     let mut timestamp_str = String::new();
-    //     file.read_to_string(&mut timestamp_str)?;
-    //     Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
-    // }
-
-
-    // fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
-    //     // TODO add gamename for dir-path ,which timestamp to use?
-    //     let new_timestamp = SystemTime::now()
-    //         .duration_since(UNIX_EPOCH)
-    //         .unwrap()
-    //         .as_secs() as i64;
-
-    //     let mut file = File::create(file_path)?;
-    //     file.write_all(new_timestamp.to_string().as_bytes())?;
-
-    //     Ok(())
-    // }
-
-
-
-
-
     // Function to generate the SVG chessboard
     fn generate_white_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
@@ -3234,7 +3205,7 @@ fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut Cle
                 eprintln!("Error updating directory expiration: {}", e);
             }
         },
-        Ok(None) => println!("No matching directory found."),
+        Ok(None) => println!("No directory names fournd to undate expiration dates."),
         Err(e) => println!("Error checking input against directory: {}", e),
     }
 }

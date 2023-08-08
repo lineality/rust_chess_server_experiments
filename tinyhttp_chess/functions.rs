@@ -1540,6 +1540,32 @@ fn main() {
 // }
 
 
+    // // for delating old games...
+    // fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
+    //     let mut file = File::open(file_path)?;
+    //     let mut timestamp_str = String::new();
+    //     file.read_to_string(&mut timestamp_str)?;
+    //     Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
+    // }
+
+
+    // fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
+    //     // TODO add gamename for dir-path ,which timestamp to use?
+    //     let new_timestamp = SystemTime::now()
+    //         .duration_since(UNIX_EPOCH)
+    //         .unwrap()
+    //         .as_secs() as i64;
+
+    //     let mut file = File::create(file_path)?;
+    //     file.write_all(new_timestamp.to_string().as_bytes())?;
+
+    //     Ok(())
+    // }
+
+
+
+
+
 // // Return Result with appropriate error messages instead of bool
 // fn validate_input(input: &str) -> Result<(), String> {
 //     if input.len() != 5 {
