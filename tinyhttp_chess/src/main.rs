@@ -426,7 +426,7 @@ fn main() {
         }
     };
 
-    let server = match Server::http("0.0.0.0:8000") {
+    let server = match Server::http("0.0.0.0:80") {
         Ok(server) => server,
         Err(e) => {
             eprintln!("Failed to start server: {}", e);
