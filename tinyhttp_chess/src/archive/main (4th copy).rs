@@ -720,66 +720,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     eprintln!("Failed to respond to request: {}", e);
                 }
 
-
-                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
-                //     Ok(_) => { // Changed svg_content to _
-                //         let html_content = format!(r#"
-                //         <!DOCTYPE html>
-                //         <html>
-                //             <body style="background-color:black;">
-                //                 <br>
-                //                 <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
-                //             </body>
-                //         </html>
-                //         "#, game_name);
-                
-                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                //         }
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-                
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-                
-
-                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
-                //     Ok(svg_content) => { // Change back to svg_content
-                //         let html_content = format!(r#"
-                //         <!DOCTYPE html>
-                //         <html>
-                //             <body style="background-color:black;">
-                //                 <br>
-                //                 <div style="width:50px; height:50px;">{}</div>
-                //             </body>
-                //         </html>
-                //         "#, svg_content); // Insert SVG content directly
-                
-                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                //         }
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-                
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-                
-
-
-
-
             } 
 
 
@@ -906,11 +846,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
                 };
                 
-
+                
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
-                
+
             } 
 
             //////////
@@ -1062,44 +1002,44 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     // Helper Functions
     /////////////////////
 
-    // fn landing_page() -> Result<String, Box<dyn std::error::Error>> {
+    fn landing_page() -> Result<String, Box<dyn std::error::Error>> {
 
-    //     // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
-    //     // For this example, I'll provide a simple response with a "Hello, World!" message.
-    //     let response_string = r#"<html>
-    //     <body>
-    //         <body style="background-color:black;">
-    //         <font color="00FF00">  
-    //             <div style="line-height:1px">
-    //         <tt> 
-    //         <p style="font-size:38px; "> r n b q k b n r </p>
-    //         <p style="font-size:38px; "> p p p p p p p p </p>
-    //         <p style="font-size:38px; "> . . . . . . . . </p>
-    //         <p style="font-size:38px; "> . . . . . . . . </p>
-    //         <p style="font-size:38px; "> . . P . . . . . </p>
-    //         <p style="font-size:38px; "> . . . . . . . . </p>
-    //         <p style="font-size:38px; "> P P . P P P P P </p>
-    //         <p style="font-size:38px; "> R N B Q K B N R </p>
+        // Here, you can read the pre-existing HTML script from a file or use a hardcoded string.
+        // For this example, I'll provide a simple response with a "Hello, World!" message.
+        let response_string = r#"<html>
+        <body>
+            <body style="background-color:black;">
+            <font color="00FF00">  
+                <div style="line-height:1px">
+            <tt> 
+            <p style="font-size:38px; "> r n b q k b n r </p>
+            <p style="font-size:38px; "> p p p p p p p p </p>
+            <p style="font-size:38px; "> . . . . . . . . </p>
+            <p style="font-size:38px; "> . . . . . . . . </p>
+            <p style="font-size:38px; "> . . P . . . . . </p>
+            <p style="font-size:38px; "> . . . . . . . . </p>
+            <p style="font-size:38px; "> P P . P P P P P </p>
+            <p style="font-size:38px; "> R N B Q K B N R </p>
             
-    //         <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
-    //         <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
-    //         <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
-    //         <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
-    //         <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
-    //         <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
-    //         <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
-    //         <p style="font-size:18px; "> 三　ン　十　円 </p>
-    //         <p style="font-size:18px; "> 八　万　円 </p>
-    //         <p style="font-size:18px; "> 万　円 </p>
-    //         <p style="font-size:18px; "> 円　</p>
-    //             </div>
-    //             </body>
-    //         </html>
-    //         "#.to_string();
+            <p style="font-size:18px; "> 鰻　み　岡　野　エ　た　お　天　ラ　白 </p>
+            <p style="font-size:18px; "> 丼　そ　山　菜　ビ　こ　で　丼　ー　竜 </p>
+            <p style="font-size:18px; "> 八　カ　の　天　フ　焼　ん　八　メ　 </p>
+            <p style="font-size:18px; "> 三　ツ　ラ　ぷ　ラ　き　四　円　ン </p>
+            <p style="font-size:18px; "> 百　ラ　ー　ら　イ　三　円 </p>
+            <p style="font-size:18px; "> 六　ー　メ　八　十　円 </p>
+            <p style="font-size:18px; "> 十　メ　ン　五　円 </p>
+            <p style="font-size:18px; "> 三　ン　十　円 </p>
+            <p style="font-size:18px; "> 八　万　円 </p>
+            <p style="font-size:18px; "> 万　円 </p>
+            <p style="font-size:18px; "> 円　</p>
+                </div>
+                </body>
+            </html>
+            "#.to_string();
 
-    //         // return response string
-    //         Ok(response_string)
-    //     }
+            // return response string
+            Ok(response_string)
+        }
 
 
     fn landing_page_no_html() -> Result<String, Box<dyn std::error::Error>> {
@@ -1271,9 +1211,10 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 // return svg...
                 // After generating the SVG...
                 let svg_content = doc.to_string();
-
                 Ok(svg_content)
 
+
+                
             }
             Err(e) => {
                 // This is the error case. Return or handle the error in some way here.
@@ -2164,103 +2105,106 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         shorter_string
     }
 
+    // Function to generate the SVG chessboard
     fn generate_white_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
         from: Option<(usize, usize)>, 
-        to: Option<(usize, usize)>
-    ) -> Document {
-    
+            to: Option<(usize, usize)>
+        ) -> Document {
+
         let mut doc = Document::new()
             .set("width", "1000")  // Adjusting the width to account for labels
             .set("height", "1000")  // Adjusting the height to account for labels
             .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #000;");  // Set background to black
-    
+
         // Define labels
         let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
-    
+
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 100 + idx * 100 + 50)  // Adjusting the x-coordinate to account for labels
-                .set("y", 944)  // Positioning the label slightly above the bottom edge
+                .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
+                .set("y", 472)  // Positioning the label slightly above the bottom edge
                 .set("text-anchor", "middle")
-                .set("font-size", 40)
+                .set("font-size", 20)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-    
+
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 64)  // Positioning the label slightly to the right of the left edge
-                .set("y", 100 + idx * 100 + 70)  // Adjusting the y-coordinate to account for labels
+                .set("x", 32)  // Positioning the label slightly to the right of the left edge
+                .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
                 .set("text-anchor", "middle")
-                .set("font-size", 40)
+                .set("font-size", 20)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-    
+
         for (row, row_pieces) in chessboard.iter().enumerate() {
             for (col, &piece) in row_pieces.iter().enumerate() {
-                let x = 100 + col * 100;  // Adjusting the x-coordinate to account for labels
-                let y = 100 + row * 100;  // Adjusting the y-coordinate to account for labels
-    
+                let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
+                let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+
                 let square_color = if (row + col) % 2 == 0 {
                     "#ccc"
                 } else {
                     "#666"
                 };
-    
+
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 100)
-                    .set("height", 100)
+                    .set("width", 50)
+                    .set("height", 50)
                     .set("fill", square_color);
-    
+
                 doc = doc.add(square);
-    
+
                 if piece != ' ' {
-    
+
+
                     // setting from an to color
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 100 + col * 100;
-                        let y = 100 + row * 100;
-    
+                        let x = 50 + col * 50;
+                        let y = 50 + row * 50;
+                    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 100)
-                            .set("height", 100)
+                            .set("width", 50)
+                            .set("height", 50)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 6);
-    
+                            .set("stroke-width", 3);
+                    
                         doc = doc.add(highlight);
                     }
-    
+                    
                     if let Some(to_coords) = to {
                         let (row, col) = to_coords;
-                        let x = 100 + col * 100;
-                        let y = 100 + row * 100;
-    
+                        let x = 50 + col * 50;
+                        let y = 50 + row * 50;
+                    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 100)
-                            .set("height", 100)
+                            .set("width", 50)
+                            .set("height", 50)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 6);
-    
+                            .set("stroke-width", 3);
+                    
                         doc = doc.add(highlight);
                     }
-    
+
+
                     // map character to piece name and background
                     let (piece_name, background) = match piece {
                         'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
@@ -2277,164 +2221,26 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
                         _   => panic!("Unknown piece"),
                     };
-    
-                    // Load SVG chess piece based on piece name and background
+
+                    // // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
                     let data_url = load_image_as_data_url(&file_path)
                         .expect("Failed to load image as data URL");
-    
+
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 100)
-                        .set("height", 100)
+                        .set("width", 50)
+                        .set("height", 50)
                         .set("href", data_url);
-    
+
                     doc = doc.add(piece_image);
                 }
             }
         }
-    
-        doc
+
+    doc
     }
-    
-
-    // // Function to generate the SVG chessboard
-    // fn generate_white_oriented_chessboard_small(
-    //     chessboard: &[[char; 8]; 8], 
-    //     from: Option<(usize, usize)>, 
-    //         to: Option<(usize, usize)>
-    //     ) -> Document {
-
-    //     let mut doc = Document::new()
-    //         .set("width", "500")  // Adjusting the width to account for labels
-    //         .set("height", "500")  // Adjusting the height to account for labels
-    //         .set("viewBox", (0, 0, 500, 500))
-    //         .set("style", "background-color: #000;");  // Set background to black
-
-    //     // Define labels
-    //     let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    //     let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
-
-    //     // Add column labels
-    //     for (idx, label) in column_labels.iter().enumerate() {
-    //         let label_text = Text::new()
-    //             .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-    //             .set("y", 472)  // Positioning the label slightly above the bottom edge
-    //             .set("text-anchor", "middle")
-    //             .set("font-size", 20)
-    //             .set("fill", "#757575")  // Set text color to white
-    //             .add(svg::node::Text::new(label.to_string()));
-    //         doc = doc.add(label_text);
-    //     }
-
-    //     // Add row labels
-    //     for (idx, label) in row_labels.iter().enumerate() {
-    //         let label_text = Text::new()
-    //             .set("x", 32)  // Positioning the label slightly to the right of the left edge
-    //             .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
-    //             .set("text-anchor", "middle")
-    //             .set("font-size", 20)
-    //             .set("fill", "#757575")  // Set text color to white
-    //             .add(svg::node::Text::new(label.to_string()));
-    //         doc = doc.add(label_text);
-    //     }
-
-    //     for (row, row_pieces) in chessboard.iter().enumerate() {
-    //         for (col, &piece) in row_pieces.iter().enumerate() {
-    //             let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
-    //             let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
-
-    //             let square_color = if (row + col) % 2 == 0 {
-    //                 "#ccc"
-    //             } else {
-    //                 "#666"
-    //             };
-
-    //             let square = Rectangle::new()
-    //                 .set("x", x)
-    //                 .set("y", y)
-    //                 .set("width", 50)
-    //                 .set("height", 50)
-    //                 .set("fill", square_color);
-
-    //             doc = doc.add(square);
-
-    //             if piece != ' ' {
-
-
-    //                 // setting from an to color
-    //                 if let Some(from_coords) = from {
-    //                     let (row, col) = from_coords;
-    //                     let x = 50 + col * 50;
-    //                     let y = 50 + row * 50;
-                    
-    //                     let highlight = Rectangle::new()
-    //                         .set("x", x)
-    //                         .set("y", y)
-    //                         .set("width", 50)
-    //                         .set("height", 50)
-    //                         .set("fill", "none") // Transparent fill
-    //                         .set("stroke", "#3189D9")
-    //                         .set("stroke-width", 3);
-                    
-    //                     doc = doc.add(highlight);
-    //                 }
-                    
-    //                 if let Some(to_coords) = to {
-    //                     let (row, col) = to_coords;
-    //                     let x = 50 + col * 50;
-    //                     let y = 50 + row * 50;
-                    
-    //                     let highlight = Rectangle::new()
-    //                         .set("x", x)
-    //                         .set("y", y)
-    //                         .set("width", 50)
-    //                         .set("height", 50)
-    //                         .set("fill", "none") // Transparent fill
-    //                         .set("stroke", "#3189D9")
-    //                         .set("stroke-width", 3);
-                    
-    //                     doc = doc.add(highlight);
-    //                 }
-
-
-    //                 // map character to piece name and background
-    //                 let (piece_name, background) = match piece {
-    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     _   => panic!("Unknown piece"),
-    //                 };
-
-    //                 // // Load SVG chess piece based on piece name and background
-    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-    //                 let data_url = load_image_as_data_url(&file_path)
-    //                     .expect("Failed to load image as data URL");
-
-    //                 let piece_image = Image::new()
-    //                     .set("x", x)
-    //                     .set("y", y)
-    //                     .set("width", 50)
-    //                     .set("height", 50)
-    //                     .set("href", data_url);
-
-    //                 doc = doc.add(piece_image);
-    //             }
-    //         }
-    //     }
-
-    // doc
-    // }
 
 
 
@@ -2445,9 +2251,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     //     to: Option<(usize, usize)>
     // ) -> Document {
     // let mut doc = Document::new()
-    //     .set("width", "500")  // Adjusting the width to account for labels
-    //     .set("height", "500")  // Adjusting the height to account for labels
-    //     .set("viewBox", (0, 0, 500, 500))
+    //     .set("width", "1000")  // Adjusting the width to account for labels
+    //     .set("height", "1000")  // Adjusting the height to account for labels
+    //     .set("viewBox", (0, 0, 1000, 1000))
     //     .set("style", "background-color: #000;");  // Set background to black
 
     // // Define labels
@@ -2574,7 +2380,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     // }
 
 
-
     // Function to generate the SVG chessboard with black orientation
     fn generate_black_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
@@ -2595,10 +2400,10 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 100 + idx * 100 + 50)  
-                .set("y", 944)  
+                .set("x", 50 + idx * 50 + 25)  
+                .set("y", 472)  
                 .set("text-anchor", "middle")
-                .set("font-size", 40)
+                .set("font-size", 20)
                 .set("fill", "#757575")  // Set text color to dark grey
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2607,10 +2412,10 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 64)  
-                .set("y", 100 + idx * 100 + 70)  
+                .set("x", 32)  
+                .set("y", 50 + idx * 50 + 35)  
                 .set("text-anchor", "middle")
-                .set("font-size", 40)
+                .set("font-size", 20)
                 .set("fill", "#757575")  
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2618,8 +2423,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
         for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
             for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-                let x = 100 + col * 100;  
-                let y = 100 + row * 100;  
+                let x = 50 + col * 50;  
+                let y = 50 + row * 50;  
 
                 // Set Square Colours
                 let square_color = if (row + col) % 2 == 0 {
@@ -2631,8 +2436,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 100)
-                    .set("height", 100)
+                    .set("width", 50)
+                    .set("height", 50)
                     .set("fill", square_color);
 
                 doc = doc.add(square);
@@ -2641,14 +2446,14 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 100 + col * 100;
-                        let y = 100 + row * 100;
+                        let x = 50 + col * 50;
+                        let y = 50 + row * 50;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 100)
-                            .set("height", 100)
+                            .set("width", 50)
+                            .set("height", 50)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
                             .set("stroke-width", 3);
@@ -2658,17 +2463,17 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     
                     if let Some(to_coords) = to {
                         let (row, col) = to_coords;
-                        let x = 100 + col * 100;
-                        let y = 100 + row * 100;
+                        let x = 50 + col * 50;
+                        let y = 50 + row * 50;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 100)
-                            .set("height", 100)
+                            .set("width", 50)
+                            .set("height", 50)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 6);
+                            .set("stroke-width", 3);
                     
                         doc = doc.add(highlight);
                     }
@@ -2700,8 +2505,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 100)
-                        .set("height", 100)
+                        .set("width", 50)
+                        .set("height", 50)
                         .set("href", data_url);
 
                     doc = doc.add(piece_image);
@@ -2711,144 +2516,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
         doc
     }
-
-
-    // // Function to generate the SVG chessboard with black orientation
-    // fn generate_black_oriented_chessboard_small(
-    //     chessboard: &[[char; 8]; 8], 
-    //     from: Option<(usize, usize)>, 
-    //     to: Option<(usize, usize)>
-    //     ) -> Document {
-
-    //     let mut doc = Document::new()
-    //         .set("width", "500")  
-    //         .set("height", "500")  
-    //         .set("viewBox", (0, 0, 500, 500))
-    //         .set("style", "background-color: #2f0300;");  // Set background to dark red
-
-    //     // Define labels, reversed for black piece orientation
-    //     let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
-    //     let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
-
-    //     // Add column labels
-    //     for (idx, label) in column_labels.iter().enumerate() {
-    //         let label_text = Text::new()
-    //             .set("x", 50 + idx * 50 + 25)  
-    //             .set("y", 472)  
-    //             .set("text-anchor", "middle")
-    //             .set("font-size", 20)
-    //             .set("fill", "#757575")  // Set text color to dark grey
-    //             .add(svg::node::Text::new(label.to_string()));
-    //         doc = doc.add(label_text);
-    //     }
-
-    //     // Add row labels
-    //     for (idx, label) in row_labels.iter().enumerate() {
-    //         let label_text = Text::new()
-    //             .set("x", 32)  
-    //             .set("y", 50 + idx * 50 + 35)  
-    //             .set("text-anchor", "middle")
-    //             .set("font-size", 20)
-    //             .set("fill", "#757575")  
-    //             .add(svg::node::Text::new(label.to_string()));
-    //         doc = doc.add(label_text);
-    //     }
-
-    //     for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
-    //         for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-    //             let x = 50 + col * 50;  
-    //             let y = 50 + row * 50;  
-
-    //             // Set Square Colours
-    //             let square_color = if (row + col) % 2 == 0 {
-    //                 "#ccc"
-    //             } else {
-    //                 "#666"
-    //             };
-                
-    //             let square = Rectangle::new()
-    //                 .set("x", x)
-    //                 .set("y", y)
-    //                 .set("width", 50)
-    //                 .set("height", 50)
-    //                 .set("fill", square_color);
-
-    //             doc = doc.add(square);
-
-    //             if piece != ' ' {
-
-    //                 if let Some(from_coords) = from {
-    //                     let (row, col) = from_coords;
-    //                     let x = 50 + col * 50;
-    //                     let y = 50 + row * 50;
-                    
-    //                     let highlight = Rectangle::new()
-    //                         .set("x", x)
-    //                         .set("y", y)
-    //                         .set("width", 50)
-    //                         .set("height", 50)
-    //                         .set("fill", "none") // Transparent fill
-    //                         .set("stroke", "#3189D9")
-    //                         .set("stroke-width", 3);
-                    
-    //                     doc = doc.add(highlight);
-    //                 }
-                    
-    //                 if let Some(to_coords) = to {
-    //                     let (row, col) = to_coords;
-    //                     let x = 50 + col * 50;
-    //                     let y = 50 + row * 50;
-                    
-    //                     let highlight = Rectangle::new()
-    //                         .set("x", x)
-    //                         .set("y", y)
-    //                         .set("width", 50)
-    //                         .set("height", 50)
-    //                         .set("fill", "none") // Transparent fill
-    //                         .set("stroke", "#3189D9")
-    //                         .set("stroke-width", 3);
-                    
-    //                     doc = doc.add(highlight);
-    //                 }
-
-
-    //                 // map character to piece name and background
-    //                 let (piece_name, background) = match piece {
-    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
-    //                     _   => panic!("Unknown piece"),
-    //                 };
-
-    //                 // // Load SVG chess piece based on piece name and background
-    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-    //                 let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
-    //                 let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
-                    
-
-    //                 let piece_image = Image::new()
-    //                     .set("x", x)
-    //                     .set("y", y)
-    //                     .set("width", 50)
-    //                     .set("height", 50)
-    //                     .set("href", data_url);
-
-    //                 doc = doc.add(piece_image);
-    //             }
-    //         }
-    //     }
-
-    //     doc
-    // }
 
 
     fn load_image_as_data_url(file_path: &str) -> io::Result<String> {
@@ -2871,9 +2538,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 //         ) -> Document {
 
 //         let mut doc = Document::new()
-//             .set("width", "500")  
-//             .set("height", "500")  
-//             .set("viewBox", (0, 0, 500, 500))
+//             .set("width", "1000")  
+//             .set("height", "1000")  
+//             .set("viewBox", (0, 0, 1000, 1000))
 //             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
 //         // Define labels, reversed for black piece orientation

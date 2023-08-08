@@ -1672,3 +1672,75 @@ fn main() {
         //     Ok(_) => println!("Body: {}", buffer),
         //     Err(e) => eprintln!("Failed to read request body: {}", e),
         // };
+
+
+
+        // call game move function
+let response = match handle_chess_move(game_name, move_data) {
+    Ok(svg_content) => {
+        // Embed the SVG content in HTML with CSS to set its size
+        let html_content = format!(r#"
+        <html>
+            <head>
+                <style>
+                    img {{
+                        width: 300px;
+                        height: 300px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <img src="data:image/svg+xml,{}" />
+            </body>
+        </html>
+        "#, percent_encoding::percent_encode(svg_content.as_bytes(), percent_encoding::NON_ALPHANUMERIC));
+        let header = Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..])
+            .unwrap_or_else(|_| panic!("Invalid header!")); // Maintain your error handling here
+
+        Response::from_string(html_content).with_header(header).with_status_code(200)
+    },
+    Err(e) => {
+        eprintln!("Failed to handle move: {}", e);
+        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+    }
+};
+
+if let Err(e) = request.respond(response) {
+    eprintln!("Failed to respond to request: {}", e);
+}
+
+let response = match handle_chess_move(game_name, move_data) {
+    Ok(svg_content) => {
+        // Here we wrap the SVG content with HTML and a style element to adjust the SVG's size.
+        let wrapped_content = format!(r#"
+            <html>
+                <head>
+                    <style>
+                        #my-svg {{
+                            width: 300px;
+                            height: 300px;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div id="my-svg">
+                        {}
+                    </div>
+                </body>
+            </html>
+        "#, svg_content);
+
+        let header = Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..])
+            .unwrap_or_else(|_| panic!("Invalid header!"));
+
+        Response::from_string(wrapped_content).with_header(header).with_status_code(200)
+    },
+    Err(e) => {
+        eprintln!("Failed to handle move: {}", e);
+        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+    }
+};
+
+if let Err(e) = request.respond(response) {
+    eprintln!("Failed to respond to request: {}", e);
+}
