@@ -404,16 +404,16 @@ struct GameData {
     game_board_state: [[char; 8]; 8],
 }
 
+
 pub struct CleanerState {
     next_check_time: SystemTime, // This is a variable of type `SystemTime`
     expiration_by_name: HashMap<String, SystemTime>,
     names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
 }
 
+
+
 fn main() {
-    /*
-    Automated cleaning system
-    */
     // Use a constant for the filename
     const NEXT_CHECK_TIME_FILE: &str = "next_check_time.txt";
 
@@ -573,10 +573,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 }
 
 
-            ////////////////////////
-            // game landing pages
-            // and meta-tag images
             ///////////////////////
+            // game landing pages
+            //////////////////////
             else if url_parts.len() == 2 {
 
                 // inspection
@@ -608,159 +607,57 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     continue; // No need to run the rest of the loop for the docs page
                 }
 
-                /* 
-                note: separate game vs. meta-tag request
-                */
+                // if game_name == "docs" {
+                //     // inspection
+                //     println!{" docs ->  "};
 
-
-                /* 
-                If url is metatag_gamename:
-                */
-                if game_name.starts_with("metatag_") {
-                    let new_game_name = game_name.trim_start_matches("metatag_").to_string();
-                    // then proceed with the rest of your logic
-
-                    // // // declare response outside match blocks so we can assign it in each match block
-                    // let response = Response::from_string(response_string);
-                    if is_existing_game_name(&new_game_name) {
-                        // println!("Game exists, proceed with the game logic.");
-                    } else {
-                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
-                    }
-
-                    // // call game move function
-                    let response = match show_board(new_game_name) {
-                        Ok(svg_content) => {
-                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
-                    
-                            Response::from_string(svg_content).with_header(header).with_status_code(200)
-                        },
-                        Err(e) => {
-                            eprintln!("Failed to handle move: {}", e);
-                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
-                        }
-                    };
-
-                    if let Err(e) = request.respond(response) {
-                        eprintln!("Failed to respond to request: {}", e);
-                    }
-                    continue; // No need to run the rest of the loop;
-                    }
-                    
-
-
-                /* 
-                If just game_name:
-                */
-
-                else {
-                    if !is_existing_game_name(&game_name) {
-                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
-                        // Handle error or continue
-                    }
-                
-                    let response = match show_board(game_name.clone()) {
-                        Ok(svg_content) => {
-                            let html_content = format!(r#"
-                            <!DOCTYPE html>
-                            <head>
-                            <meta property="og:title" content="Current Game Board" />
-                            <meta property="og:image" content="https://y0urm0ve.com/metatag_{}" />
-                            </head>
-                            <html>
-                                <body style="background-color:black;">
-                                    <br>
-                                    <div>{}</div>
-                                </body>
-                            </html>
-                            "#, game_name, svg_content);
-                
-                            match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                                Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                                Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                            }
-                        },
-                        Err(e) => {
-                            eprintln!("Failed to handle move: {}", e);
-                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
-                        }
-                    };
-                
-                    if let Err(e) = request.respond(response) {
-                        eprintln!("Failed to respond to request: {}", e);
-                    }
-                    // continue; // No need to run the rest of the loop;
-                }
-                
-                    
-                    // return an html response with with 
-                // { // Clone game_name
-
-
-                //     the new version needs to use this html AND the svg from a file
-
-                //     Ok(_) => { // Changed svg_content to _
-                //         let html_content = format!(r#"
-                //         <!DOCTYPE html>
-                //         <head>
-                //         <meta property="og:title" content="Current Game Board" />
-                //         <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-                //         </head>
-                //         <html>
-                //             <body style="background-color:black;">
-                //                 <br>
-                //                 <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
-                //             </body>
-                //         </html>
-                //         "#, game_name, game_name);
-                
-                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //     let response = match landing_page_no_html() {
+                //         Ok(response_string) => {
+                //             Response::from_string(response_string).with_status_code(200)
+                //         },
+                //         Err(e) => {
+                //             eprintln!("Failed to generate landing page: {}", e);
+                //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
                 //         }
-                //     },
-                //     // Err(e) => {
-                //     //     eprintln!("Failed to handle move: {}", e);
-                //     //     Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     // }
-                // };
-                
-            
-                // )
-                // (old old version with no html)
-                // // // // declare response outside match blocks so we can assign it in each match block
-                // // let response = Response::from_string(response_string);
-                // if is_existing_game_name(&game_name) {
-                //     // println!("Game exists, proceed with the game logic.");
-                // } else {
-                //     println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
-                // }
+                //     };
 
-                // // // call game move function
-                // let response = match show_board(game_name) {
-                //     Ok(svg_content) => {
-                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
-                
-                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                //     if let Err(e) = request.respond(response) {
+                //         eprintln!("Failed to respond to request: {}", e);
+                    
                 //     }
-                // };
+                //     continue; // No need to run the rest of the loop for the landing page
+                //     }
+
+
+                // // // declare response outside match blocks so we can assign it in each match block
+                // let response = Response::from_string(response_string);
+                if is_existing_game_name(&game_name) {
+                    // println!("Game exists, proceed with the game logic.");
+                } else {
+                    println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                }
+
+                // // call game move function
+                let response = match show_board(game_name) {
+                    Ok(svg_content) => {
+                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                
+                        Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    },
+                    Err(e) => {
+                        eprintln!("Failed to handle move: {}", e);
+                        Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    }
+                };
                 
 
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-
-            
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
+                }
                 continue; // No need to run the rest of the loop;
                 }
-
-
+                
 
 
             /////////
@@ -804,46 +701,13 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 }
 
 
-                // // // raw image call game move function
-                // let response = match handle_chess_move(game_name, move_data) {
-                //     Ok(svg_content) => {
-                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                // // call game move function
+                let response = match handle_chess_move(game_name, move_data) {
+                    Ok(svg_content) => {
+                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
                 
-                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-                
-
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-
-
-                let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
-                    Ok(_) => { // Changed svg_content to _
-                        let html_content = format!(r#"
-                        <!DOCTYPE html>
-                        <head>
-                        <meta property="og:title" content="Current Game Board" />
-                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-                        </head>
-                        <html>
-                            <body style="background-color:black;">
-                                <br>
-                                <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
-                            </body>
-                        </html>
-                        "#, game_name, game_name);
-                
-                        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                        }
+                        Response::from_string(svg_content).with_header(header).with_status_code(200)
                     },
                     Err(e) => {
                         eprintln!("Failed to handle move: {}", e);
@@ -851,9 +715,38 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
                 };
                 
+
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(_) => { // Changed svg_content to _
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
+                //             </body>
+                //         </html>
+                //         "#, game_name);
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
                 
 
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
@@ -1000,47 +893,12 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
 
                 // // call game move function
-                // let response = match handle_chess_move(game_name, move_data) {
-                //     Ok(svg_content) => {
-                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                let response = match handle_chess_move(game_name, move_data) {
+                    Ok(svg_content) => {
+                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
                 
-                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-                
-
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-                
-
-
-                // html call game move function
-                let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
-                    Ok(_) => { // Changed svg_content to _
-                        let html_content = format!(r#"
-                        <!DOCTYPE html>
-                        <head>
-                        <meta property="og:title" content="Current Game Board" />
-                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-                        </head>
-                        <html>
-                            <body style="background-color:black;">
-                                <br>
-                                <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
-                            </body>
-                        </html>
-                        "#, game_name, game_name);
-                
-                        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                        }
+                        Response::from_string(svg_content).with_header(header).with_status_code(200)
                     },
                     Err(e) => {
                         eprintln!("Failed to handle move: {}", e);
@@ -1048,13 +906,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
                 };
                 
+
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
                 
-
-
-
             } 
 
             //////////
@@ -2199,8 +2055,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             "docs",
             "y0ur_m0ve",
             "start",
-            "erase",
-            "metatag"
+            "erase"
             ];
         if reserved_words.contains(&game_name) {
             eprintln!("error # 1: Invalid game name: Reserved word used.");

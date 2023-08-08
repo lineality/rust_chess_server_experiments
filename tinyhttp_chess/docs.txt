@@ -1,8 +1,11 @@
+<early alpha version of system, some data may be lost due to issues and updates>
 
-    docs
+
+ docs:
  (\_/)
  ('.')
 (")_(")
+
 
 
 instructions:
@@ -101,5 +104,16 @@ Simple and flexbile:
 this is a game-board, that's it.
 just like a physical board, you put a piece wherever you want
 
+
+# build instructions
+
+posix install cargo
+posix install cmake
+
+cargo build...
+
+activate executible
+permission 443 executible
+nohup executible &
 
 
