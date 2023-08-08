@@ -1,2 +1,105 @@
+
+    docs
+ (\_/)
+ ('.')
+(")_(")
+
+
+instructions:
+
+# create game
+y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE 
+y0urm0ve.com/setup/chess960/YOUR_GAME_NAME/YOUR_GAME_PHRASE 
+
+# see last board
+y0urm0ve.com/YOUR_GAME_NAME/
+
+# normal make move
+y0urm0ve.com/YOUR_GAME_NAME/Pc2c4
+
+# normal make move, and see black's point of view (b is for black)
+y0urm0ve.com/YOUR_GAME_NAME/bPc2c4
+
+# login make move
+y0urm0ve.com/YOUR_GAME_NAME/Pc2c4/YOUR_GAME_PHRASE
+
+# reset/restart game
+y0urm0ve.com/YOUR_GAME_NAME/start/YOUR_GAME_PHRASE
+
+# end/remove/erase game
+y0urm0ve.com/YOUR_GAME_NAME/erase/YOUR_GAME_PHRASE
+
+
+
+
+   .
+  /|MAST
+ /_|\
+___|_\__*
+\______/
+
+
+
 mast
+   *
+  /|MAST
+ / |
+/__|\
+___|_\__@
+\______/
+MAST_Architecture 
+_Modular 
+_Amnesiac 
+_Stateless 
+_Turn-Based 
+
+type your moves into the url
+this minimalism is meant to facilitate sending a game move/invite to a friend via a url (which will eventually also show a board image where possible)
+	- basic moves and controls
+	Pc2c4
+	pc2c4
+	bpc2c4
+	start
+	erase
+
+
+available games:
+chess
+chess960
+
+
+security
+ ,   ,
+((___))
+[ x - ]
+ \   /
+ (' ')
+  (O)
+
+add docs to home page
+MAST uses:
+- a timestamp from starting the game
+- a lossy-has of fragments of half of your ip
+- the current board state
+no other information is collected (no name, email, login, cookies, user account, none of that)
+this is meant to strike a balance between use-ability, and privacy
+
+- the current board pic can be shared using the game-name
+
+
+
+
+
+narrative: why this system?
+
+My sister's husband send me a text message which was a photo of a chess game we had been in the middle of and two words: your move
+To me this was an epiphany, of sorts. People have been playing chess (as one example) by correspondence for probably over a millennium. And the simplicity of sharing a move or a board-image is part of what makes this possible. We have the internet, and powerful pocket computers (phones), and yet still the most convenient way to share a chess game move by text message is to take a photo of a physical board and send it? 
+
+There should be an equivalent way to do this using the internet, without the abomination of logins and cookies and ads and registering accounts and downloading bloatware and user tracking and social media and payment methods etc etc. How simple could an online chess game, as one example, be? What parts are absolutely needed? What flexibility is needed? How could you send your move in a text message, or an email, or however you want? How do you tell someone: it's your move. How could you avoid the privacy-password-login catastrophe the internet has become? 
+
+Simple and flexbile:
+this is a game-board, that's it.
+just like a physical board, you put a piece wherever you want
+
+
 

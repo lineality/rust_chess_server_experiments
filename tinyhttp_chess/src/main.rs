@@ -528,6 +528,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
+                    println!("ip_string: {}", ip_string);
                     let alternating_stamp = str_filter_alternating(&ip_string);
                     let reduced_ip_stamp = remove_duplicates(&alternating_stamp);
 
@@ -542,7 +543,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             };
 
             // Testing Only
-            // println!("ip_stamp: {}", ip_stamp);
+            println!("ip_stamp: {}", ip_stamp);
             
 
             /////////////////////
@@ -1064,13 +1065,21 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             百　円
             円
 
-            y0urm0ve.com/setup/chess/
-            　　　　YOUR_GAME_NAME/
-            　　　　　　YOUR_GAME_PHRASE 
-
             y0urm0ve.com/
-            　　YOUR_GAME_NAME/
-            　　　　Pc2c4
+             setup/
+              chess/
+               GAME_NAME/
+                GAME_PHRASE 
+
+            y0ur
+             m0ve.com/
+              GAME_NAME/
+               Pc2c4
+
+            y0ur
+               m0ve.
+                   com/docs
+               
 
             "#.to_string();
 
@@ -2133,9 +2142,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         ) -> Document {
 
         let mut doc = Document::new()
-            .set("width", "500")  // Adjusting the width to account for labels
-            .set("height", "500")  // Adjusting the height to account for labels
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  // Adjusting the width to account for labels
+            .set("height", "1000")  // Adjusting the height to account for labels
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #000;");  // Set background to black
 
         // Define labels
@@ -2271,9 +2280,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     //     to: Option<(usize, usize)>
     // ) -> Document {
     // let mut doc = Document::new()
-    //     .set("width", "500")  // Adjusting the width to account for labels
-    //     .set("height", "500")  // Adjusting the height to account for labels
-    //     .set("viewBox", (0, 0, 500, 500))
+    //     .set("width", "1000")  // Adjusting the width to account for labels
+    //     .set("height", "1000")  // Adjusting the height to account for labels
+    //     .set("viewBox", (0, 0, 1000, 1000))
     //     .set("style", "background-color: #000;");  // Set background to black
 
     // // Define labels
@@ -2408,9 +2417,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         ) -> Document {
 
         let mut doc = Document::new()
-            .set("width", "500")  
-            .set("height", "500")  
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  
+            .set("height", "1000")  
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
         // Define labels, reversed for black piece orientation
@@ -2558,9 +2567,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 //         ) -> Document {
 
 //         let mut doc = Document::new()
-//             .set("width", "500")  
-//             .set("height", "500")  
-//             .set("viewBox", (0, 0, 500, 500))
+//             .set("width", "1000")  
+//             .set("height", "1000")  
+//             .set("viewBox", (0, 0, 1000, 1000))
 //             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
 //         // Define labels, reversed for black piece orientation
