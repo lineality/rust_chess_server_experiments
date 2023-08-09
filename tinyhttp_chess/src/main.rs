@@ -361,13 +361,13 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Request, Response, Method, Header}; 
+use tiny_http::{Server, Request, Response, Method, Header, StatusCode}; 
 use std::path::Path;
 use rand::prelude::*;
 use std::convert::TryInto;
 use std::fs;
 use std::fs::File;
-use std::io::{self, BufWriter, Write, Read, Error};
+use std::io::{self, BufWriter, Write, Read, Error, Cursor};
 use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
@@ -380,6 +380,7 @@ use base64::engine::general_purpose::STANDARD;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::time::Duration;
+
 
 
 use std::collections::VecDeque;
@@ -498,9 +499,36 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     let mut queue = in_memory_queue.lock().unwrap();
     // Process requests in the in-memory queue
     while let Some(request) = queue.pop_front() {
+
+
         // Implement your request processing logic here
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
+
+
+            let is_favicon_request = url_parts.get(1).map_or(false, |part| *part == "favicon.ico");
+            
+            if is_favicon_request {
+                let path = "favicon.ico";
+                let response = match File::open(&path) {
+                    Ok(mut file) => {
+                        let mut content = Vec::new();
+                        if file.read_to_end(&mut content).is_err() {
+                            Response::from_data(Vec::new()).with_status_code(StatusCode(500))
+                        } else {
+                            let mut response = Response::from_data(content);
+                            response.add_header(Header::from_bytes(&b"Content-Type"[..], &b"image/x-icon"[..]).unwrap());
+                            response
+                        }
+                    }
+                    Err(_) => Response::from_data(Vec::new()).with_status_code(StatusCode(404)),
+                };
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
+                }
+                return; // Return early to prevent further processing for this request.
+            }
+
 
             /*
             Server Here
@@ -545,6 +573,15 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             // Testing Only
             println!("ip_stamp: {}", ip_stamp);
             
+
+
+
+            
+            // Continue processing other requests...
+            
+            
+
+
 
             /////////////////////
             // site landing page
@@ -612,14 +649,26 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 note: separate game vs. meta-tag request
                 */
 
+                // if let Some(stripped_name) = game_name.strip_prefix("metatag_") {
+                //     let new_game_name = &stripped_name[..stripped_name.len() - 4];
+                //     // then proceed with the rest of your logic using new_game_name
+                // }
 
                 /* 
                 If url is metatag_gamename:
-                */
                 if game_name.starts_with("metatag_") {
                     let new_game_name = game_name.trim_start_matches("metatag_").to_string();
-                    // then proceed with the rest of your logic
 
+                if game_name.starts_with("metatag_") {
+                    let new_game_name = game_name.trim_start_matches("metatag_").to_string();
+
+
+                */
+                if let Some(stripped_name) = game_name.strip_prefix("metatag_") {
+                    let new_game_name = &stripped_name[..stripped_name.len() - 4];
+                    let new_game_name = new_game_name.to_string();
+                    // then proceed with the rest of your logic using new_game_name
+                
                     // // // declare response outside match blocks so we can assign it in each match block
                     // let response = Response::from_string(response_string);
                     if is_existing_game_name(&new_game_name) {
@@ -666,7 +715,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                             <!DOCTYPE html>
                             <head>
                             <meta property="og:title" content="Current Game Board" />
-                            <meta property="og:image" content="https://y0urm0ve.com/metatag_{}" />
+                            <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.svg" />
                             </head>
                             <html>
                                 <body style="background-color:black;">
@@ -830,7 +879,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         <!DOCTYPE html>
                         <head>
                         <meta property="og:title" content="Current Game Board" />
-                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.svg" />
                         </head>
                         <html>
                             <body style="background-color:black;">
@@ -1027,7 +1076,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         <!DOCTYPE html>
                         <head>
                         <meta property="og:title" content="Current Game Board" />
-                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.svg" />
                         </head>
                         <html>
                             <body style="background-color:black;">

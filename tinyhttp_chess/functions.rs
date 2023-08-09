@@ -1744,3 +1744,26 @@ let response = match handle_chess_move(game_name, move_data) {
 if let Err(e) = request.respond(response) {
     eprintln!("Failed to respond to request: {}", e);
 }
+
+
+
+
+
+
+    if request.url() == "/favicon.ico" {
+        let path = "favicon.ico";
+        let response = match File::open(&path) {
+            Ok(mut file) => {
+                let mut content = Vec::new();
+                if file.read_to_end(&mut content).is_err() {
+                    Response::empty(StatusCode(500))
+                } else {
+                    Response::new(200.into(), vec![], content.into(), Some(content.len()), None)
+                }
+            }
+            Err(_) => Response::empty(StatusCode(404)),
+        };
+        if request.respond(response).is_err() {
+            eprintln!("Error responding to request");
+        }
+    }
