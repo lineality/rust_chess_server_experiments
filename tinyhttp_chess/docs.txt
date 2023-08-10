@@ -112,8 +112,15 @@ posix install cmake
 
 cargo build...
 
-activate executible
+activate executable
 permission 443 executible
-nohup executible &
+nohup executable &
 
+
+
+notes:
+
+apologies for state of code
+not polished, not ideal,
+piles of things in a workshop, not a polished show-room product yet
 
