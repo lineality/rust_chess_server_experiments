@@ -631,7 +631,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 // Docs
                 if game_name == "docs" {
                     // inspection
-                    println!{" docs ->  "};
+                    // println!{" docs ->  "};
 
                     let response = std::fs::read_to_string("docs.txt").map_or_else(
                         |e| {
@@ -648,6 +648,43 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
                     continue; // No need to run the rest of the loop for the docs page
                 }
+
+
+
+                // 960
+                if game_name == "960" {
+                    let result = generate_new_chess960_board_only();
+                    let header_result = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]);
+                
+                    let response = match result {
+                        Ok(document) => {
+                            // Convert the SVG Document into a String
+                            let svg_content = document.to_string();
+                
+                            match header_result {
+                                Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
+                                Err(_) => {
+                                    eprintln!("Invalid header!");
+                                    Response::from_string("Internal Server Error").with_status_code(500)
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+                
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop for the docs page
+                }
+
+
+
+            
+
 
                 /* 
                 note: separate game vs. meta-tag request
@@ -711,7 +748,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         eprintln!("Failed to respond to request: {}", e);
                     }
                     continue; // No need to run the rest of the loop;
-                    }
+                }
                     
 
 
@@ -772,7 +809,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         eprintln!("Failed to respond to request: {}", e);
                     }
                     continue; // No need to run the rest of the loop;
-                    }
+                }
 
 
                 /* 
@@ -1891,6 +1928,42 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
 
 
+    // fn generate_new_chess960_board_only(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<Document> {
+
+    //     /*
+    //     make and return new svg chess960 board
+    //     */
+
+
+    //     // Set up board
+    //     let game_board_state_result = generate_chess960();
+    //     let game_board_state = match game_board_state_result {
+    //         Ok(board) => board,
+    //         Err(err) => return Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
+    //     };
+
+    //     // generate board
+    //     let doc = generate_white_oriented_chessboard(&game_board_state, None, None);
+    
+
+    //     Ok(doc)
+    // }
+
+    fn generate_new_chess960_board_only() -> Result<Document, &'static str> {
+        // Generate the Chess960 board
+        let chessboard_result = generate_chess960();
+        let chessboard = match chessboard_result {
+            Ok(board) => board,
+            Err(err) => return Err(err),
+        };
+    
+        // Generate the SVG representation of the board
+        let doc = generate_white_oriented_chessboard(&chessboard, None, None);
+    
+        Ok(doc)
+    }
+
+
     fn setup_new_chess960_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
@@ -2126,7 +2199,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // Write the SVG code to the file
         svg::save(svg_file_path, &doc).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
-    
+
 
     impl GameData {
         /*
@@ -4113,3 +4186,4 @@ fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
     file.read_to_end(&mut buffer)?;
     Ok(buffer)
 }
+

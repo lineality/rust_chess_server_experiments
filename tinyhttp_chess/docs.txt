@@ -71,6 +71,10 @@ chess
 chess960
 
 
+functions:
+   Generate a 960 board, e.g. for another game
+   y0urm0ve.com/960
+
 security
  ,   ,
 ((___))
