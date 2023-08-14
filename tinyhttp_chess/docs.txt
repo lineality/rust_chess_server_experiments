@@ -59,11 +59,11 @@ _Turn-Based
 type your moves into the url
 this minimalism is meant to facilitate sending a game move/invite to a friend via a url (which will eventually also show a board image where possible)
 	- basic moves and controls
-	Pc2c4
-	pc2c4
-	bpc2c4
-	start
-	erase
+	Pc2c4   <--> White moves
+	pc2c4   <--> Black moves
+	bpc2c4  <--> view board from black pieces point of view moves
+	start   <--> reset to original game state (classical or chess-960)
+	erase   <--> Black moves (remove game directory 100% from server, not recoverable)
 
 
 available games:
@@ -79,6 +79,24 @@ security
  (' ')
   (O)
 
+What is used:
+- an open, understandable, testable, lossy hash of of half of a fragment of the IP
+- the current game board is 'public' though the game-name is not.
+- the timestamp of when the game is saved
+
+
+The goal is for the system to be use-able (e.g. exchanging game moves by your choice of correspondence)
+and as secure as possible by 
+using as little information as possible.
+
+A chess-game is not considered by default to be top-secret information, with the goal to be
+having no interference by anyone who was not invited to the game by being given the game-name and game-phrase.
+
+
+
+No backup, no restore, no backdoors.
+
+
 add docs to home page
 MAST uses:
 - a timestamp from starting the game
@@ -89,6 +107,7 @@ this is meant to strike a balance between use-ability, and privacy
 
 - the current board pic can be shared using the game-name
 
+- an encypted password only mode is in development
 
 
 
@@ -124,3 +143,10 @@ apologies for state of code
 not polished, not ideal,
 piles of things in a workshop, not a polished show-room product yet
 
+
+\--___--/
+( o V o )
+ \``|``/
+    v
+
+Chess AI
