@@ -503,8 +503,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
         // Implement your request processing logic here
         if request.method() == &Method::Get {
-            let url_parts: Vec<&str> = request.url().split('/').collect();
+            // let url_parts: Vec<&str> = request.url().split('/').collect();
 
+            let url = request.url();
+            let sanitized_url = sanitize_url(url);
+            let url_parts: Vec<&str> = sanitized_url.split('/').collect();
 
             let is_favicon_request = url_parts.get(1).map_or(false, |part| *part == "favicon.ico");
             
@@ -624,6 +627,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 println!("{}",url_parts[1].to_string());
                 println!("{}",game_name);
 
+
                 // Docs
                 if game_name == "docs" {
                     // inspection
@@ -654,6 +658,63 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 //     // then proceed with the rest of your logic using new_game_name
                 // }
 
+
+
+                /* 
+                If url is image_gamename
+                */
+                if let Some(stripped_name) = game_name.strip_prefix("image_") {
+                    let new_game_name = &stripped_name[..stripped_name.len() - 4];
+
+                    let new_game_name = new_game_name.to_string();
+                    // then proceed with the rest of your logic using new_game_name
+                
+                    // // // declare response outside match blocks so we can assign it in each match block
+                    // let response = Response::from_string(response_string);
+                    if is_existing_game_name(&new_game_name) {
+                        // println!("Game exists, proceed with the game logic.");
+                    } else {
+                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                    }
+
+                    // // // call game move function
+                    // let response = match show_board(new_game_name) {
+                    //     Ok(svg_content) => {
+                    //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                    //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                    
+                    //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //     },
+                    //     Err(e) => {
+                    //         eprintln!("Failed to handle move: {}", e);
+                    //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    //     }
+                    // };
+
+                    let response = match show_board_png(&new_game_name) { // Assuming this function returns the PNG content
+                        Ok(png_content) => {
+                            // Create a Header for the PNG content type
+                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..])
+                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                            
+                            // Create the Response with the PNG content, header, and status code
+                            Response::from_data(png_content).with_header(header).with_status_code(200)
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+
+
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop;
+                    }
+                    
+
+
                 /* 
                 If url is metatag_gamename:
                 if game_name.starts_with("metatag_") {
@@ -677,26 +738,41 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
                     }
 
-                    // // call game move function
-                    let response = match show_board(new_game_name) {
-                        Ok(svg_content) => {
-                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                    // // // svg call game move function
+                    // let response = match show_board(new_game_name) {
+                    //     Ok(svg_content) => {
+                    //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                    //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
                     
-                            Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //     },
+                    //     Err(e) => {
+                    //         eprintln!("Failed to handle move: {}", e);
+                    //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    //     }
+                    // };
+
+
+                    let response = match show_board_png(&new_game_name) { // Assuming this function returns the PNG content
+                        Ok(png_content) => {
+                            // Create a Header for the PNG content type
+                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..])
+                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                            
+                            // Create the Response with the PNG content, header, and status code
+                            Response::from_data(png_content).with_header(header).with_status_code(200)
                         },
                         Err(e) => {
                             eprintln!("Failed to handle move: {}", e);
                             Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
                         }
                     };
-
+                    
                     if let Err(e) = request.respond(response) {
                         eprintln!("Failed to respond to request: {}", e);
                     }
                     continue; // No need to run the rest of the loop;
                     }
-                    
 
 
                 /* 
@@ -759,7 +835,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 //         <html>
                 //             <body style="background-color:black;">
                 //                 <br>
-                //                 <img src="https://y0urm0ve.com/{}" alt="chess board" height="850px" width="850px" />
+                //                 <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
                 //             </body>
                 //         </html>
                 //         "#, game_name, game_name);
@@ -884,7 +960,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         <html>
                             <body style="background-color:black;">
                                 <br>
-                                <img src="https://y0urm0ve.com/{}" alt="chess board" height="850px" width="850px" />
+                                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
                             </body>
                         </html>
                         "#, game_name, game_name);
@@ -1081,7 +1157,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         <html>
                             <body style="background-color:black;">
                                 <br>
-                                <img src="https://y0urm0ve.com/{}" alt="chess board" height="850px" width="850px" />
+                                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
                             </body>
                         </html>
                         "#, game_name, game_name);
@@ -4004,3 +4080,36 @@ fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) -> Result
 
 //     Ok(())
 // }
+
+
+fn sanitize_url(input: &str) -> String {
+    let without_trailing_slashes_and_spaces = input.trim_end_matches(|c| c == '/' || c == ' ');
+    without_trailing_slashes_and_spaces
+        .chars()
+        .filter(|&c| c.is_ascii_alphanumeric() 
+        || c == '_' 
+        || c == '/'
+        || c == '.'
+        || c == '='
+        || c == '&'
+        || c == '^'
+        || c == '@'
+        || c == '-'
+        || c == '+'
+        || c == '*'
+        || c == '!'
+        || c == '~'
+        || c == '`'
+        || c == ';'
+        || c == ','
+    )
+        .collect()
+}
+
+// Define the show_board_png function to get the PNG content from the file or other sources
+fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
+    let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
