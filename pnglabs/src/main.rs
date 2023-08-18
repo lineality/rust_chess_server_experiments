@@ -41,6 +41,35 @@ fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_p
 
 
 
+fn combine_top_to_bottom<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+    // Load the images
+    let image1 = image::open(image_path1)?;
+    let image2 = image::open(image_path2)?;
+
+    // Check the width of the images and make them the same if necessary, or handle differently as needed.
+    let width = std::cmp::max(image1.width(), image2.width());
+
+    // Create a new image with the combined height of both images and the maximum width
+    let mut combined_image = ImageBuffer::new(width, image1.height() + image2.height());
+
+    // Copy pixels from image1 into the new image
+    for (x, y, pixel) in image1.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x, y, *pixel);
+    }
+
+    // Copy pixels from image2 into the new image, offsetting by the height of image1
+    for (x, y, pixel) in image2.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x, y + image1.height(), *pixel);
+    }
+
+    // Save the new image
+    combined_image.save(output_path)?;
+
+    Ok(())
+}
+
+
+
 fn overlay_images<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
     // Load the images.
     let mut image1 = image::open(image_path1)?.to_rgba8();
@@ -76,7 +105,9 @@ fn blend_pixels(bottom: &mut Rgba<u8>, top: Rgba<u8>) {
 
 fn main() -> Result<(), image::ImageError> {
 
-    combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle.png")?;
+    combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle_side_by_side.png")?;
+
+    combine_top_to_bottom("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle_top_to_bottom.png")?;
 
     overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
 
