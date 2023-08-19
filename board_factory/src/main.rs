@@ -201,8 +201,6 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
     }
 
 
-
-
     // Move (create?) the final image inside the sandbox
     let sandbox_path = format!("{}/back_board.png", sandbox_path);
     fs::rename(final_board_image_path, sandbox_path)?;
@@ -211,8 +209,97 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
 }
 
 
+// fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+//     // Determine the order of letters
+//     let letters_order = if orientation_white {
+//         ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
+//     } else {
+//         ["h.png", "g.png", "f.png", "e.png", "d.png", "c.png", "b.png", "a.png"]
+//     };
 
-fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+//     // Create the letter bar by combining individual letters
+//     let mut letter_bar_path = String::new();
+//     for letter in &letters_order {
+//         let path = format!("legend_alpha_num/{}", letter);
+//         if letter_bar_path.is_empty() {
+//             letter_bar_path = path;
+//         } else {
+//             let new_output_path = format!("tmp_{}.png", letter);
+//             combine_side_by_side(letter_bar_path, path, new_output_path.clone())
+//                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+//             letter_bar_path = new_output_path;
+//         }
+//     }
+
+//     // Combine the letter bar with the board image
+//     let final_image_with_letters_path = format!("{}/back_board_with_letters.png", sandbox_path);
+//     combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
+//         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+//     Ok(())
+// }
+
+
+fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    // Determine the order of letters
+    let letters_order = if orientation_white {
+        ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
+    } else {
+        ["h.png", "g.png", "f.png", "e.png", "d.png", "c.png", "b.png", "a.png"]
+    };
+
+    // Create the letter bar by combining individual letters
+    let mut letter_bar_path = String::new();
+    for letter in &letters_order {
+        let path = format!("legend_alpha_num/{}", letter);
+        if letter_bar_path.is_empty() {
+            letter_bar_path = path;
+        } else {
+            let new_output_path = format!("{}/tmp_{}.png", sandbox_path, letter); // Prepend sandbox_path
+            combine_side_by_side(letter_bar_path, path, new_output_path.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+            letter_bar_path = new_output_path;
+        }
+    }
+
+    // Combine the letter bar with the board image
+    let final_image_with_letters_path = format!("{}/back_board.png", sandbox_path);
+    combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    // Optional: Clean up temporary files created during the process
+    for letter in &letters_order {
+        let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, letter);
+        if std::path::Path::new(&tmp_file_path).exists() {
+            let _ = std::fs::remove_file(tmp_file_path);
+        }
+    }
+
+    Ok(())
+}
+
+
+
+// fn generate_number_bar(output_path: &str) -> Result<(), image::ImageError> {
+//     let mut number_bar_path = String::new();
+//     for number in ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"].iter() {
+//         let path = format!("legend_alpha_num/{}", number);
+//         if number_bar_path.is_empty() {
+//             number_bar_path = path;
+//         } else {
+//             let new_output_path = format!("tmp_{}.png", number);
+//             combine_top_to_bottom(number_bar_path, path, new_output_path.clone())?;
+//             number_bar_path = new_output_path;
+//         }
+//     }
+//     fs::rename(number_bar_path, output_path)?;
+//     Ok(())
+// }
+
+
+
+
+fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: bool) -> Result<(), Error> {
     let sandbox_path: String = format!("games/{}/sandbox", game_name);
     let final_image_path: String = format!("games/{}", game_name);
 
@@ -229,6 +316,15 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
 
     // Generate the chessboard
     let result = make_board_core(&sandbox_path, orientation_white);
+    
+    // Add letter bar
+    let board_image_path = format!("{}/back_board.png", sandbox_path);
+    make_and_attach_letter_bar(&sandbox_path, orientation_white, &board_image_path)?;
+
+
+    // Add number bar
+
+
 
     // Assuming the final image is first created inside sandbox as final_image.png
     // then moved to the game folder
@@ -247,7 +343,7 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
 }
 
 
-use image::{GenericImageView, ImageError};
+// use image::{GenericImageView, ImageError};
 
 
 
@@ -255,7 +351,7 @@ fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
     let white = true;
 
-    generate_chessboard_backboard(game_name, white)?;
+    generate_chessboard_backboard_wrapper(game_name, white)?;
 
 
     // Addit

@@ -16,12 +16,23 @@ with the legend reversed.
 
 
 ## Goal:
-Python functions to:
-Generate a white or black oriented chess background png image,
-WITH letters on the bottom and numbers on the side, and a blank.png top bar
+Complete Python functions to:
+Generate a white or black oriented chess background png image (a chess board with no pieces),
+WITH letters on the bottom and numbers on the side
 
 important: the folders of light and dark squares are directories of variants to be chosen at random (assorted wood textures). 
 random_image_from_directory() is the function to select variants.
+
+steps: do ONE STEP AT A TIME
+1. make overall wrapper function call other functions: done
+2. make function make to core section of squares, and have it called by the wrapper-function to make the board.
+
+(next is ONLY 3)
+3. make function to make 8x lettters bar at attach it to the bottom of the board, and have it called by the wrapper-function to make the board.
+
+(not yet #4)
+4. make function to make 8x numbers bar at attach it to the bottom of the board,
+starting with blank.png file, and have it called by the wrapper-function to make the board.
 
 
 ## File structure:
@@ -59,6 +70,41 @@ fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error
 
 
 
+This is a partially functioning function, it does create a letter bar!
+But, it creates it in the root directory.
+
+
+fn attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    // Determine the order of letters
+    let letters_order = if orientation_white {
+        ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
+    } else {
+        ["h.png", "g.png", "f.png", "e.png", "d.png", "c.png", "b.png", "a.png"]
+    };
+
+    // Create the letter bar by combining individual letters
+    let mut letter_bar_path = String::new();
+    for letter in &letters_order {
+        let path = format!("legend_alpha_num/{}", letter);
+        if letter_bar_path.is_empty() {
+            letter_bar_path = path;
+        } else {
+            let new_output_path = format!("tmp_{}.png", letter);
+            combine_side_by_side(letter_bar_path, path, new_output_path.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+            letter_bar_path = new_output_path;
+        }
+    }
+
+    // Combine the letter bar with the board image
+    let final_image_with_letters_path = format!("{}/back_board_with_letters.png", sandbox_path);
+    combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    Ok(())
+}
+
+
 
 // run with
 fn main() -> Result<(), std::io::Error> {
@@ -76,16 +122,60 @@ fn main() -> Result<(), image::ImageError> {
     Ok(())
 }
 
-These two jumbled and badly made functions make the black and white back-board BUT do not add the letters, numbers, and blank top.
-
-This must be added, possibly as a separate set of functions to call. 
 
 
-use std::io::Read; 
 
-fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
+
+fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+    let sandbox_path: String = format!("games/{}/sandbox", game_name);
+    let final_image_path: String = format!("games/{}", game_name);
+
+    // Check if the sandbox already exists
+    if fs::metadata(&sandbox_path).is_ok() {
+        return Err(Error::new(
+            ErrorKind::AlreadyExists,
+            "Sandbox already exists; please try again later.",
+        ));
+    }
+
+    // Create the temporary directory
+    fs::create_dir_all(&sandbox_path)?;
+
+    // Generate the chessboard
+    let result = make_board_core(&sandbox_path, orientation_white);
+    
+    // Add letter bar
+    let board_image_path = format!("{}/back_board.png", sandbox_path);
+    attach_letter_bar(&sandbox_path, orientation_white, &board_image_path)?;
+
+
+    // Add number bar
+
+
+
+    // Assuming the final image is first created inside sandbox as final_image.png
+    // then moved to the game folder
+    let final_image_source = format!("{}/back_board.png", sandbox_path);
+    let final_image_destination = format!("{}/back_board.png", final_image_path);
+
+    // Move the final image to the desired location
+    if result.is_ok() {
+        fs::rename(final_image_source, final_image_destination)?;
+    }
+
+    // Clean up by deleting the temporary directory
+    let _ = fs::remove_dir_all(&sandbox_path);
+
+    result
+}
+
+
+
+
+fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
     let mut row_images = Vec::new();
 
+    // Make the 8 Rows
     for row in 0..8 {
         let mut row_image_path = String::new();
 
@@ -120,8 +210,8 @@ fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: b
         row_images.push(row_image_path);
     }
 
+    // connect the 8 rows
     let mut final_board_image_path = row_images[0].clone();
-
     for i in 1..8 {
         let output_path = format!("{}/final_row_{}.png", sandbox_path, i);
         combine_top_to_bottom(final_board_image_path, row_images[i].clone(), output_path.clone())
@@ -130,48 +220,14 @@ fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: b
         final_board_image_path = output_path;
     }
 
-    // Move the final image inside the sandbox
-    let final_path_in_sandbox = format!("{}/back_board.png", sandbox_path);
-    fs::rename(final_board_image_path, final_path_in_sandbox)?;
+
+    // Move (create?) the final image inside the sandbox
+    let sandbox_path = format!("{}/back_board.png", sandbox_path);
+    fs::rename(final_board_image_path, sandbox_path)?;
 
     Ok(())
 }
 
-
-
-fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Result<(), Error> {
-    let sandbox_path: String = format!("games/{}/sandbox", game_name);
-    let final_image_path: String = format!("games/{}", game_name);
-
-    // Check if the sandbox already exists
-    if fs::metadata(&sandbox_path).is_ok() {
-        return Err(Error::new(
-            ErrorKind::AlreadyExists,
-            "Sandbox already exists; please try again later.",
-        ));
-    }
-
-    // Create the temporary directory
-    fs::create_dir_all(&sandbox_path)?;
-
-    // Generate the chessboard
-    let result = engine_generate_chessboard_backboard(&sandbox_path, orientation_white);
-
-    // Assuming the final image is first created inside sandbox as final_image.png
-    // then moved to the game folder
-    let final_image_source = format!("{}/back_board.png", sandbox_path);
-    let final_image_destination = format!("{}/back_board.png", final_image_path);
-
-    // Move the final image to the desired location
-    if result.is_ok() {
-        fs::rename(final_image_source, final_image_destination)?;
-    }
-
-    // Clean up by deleting the temporary directory
-    let _ = fs::remove_dir_all(&sandbox_path);
-
-    result
-}
 
 
 
