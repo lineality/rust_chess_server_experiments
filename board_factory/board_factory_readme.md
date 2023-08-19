@@ -16,13 +16,12 @@ with the legend reversed.
 
 
 ## Goal:
+Python functions to:
 Generate a white or black oriented chess background png image,
-with letters on the bottom and numbers on the side.
-
-The task here is to make a function that will generate a png chess board with a number a letter legend and a blank top row (to be used late for time data), 
+WITH letters on the bottom and numbers on the side, and a blank.png top bar
 
 important: the folders of light and dark squares are directories of variants to be chosen at random (assorted wood textures). 
-
+random_image_from_directory() is the function to select variants.
 
 
 ## File structure:

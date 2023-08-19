@@ -152,7 +152,7 @@ fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
 
 use std::io::Read; 
 
-fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
+fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
     let mut row_images = Vec::new();
 
     // Make the 8 Rows
@@ -228,7 +228,7 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
     fs::create_dir_all(&sandbox_path)?;
 
     // Generate the chessboard
-    let result = engine_generate_chessboard_backboard(&sandbox_path, orientation_white);
+    let result = make_board_core(&sandbox_path, orientation_white);
 
     // Assuming the final image is first created inside sandbox as final_image.png
     // then moved to the game folder
