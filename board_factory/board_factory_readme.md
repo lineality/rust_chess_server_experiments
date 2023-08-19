@@ -1,10 +1,5 @@
-## Goal:
-Generate a white or black oriented chess background png image,
-with letters on the bottom and numbers on the side.
 
-The task here is to make a function that will generate a png chess board with a number a letter legend and a blank top row (to be used late for time data), 
 
-important: the folders of light and dark squares are directories of variants to be chosen at random (assorted wood textures). 
 
 # two layers, two functions
 board_layer
@@ -16,6 +11,17 @@ because there is no board state.
 
 two function: make white board, make black oriented board
 with the legend reversed.
+
+
+
+
+## Goal:
+Generate a white or black oriented chess background png image,
+with letters on the bottom and numbers on the side.
+
+The task here is to make a function that will generate a png chess board with a number a letter legend and a blank top row (to be used late for time data), 
+
+important: the folders of light and dark squares are directories of variants to be chosen at random (assorted wood textures). 
 
 
 
@@ -42,13 +48,26 @@ use std::path::Path;
 use image::{Rgba, ImageBuffer};
 ```
 
+
 # working assemble-image functions with these headlines.
 
 fn combine_top_to_bottom<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
 
 
 fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+  
+fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error> {
 
+
+
+
+// run with
+fn main() -> Result<(), std::io::Error> {
+    let game_name = "game";
+    let white = true;
+    generate_chessboard_backboard(game_name, white)?;
+    Ok(())
+}
 
 
 fn main() -> Result<(), image::ImageError> {
@@ -58,48 +77,115 @@ fn main() -> Result<(), image::ImageError> {
     Ok(())
 }
 
+These two jumbled and badly made functions make the black and white back-board BUT do not add the letters, numbers, and blank top.
+
+This must be added, possibly as a separate set of functions to call. 
 
 
+use std::io::Read; 
 
+fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
+    let mut row_images = Vec::new();
 
+    for row in 0..8 {
+        let mut row_image_path = String::new();
 
-// untested
-fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
-    // Read directory contents
-    let paths: Vec<_> = std::fs::read_dir(dir_path)?
-        .map(|res| res.map(|e| e.path()))
-        .collect::<Result<Vec<_>, io::Error>>()?;
+        for col in 0..8 {
+            let texture_directory = if (row + col) % 2 == 0 {
+                if orientation_white {
+                    "lightsquares"
+                } else {
+                    "darksquares"
+                }
+            } else {
+                if orientation_white {
+                    "darksquares"
+                } else {
+                    "lightsquares"
+                }
+            };
 
-    // Check if there are any paths available
-    if paths.is_empty() {
-        return Err(io::Error::new(io::ErrorKind::Other, "No images found in the directory"));
+            let random_image_path = random_image_from_directory(texture_directory)?;
+
+            if row_image_path.is_empty() {
+                row_image_path = random_image_path;
+            } else {
+                let output_path = format!("{}/row_{}_col_{}.png", sandbox_path, row, col);
+            combine_side_by_side(row_image_path, random_image_path, output_path.clone())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+                row_image_path = output_path;
+            }
+        }
+
+        row_images.push(row_image_path);
     }
 
-    // Randomly choose a path by generating a random index
-    let random_index = rand::random::<usize>() % paths.len();
-    let random_path = paths[random_index].clone();
+    let mut final_board_image_path = row_images[0].clone();
 
-    Ok(random_path)
+    for i in 1..8 {
+        let output_path = format!("{}/final_row_{}.png", sandbox_path, i);
+        combine_top_to_bottom(final_board_image_path, row_images[i].clone(), output_path.clone())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+    
+        final_board_image_path = output_path;
+    }
+
+    // Move the final image inside the sandbox
+    let final_path_in_sandbox = format!("{}/back_board.png", sandbox_path);
+    fs::rename(final_board_image_path, final_path_in_sandbox)?;
+
+    Ok(())
 }
 
 
-//works
-fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error> {
-    let paths: Vec<_> = fs::read_dir(directory)?
-        .filter_map(Result::ok) // Only keep the Ok values
-        .collect();
 
-    if paths.is_empty() {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "No images found"));
+fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+    let sandbox_path: String = format!("games/{}/sandbox", game_name);
+    let final_image_path: String = format!("games/{}", game_name);
+
+    // Check if the sandbox already exists
+    if fs::metadata(&sandbox_path).is_ok() {
+        return Err(Error::new(
+            ErrorKind::AlreadyExists,
+            "Sandbox already exists; please try again later.",
+        ));
     }
 
-    let random_entry = &paths[rand::thread_rng().gen_range(0..paths.len())];
-    let random_file = random_entry.file_name();
-    let file_path_str = random_file.to_str().ok_or(std::io::Error::new(std::io::ErrorKind::Other, "Invalid file name"))?;
-    let file_path = format!("{}/{}", directory, file_path_str);
+    // Create the temporary directory
+    fs::create_dir_all(&sandbox_path)?;
 
-    Ok(file_path)
+    // Generate the chessboard
+    let result = engine_generate_chessboard_backboard(&sandbox_path, orientation_white);
+
+    // Assuming the final image is first created inside sandbox as final_image.png
+    // then moved to the game folder
+    let final_image_source = format!("{}/back_board.png", sandbox_path);
+    let final_image_destination = format!("{}/back_board.png", final_image_path);
+
+    // Move the final image to the desired location
+    if result.is_ok() {
+        fs::rename(final_image_source, final_image_destination)?;
+    }
+
+    // Clean up by deleting the temporary directory
+    let _ = fs::remove_dir_all(&sandbox_path);
+
+    result
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -115,6 +201,29 @@ fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
     file.read_to_end(&mut buffer)?;
     Ok(buffer)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # later
@@ -152,6 +261,16 @@ fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
         ) -> Document {
 
 
+
+
+
+
+
+
+
+
+
+# functions
 
 // A simple alpha blending function. You might want to use a more sophisticated blending function depending on your needs.
 fn blend_pixels(bottom: &mut Rgba<u8>, top: Rgba<u8>) {
@@ -197,4 +316,48 @@ fn main() -> Result<(), image::ImageError> {
     overlay_images("dark_wood_square.png", "white_pawn_darksquare.png", "dark_overlay.png")?;
 
     Ok(())
+}
+
+
+
+
+
+
+
+// untested
+fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
+    // Read directory contents
+    let paths: Vec<_> = std::fs::read_dir(dir_path)?
+        .map(|res| res.map(|e| e.path()))
+        .collect::<Result<Vec<_>, io::Error>>()?;
+
+    // Check if there are any paths available
+    if paths.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::Other, "No images found in the directory"));
+    }
+
+    // Randomly choose a path by generating a random index
+    let random_index = rand::random::<usize>() % paths.len();
+    let random_path = paths[random_index].clone();
+
+    Ok(random_path)
+}
+
+
+//works
+fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error> {
+    let paths: Vec<_> = fs::read_dir(directory)?
+        .filter_map(Result::ok) // Only keep the Ok values
+        .collect();
+
+    if paths.is_empty() {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "No images found"));
+    }
+
+    let random_entry = &paths[rand::thread_rng().gen_range(0..paths.len())];
+    let random_file = random_entry.file_name();
+    let file_path_str = random_file.to_str().ok_or(std::io::Error::new(std::io::ErrorKind::Other, "Invalid file name"))?;
+    let file_path = format!("{}/{}", directory, file_path_str);
+
+    Ok(file_path)
 }

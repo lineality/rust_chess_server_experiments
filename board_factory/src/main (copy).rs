@@ -5,8 +5,6 @@ use rand::Rng;
 use std::{fs, io};
 use std::fs::File;
 
-use std::io::Error;
-use std::io::ErrorKind;
 
 fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
     /*
@@ -155,7 +153,6 @@ use std::io::Read;
 fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
     let mut row_images = Vec::new();
 
-    // Make the 8 Rows
     for row in 0..8 {
         let mut row_image_path = String::new();
 
@@ -183,6 +180,12 @@ fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: b
             combine_side_by_side(row_image_path, random_image_path, output_path.clone())
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
 
+
+    //             let output_path = format!("row_{}_col_{}.png", row, col);
+    //             combine_side_by_side(row_image_path, random_image_path, output_path.clone())
+    // .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+
                 row_image_path = output_path;
             }
         }
@@ -190,27 +193,73 @@ fn engine_generate_chessboard_backboard(sandbox_path: &str, orientation_white: b
         row_images.push(row_image_path);
     }
 
-    // connect the 8 rows
     let mut final_board_image_path = row_images[0].clone();
+
     for i in 1..8 {
         let output_path = format!("{}/final_row_{}.png", sandbox_path, i);
         combine_top_to_bottom(final_board_image_path, row_images[i].clone(), output_path.clone())
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
     
         final_board_image_path = output_path;
+    
+    
+
+    // let mut final_board_image_path = row_images[0].clone();
+
+    // for i in 1..8 {
+    //     let output_path = format!("final_row_{}.png", i);
+    //     combine_top_to_bottom(final_board_image_path, row_images[i].clone(), output_path.clone())
+    // .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+
+    //     final_board_image_path = output_path;
     }
 
+    // // Create the game directory if it does not exist
+    // let game_directory = format!("games/{}", gamename);
+    // fs::create_dir_all(&game_directory)?;
 
+    // // Move the final image to the game directory
+    // let final_path = format!("{}/board.png", game_directory);
+    // fs::rename(final_board_image_path, final_path)?;
 
-
-    // Move (create?) the final image inside the sandbox
-    let sandbox_path = format!("{}/back_board.png", sandbox_path);
-    fs::rename(final_board_image_path, sandbox_path)?;
+    // Move the final image inside the sandbox
+    let final_path_in_sandbox = format!("{}/back_board.png", sandbox_path);
+    fs::rename(final_board_image_path, final_path_in_sandbox)?;
 
     Ok(())
 }
 
 
+
+
+// Define the show_board_png function to get the PNG content from the file or other sources
+fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
+    let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+
+// fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Result<(), std::io::Error> {
+//     let sandbox_path = format!("games/{}/board_sandbox", game_name);
+
+//     // Create the temporary directory
+//     fs::create_dir_all(&sandbox_path)?;
+
+//     // Generate the chessboard
+//     let result = engine_generate_chessboard_backboard(&sandbox_path, orientation_white);
+
+//     // Clean up by deleting the temporary directory
+//     fs::remove_dir_all(&sandbox_path)?;
+
+//     result
+// }
+
+
+use std::io::Error;
+use std::io::ErrorKind;
 
 fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Result<(), Error> {
     let sandbox_path: String = format!("games/{}/sandbox", game_name);
@@ -230,7 +279,7 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
     // Generate the chessboard
     let result = engine_generate_chessboard_backboard(&sandbox_path, orientation_white);
 
-    // Assuming the final image is first created inside sandbox as final_image.png
+    // Assuming the final image is created inside sandbox as final_image.png
     // then moved to the game folder
     let final_image_source = format!("{}/back_board.png", sandbox_path);
     let final_image_destination = format!("{}/back_board.png", final_image_path);
@@ -240,6 +289,9 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
         fs::rename(final_image_source, final_image_destination)?;
     }
 
+    // // Clean up by deleting the temporary directory
+    // fs::remove_dir_all(&sandbox_path)?;
+
     // Clean up by deleting the temporary directory
     let _ = fs::remove_dir_all(&sandbox_path);
 
@@ -247,9 +299,45 @@ fn generate_chessboard_backboard(game_name: &str, orientation_white: bool) -> Re
 }
 
 
-use image::{GenericImageView, ImageError};
+// // Creates a blank row
+// fn create_blank_row() -> Result<String, io::Error> {
+//     let blank_image_path = "legend_alpha_num/blank.png"; // Define the path to your blank image
+//     let blank_row_paths = vec![blank_image_path; 9]; // 9 blank images to create the row
+//     combine_side_by_side(blank_row_paths)
+// }
 
+// // Creates a letter row based on orientation
+// fn create_letter_row_image(orientation_white: bool) -> Result<String, io::Error> {
+//     let letters = if orientation_white {
+//         vec!["a", "b", "c", "d", "e", "f", "g", "h"]
+//     } else {
+//         vec!["h", "g", "f", "e", "d", "c", "b", "a"]
+//     };
 
+//     let blank_image_path = "legend_alpha_num/blank.png"; // Define the path to your blank image
+//     let mut paths = vec![blank_image_path];
+//     for letter in letters {
+//         paths.push(format!("legend_alpha_num/{}.png", letter)); // Path to each letter image
+//     }
+//     paths.push(blank_image_path);
+
+//     combine_side_by_side(paths)
+// }
+
+// // Creates a number row image based on the given row and orientation
+// fn create_number_row_image(row: usize, orientation_white: bool) -> Result<String, io::Error> {
+//     let number = if orientation_white {
+//         row + 1
+//     } else {
+//         8 - row
+//     };
+
+//     let blank_image_path = "legend_alpha_num/blank.png"; // Define the path to your blank image
+//     let number_image_path = format!("legend_alpha_num/{}.png", number);
+
+//     let paths = vec![blank_image_path, number_image_path];
+//     combine_side_by_side(paths)
+// }
 
 fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
@@ -269,14 +357,3 @@ fn main() -> Result<(), std::io::Error> {
 
     Ok(())
 }
-
-
-
-// Define the show_board_png function to get the PNG content from the file or other sources
-fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
-    let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    Ok(buffer)
-}
-
