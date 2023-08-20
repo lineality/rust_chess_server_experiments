@@ -22,7 +22,7 @@ because there is no board state.
 two function: make white board, make black oriented board
 with the legend reversed.
 
-## Goal:
+## Goals:
 make the game-peiece layer given the game-state input:
 
 show example svg function,
@@ -34,9 +34,37 @@ show example svg function,
 board_factory_readme.md  Cargo.toml   legend_alpha_num  src
 Cargo.lock               darksquares  lightsquares      target
 
-..legend_alpha_num]$ ls
-1.png  3.png  5.png  7.png  a.png  c.png  e.png  g.png
-2.png  4.png  6.png  8.png  b.png  d.png  f.png  h.png
+gamepieces]$ ls
+p_darksquare
+p_lightsquare
+P_darksquare
+P_lightsquare
+
+r_darksquare
+r_lightsquare
+R_darksquare
+R_lightsquare
+
+n_darksquare
+n_lightsquare
+N_darksquare
+N_lightsquare
+
+b_darksquare
+b_lightsquare
+B_darksquare
+B_lightsquare
+
+q_darksquare
+q_lightsquare
+Q_darksquare
+Q_lightsquare
+
+k_darksquare
+k_lightsquare
+K_darksquare
+K_lightsquare
+
 
 
 ## Factors:

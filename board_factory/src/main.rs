@@ -6,8 +6,10 @@ use std::{fs, io};
 use std::fs::File;
 
 use std::io::Error;
-use std::io::ErrorKind;
+// use std::io::ErrorKind;
 use std::fmt::Debug;
+use std::io::Read; 
+use std::path::PathBuf;
 
 // fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
 fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
@@ -138,7 +140,6 @@ fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error
     Ok(file_path)
 }
 
-use std::path::PathBuf;
 fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
     // Read directory contents
     let paths: Vec<_> = std::fs::read_dir(dir_path)?
@@ -159,7 +160,7 @@ fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
 
 
 
-use std::io::Read; 
+
 
 fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
     let mut row_images = Vec::new();
@@ -171,15 +172,15 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
         for col in 0..8 {
             let texture_directory = if (row + col) % 2 == 0 {
                 if orientation_white {
-                    "lightsquares"
+                    "image_files/lightsquares"
                 } else {
-                    "darksquares"
+                    "image_files/darksquares"
                 }
             } else {
                 if orientation_white {
-                    "darksquares"
+                    "image_files/darksquares"
                 } else {
-                    "lightsquares"
+                    "image_files/lightsquares"
                 }
             };
 
@@ -233,7 +234,7 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
     // Create the letter bar by combining individual letters
     let mut letter_bar_path = String::new();
     for letter in &letters_order {
-        let path = format!("legend_alpha_num/{}", letter);
+        let path = format!("image_files/legend_alpha_num/{}", letter);
         if letter_bar_path.is_empty() {
             letter_bar_path = path;
         } else {
@@ -272,10 +273,10 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
 //     };
 
 //     // Create a temporary image for the vertical number bar
-//     let mut number_bar_path = "legend_alpha_num/blank.png".to_string(); // Start with a blank image
+//     let mut number_bar_path = "image_files/legend_alpha_num/blank.png".to_string(); // Start with a blank image
 
 //     for number in &numbers_order {
-//         let path = format!("legend_alpha_num/{}", number);
+//         let path = format!("image_files/legend_alpha_num/{}", number);
 //         let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number); // Prepend sandbox_path
 //         combine_top_to_bottom(number_bar_path, path, new_output_path.clone())
 //             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
@@ -311,7 +312,7 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     let mut number_bar_path = String::new(); // Start without a path, as we will build it dynamically
 
     for number in &numbers_order {
-        let path = format!("legend_alpha_num/{}", number);
+        let path = format!("image_files/legend_alpha_num/{}", number);
         if number_bar_path.is_empty() {
             number_bar_path = path;
         } else {
@@ -323,7 +324,7 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     }
 
     // Now combine the final number bar with a blank image at the bottom
-    let blank_image_path: String = "legend_alpha_num/blank.png".to_string();
+    let blank_image_path: String = "image_files/legend_alpha_num/blank.png".to_string();
     let new_output_path = format!("{}/tmp_blank.png", sandbox_path);
     combine_top_to_bottom(number_bar_path, blank_image_path, new_output_path.clone())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
