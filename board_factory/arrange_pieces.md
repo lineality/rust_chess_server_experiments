@@ -1,4 +1,14 @@
 
+# to do
+sandbox folder needs to have a timestamp to avoid collisions,
+make two timestamps after waiting a random time between, and use that
+as the sandbox name add on.
+if a sandbox folder already exists, wait a random number of seconds over 20 seconds and try again
+with a new timestamp
+
+add a sandbox_name path to the main maker function
+
+and make another wrapper...
 
 
 # two layers, two functions
@@ -12,25 +22,11 @@ because there is no board state.
 two function: make white board, make black oriented board
 with the legend reversed.
 
-
-
-
 ## Goal:
-Complete Python functions to:
-Generate a white or black oriented chess background png image (a chess board with no pieces),
-WITH letters on the bottom and numbers on the side
+make the game-peiece layer given the game-state input:
 
-important: the folders of light and dark squares are directories of variants to be chosen at random (assorted wood textures). 
-random_image_from_directory() is the function to select variants.
+show example svg function,
 
-steps: do ONE STEP AT A TIME
-1. make overall wrapper function call other functions: done
-2. make function make to core section of squares, and have it called by the wrapper-function to make the board.
-3. make function to make 8x lettters bar at attach it to the bottom of the board, and have it called by the wrapper-function to make the board.
-
-(this step now)
-4. make function to make 8x numbers bar at attach it to the bottom of the board,
-starting with blank.png file, and have it called by the wrapper-function to make the board.
 
 
 ## File structure:

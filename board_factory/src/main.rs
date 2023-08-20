@@ -349,19 +349,54 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     Ok(())
 }
 
+use std::time::UNIX_EPOCH;
+use std::time::SystemTime;
+fn timestamp() -> u128 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_secs() as u128,
+        Err(error) => {
+            eprintln!("Error: {}", error);
+            0
+        }
+    }
+}
 
 
 fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: bool) -> Result<(), Error> {
-    let sandbox_path: String = format!("games/{}/sandbox", game_name);
+
+    /*
+    Add ~two changes:
+    1. a new input to the function: game_name(str)
+    back_board sandbox path ->
+    games/{gamename}/sandboxes/sandbox
+    _backboard,
+    2. if folder already exists, delete it.
+    3. make sure function can clean-err
+    without crashing the server.
+
+    */
+    let sandbox_path: String = format!("games/{}/sandboxes/sandbox_backboard", game_name);
+
+    // Check if the sandbox_backboard folder exists
+    if fs::metadata(&sandbox_path).is_ok() {
+        // If it exists, delete it
+        fs::remove_dir_all(&sandbox_path)?;
+    }
+
+    // Create the new directory
+    fs::create_dir_all(&sandbox_path)?;
+
+    // check if sandbox_backboard exists, if so, delete it
+
     let final_image_path: String = format!("games/{}", game_name);
 
-    // Check if the sandbox already exists
-    if fs::metadata(&sandbox_path).is_ok() {
-        return Err(Error::new(
-            ErrorKind::AlreadyExists,
-            "Sandbox already exists; please try again later.",
-        ));
-    }
+    // // Check if the sandbox already exists
+    // if fs::metadata(&sandbox_path).is_ok() {
+    //     return Err(Error::new(
+    //         ErrorKind::AlreadyExists,
+    //         "Sandbox already exists; please try again later.",
+    //     ));
+    // }
 
     // Create the temporary directory
     fs::create_dir_all(&sandbox_path)?;
