@@ -26,11 +26,9 @@ random_image_from_directory() is the function to select variants.
 steps: do ONE STEP AT A TIME
 1. make overall wrapper function call other functions: done
 2. make function make to core section of squares, and have it called by the wrapper-function to make the board.
-
-(next is ONLY 3)
 3. make function to make 8x lettters bar at attach it to the bottom of the board, and have it called by the wrapper-function to make the board.
 
-(not yet #4)
+(this step now)
 4. make function to make 8x numbers bar at attach it to the bottom of the board,
 starting with blank.png file, and have it called by the wrapper-function to make the board.
 
@@ -70,11 +68,8 @@ fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error
 
 
 
-This is a partially functioning function, it does create a letter bar!
-But, it creates it in the root directory.
-
-
-fn attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+// working step 3 solution, perhaps template for step 4?
+fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
     // Determine the order of letters
     let letters_order = if orientation_white {
         ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
@@ -89,7 +84,7 @@ fn attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_pa
         if letter_bar_path.is_empty() {
             letter_bar_path = path;
         } else {
-            let new_output_path = format!("tmp_{}.png", letter);
+            let new_output_path = format!("{}/tmp_{}.png", sandbox_path, letter); // Prepend sandbox_path
             combine_side_by_side(letter_bar_path, path, new_output_path.clone())
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
             letter_bar_path = new_output_path;
@@ -97,9 +92,17 @@ fn attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_pa
     }
 
     // Combine the letter bar with the board image
-    let final_image_with_letters_path = format!("{}/back_board_with_letters.png", sandbox_path);
+    let final_image_with_letters_path = format!("{}/back_board.png", sandbox_path);
     combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    // Optional: Clean up temporary files created during the process
+    for letter in &letters_order {
+        let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, letter);
+        if std::path::Path::new(&tmp_file_path).exists() {
+            let _ = std::fs::remove_file(tmp_file_path);
+        }
+    }
 
     Ok(())
 }

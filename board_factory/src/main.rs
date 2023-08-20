@@ -209,35 +209,8 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
 }
 
 
-// fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
-//     // Determine the order of letters
-//     let letters_order = if orientation_white {
-//         ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
-//     } else {
-//         ["h.png", "g.png", "f.png", "e.png", "d.png", "c.png", "b.png", "a.png"]
-//     };
 
-//     // Create the letter bar by combining individual letters
-//     let mut letter_bar_path = String::new();
-//     for letter in &letters_order {
-//         let path = format!("legend_alpha_num/{}", letter);
-//         if letter_bar_path.is_empty() {
-//             letter_bar_path = path;
-//         } else {
-//             let new_output_path = format!("tmp_{}.png", letter);
-//             combine_side_by_side(letter_bar_path, path, new_output_path.clone())
-//                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
-//             letter_bar_path = new_output_path;
-//         }
-//     }
 
-//     // Combine the letter bar with the board image
-//     let final_image_with_letters_path = format!("{}/back_board_with_letters.png", sandbox_path);
-//     combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
-//         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
-
-//     Ok(())
-// }
 
 
 fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
@@ -280,21 +253,44 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
 
 
 
-// fn generate_number_bar(output_path: &str) -> Result<(), image::ImageError> {
-//     let mut number_bar_path = String::new();
-//     for number in ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"].iter() {
+// fn make_and_attach_numbers_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+//     // Determine the order of numbers (reversed if orientation_white is false)
+//     let numbers_order = if orientation_white {
+//         ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
+//     } else {
+//         ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"]
+//     };
+
+//     // Create the numbers bar by combining individual numbers
+//     let mut numbers_bar_path = String::new();
+//     for number in &numbers_order {
 //         let path = format!("legend_alpha_num/{}", number);
-//         if number_bar_path.is_empty() {
-//             number_bar_path = path;
+//         if numbers_bar_path.is_empty() {
+//             numbers_bar_path = path;
 //         } else {
-//             let new_output_path = format!("tmp_{}.png", number);
-//             combine_top_to_bottom(number_bar_path, path, new_output_path.clone())?;
-//             number_bar_path = new_output_path;
+//             let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number); // Prepend sandbox_path
+//             combine_top_to_bottom(numbers_bar_path, path, new_output_path.clone())
+//                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+//             numbers_bar_path = new_output_path;
 //         }
 //     }
-//     fs::rename(number_bar_path, output_path)?;
+
+//     // Combine the numbers bar with the board image
+//     let final_image_with_numbers_path = format!("{}/back_board.png", sandbox_path);
+//     combine_side_by_side(&numbers_bar_path, board_image_path, &final_image_with_numbers_path)
+//         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+//     // Optional: Clean up temporary files created during the process
+//     for number in &numbers_order {
+//         let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, number);
+//         if std::path::Path::new(&tmp_file_path).exists() {
+//             let _ = std::fs::remove_file(tmp_file_path);
+//         }
+//     }
+
 //     Ok(())
 // }
+
 
 
 
