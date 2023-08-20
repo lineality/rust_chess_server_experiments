@@ -7,8 +7,11 @@ use std::fs::File;
 
 use std::io::Error;
 use std::io::ErrorKind;
+use std::fmt::Debug;
 
-fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+// fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+
     /*
     extern crate image;
     use image::ImageBuffer;
@@ -19,8 +22,12 @@ fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_p
      */
 
     // Load the images
-    let image1 = image::open(image_path1)?;
-    let image2 = image::open(image_path2)?;
+    // let image1 = image::open(image_path1)?;
+    // let image2 = image::open(image_path2)?;
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?;
+    
+
 
     // Check the height of the images and make them the same if necessary, or handle differently as needed.
     let height = std::cmp::max(image1.height(), image2.height());
@@ -46,10 +53,12 @@ fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_p
 
 
 
-fn combine_top_to_bottom<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+
     // Load the images
-    let image1 = image::open(image_path1)?;
-    let image2 = image::open(image_path2)?;
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?;
+    
 
     // Check the width of the images and make them the same if necessary, or handle differently as needed.
     let width = std::cmp::max(image1.width(), image2.width());
@@ -253,31 +262,29 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
 
 
 
-// fn make_and_attach_numbers_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
-//     // Determine the order of numbers (reversed if orientation_white is false)
+
+// fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+//     // Determine the order of numbers
 //     let numbers_order = if orientation_white {
 //         ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
 //     } else {
 //         ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"]
 //     };
 
-//     // Create the numbers bar by combining individual numbers
-//     let mut numbers_bar_path = String::new();
+//     // Create a temporary image for the vertical number bar
+//     let mut number_bar_path = "legend_alpha_num/blank.png".to_string(); // Start with a blank image
+
 //     for number in &numbers_order {
 //         let path = format!("legend_alpha_num/{}", number);
-//         if numbers_bar_path.is_empty() {
-//             numbers_bar_path = path;
-//         } else {
-//             let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number); // Prepend sandbox_path
-//             combine_top_to_bottom(numbers_bar_path, path, new_output_path.clone())
-//                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
-//             numbers_bar_path = new_output_path;
-//         }
+//         let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number); // Prepend sandbox_path
+//         combine_top_to_bottom(number_bar_path, path, new_output_path.clone())
+//             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+//         number_bar_path = new_output_path;
 //     }
 
-//     // Combine the numbers bar with the board image
+//     // Combine the number bar with the board image
 //     let final_image_with_numbers_path = format!("{}/back_board.png", sandbox_path);
-//     combine_side_by_side(&numbers_bar_path, board_image_path, &final_image_with_numbers_path)
+//     combine_side_by_side(&number_bar_path, &board_image_path.to_string(), &final_image_with_numbers_path)
 //         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
 
 //     // Optional: Clean up temporary files created during the process
@@ -292,6 +299,55 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
 // }
 
 
+fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    // Determine the order of numbers
+    let numbers_order = if orientation_white {
+        ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
+    } else {
+        ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"]
+    };
+
+    // Create a temporary image for the vertical number bar
+    let mut number_bar_path = String::new(); // Start without a path, as we will build it dynamically
+
+    for number in &numbers_order {
+        let path = format!("legend_alpha_num/{}", number);
+        if number_bar_path.is_empty() {
+            number_bar_path = path;
+        } else {
+            let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number);
+            combine_top_to_bottom(number_bar_path, path, new_output_path.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+            number_bar_path = new_output_path;
+        }
+    }
+
+    // Now combine the final number bar with a blank image at the bottom
+    let blank_image_path: String = "legend_alpha_num/blank.png".to_string();
+    let new_output_path = format!("{}/tmp_blank.png", sandbox_path);
+    combine_top_to_bottom(number_bar_path, blank_image_path, new_output_path.clone())
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+    number_bar_path = new_output_path.clone();
+
+    // Combine the number bar with the board image
+    let final_image_with_numbers_path = format!("{}/back_board.png", sandbox_path);
+    combine_side_by_side(&number_bar_path, &board_image_path.to_string(), &final_image_with_numbers_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    // Optional: Clean up temporary files created during the process
+    for number in &numbers_order {
+        let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, number);
+        if std::path::Path::new(&tmp_file_path).exists() {
+            let _ = std::fs::remove_file(tmp_file_path);
+        }
+    }
+    // Remove the temporary blank file
+    if std::path::Path::new(&new_output_path).exists() {
+        let _ = std::fs::remove_file(new_output_path);
+    }
+
+    Ok(())
+}
 
 
 
@@ -319,6 +375,7 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
 
 
     // Add number bar
+    make_and_attach_number_bar(&sandbox_path, orientation_white, &board_image_path)?;
 
 
 
