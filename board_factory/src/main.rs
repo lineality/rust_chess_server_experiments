@@ -1,18 +1,29 @@
 extern crate image;
 use std::path::Path;
-use image::{Rgba, ImageBuffer};
+use image::{Rgba, ImageBuffer, GenericImageView};
 use rand::Rng;
 use std::{fs, io};
-use std::fs::File;
+// use std::fs::File;
 
 use std::io::Error;
 // use std::io::ErrorKind;
 use std::fmt::Debug;
-use std::io::Read; 
-use std::path::PathBuf;
+// use std::io::Read; 
+// use std::path::PathBuf;
 
 // fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
 fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+    // println!(
+    //     "\ncombine_side_by_side...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+    //     &image_path1,
+    //     &image_path2,
+    //     &output_path
+    // );
+
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_side_by_side Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_side_by_side Failed to load image at {:?}", &image_path2))))?;
+    
+
 
     /*
     extern crate image;
@@ -26,9 +37,6 @@ fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, 
     // Load the images
     // let image1 = image::open(image_path1)?;
     // let image2 = image::open(image_path2)?;
-    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?;
-    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?;
-    
 
 
     // Check the height of the images and make them the same if necessary, or handle differently as needed.
@@ -56,10 +64,15 @@ fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, 
 
 
 fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
-
+    // println!(
+    //     "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+    //     &image_path1,
+    //     &image_path2,
+    //     &output_path
+    // );
     // Load the images
-    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?;
-    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?;
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path2))))?;
     
 
     // Check the width of the images and make them the same if necessary, or handle differently as needed.
@@ -87,10 +100,37 @@ fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P,
 
 
 
-fn overlay_images<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
-    // Load the images.
-    let mut image1 = image::open(image_path1)?.to_rgba8();
-    let image2 = image::open(image_path2)?.to_rgba8();
+// fn overlay_images<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+// fn overlay_images<P: AsRef<Path> + std::fmt::Debug>(
+//         image_path1: P,
+//         image_path2: P,
+//         output_path: P,
+//     ) -> Result<(), image::ImageError> {
+//     println!("Overlaying images...");
+fn overlay_images<P: AsRef<Path> + std::fmt::Debug>(
+    image_path1: P,
+    image_path2: P,
+    output_path: P,
+) -> Result<(), image::ImageError> {
+    println!(
+        "\nOverlaying images...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+        &image_path1,
+        &image_path2,
+        &output_path
+    );
+
+    // // Load the images.
+    // let mut image1 = image::open(image_path1)?.to_rgba8();
+    // let image2 = image::open(image_path2)?.to_rgba8();
+
+    // Load the images with custom error handling
+    let mut image1 = image::open(&image_path1)
+        .map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?
+        .to_rgba8();
+    let image2 = image::open(&image_path2)
+        .map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?
+        .to_rgba8();
+
 
     // Ensure the images are the same size, or handle differently as needed.
     assert_eq!(image1.dimensions(), image2.dimensions());
@@ -108,8 +148,15 @@ fn overlay_images<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P
     Ok(())
 }
 
+
 // A simple alpha blending function. You might want to use a more sophisticated blending function depending on your needs.
 fn blend_pixels(bottom: &mut Rgba<u8>, top: Rgba<u8>) {
+    println!(
+        "\nblend_pixels...\nbottom: {:?}\ntop: {:?}",
+        bottom,
+        top,
+    );
+
     let alpha_top = top[3] as f32 / 255.0;
     let alpha_bottom = bottom[3] as f32 * (1.0 - alpha_top) / 255.0;
     let alpha_combined = alpha_top + alpha_bottom;
@@ -121,9 +168,11 @@ fn blend_pixels(bottom: &mut Rgba<u8>, top: Rgba<u8>) {
 }
 
 
-
-
 fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error> {
+    println!(
+        "\nrandom_image_from_directory...\ndirectory: {:?}",
+        &directory,
+    );
     let paths: Vec<_> = fs::read_dir(directory)?
         .filter_map(Result::ok) // Only keep the Ok values
         .collect();
@@ -140,29 +189,9 @@ fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error
     Ok(file_path)
 }
 
-fn choose_random_image(dir_path: &str) -> Result<PathBuf, io::Error> {
-    // Read directory contents
-    let paths: Vec<_> = std::fs::read_dir(dir_path)?
-        .map(|res| res.map(|e| e.path()))
-        .collect::<Result<Vec<_>, io::Error>>()?;
-
-    // Check if there are any paths available
-    if paths.is_empty() {
-        return Err(io::Error::new(io::ErrorKind::Other, "No images found in the directory"));
-    }
-
-    // Randomly choose a path by generating a random index
-    let random_index = rand::random::<usize>() % paths.len();
-    let random_path = paths[random_index].clone();
-
-    Ok(random_path)
-}
-
-
-
-
 
 fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
+    println!("\nmake_board_core()...");
     let mut row_images = Vec::new();
 
     // Make the 8 Rows
@@ -219,11 +248,14 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
 }
 
 
-
-
-
-
 fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    println!(
+        "make_and_attach_letter_bar images...\nsandbox_path: {:?}\norientation_white: {:?}\nboard_image_path: {:?}",
+        &sandbox_path,
+        &orientation_white,
+        &board_image_path
+    );
+
     // Determine the order of letters
     let letters_order = if orientation_white {
         ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
@@ -262,45 +294,14 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
 }
 
 
-
-
-// fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
-//     // Determine the order of numbers
-//     let numbers_order = if orientation_white {
-//         ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
-//     } else {
-//         ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"]
-//     };
-
-//     // Create a temporary image for the vertical number bar
-//     let mut number_bar_path = "image_files/legend_alpha_num/blank.png".to_string(); // Start with a blank image
-
-//     for number in &numbers_order {
-//         let path = format!("image_files/legend_alpha_num/{}", number);
-//         let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number); // Prepend sandbox_path
-//         combine_top_to_bottom(number_bar_path, path, new_output_path.clone())
-//             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
-//         number_bar_path = new_output_path;
-//     }
-
-//     // Combine the number bar with the board image
-//     let final_image_with_numbers_path = format!("{}/back_board.png", sandbox_path);
-//     combine_side_by_side(&number_bar_path, &board_image_path.to_string(), &final_image_with_numbers_path)
-//         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
-
-//     // Optional: Clean up temporary files created during the process
-//     for number in &numbers_order {
-//         let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, number);
-//         if std::path::Path::new(&tmp_file_path).exists() {
-//             let _ = std::fs::remove_file(tmp_file_path);
-//         }
-//     }
-
-//     Ok(())
-// }
-
-
 fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    println!(
+        "make_and_attach_number_bar images...\nsandbox_path: {:?}\norientation_white: {:?}\nboard_image_path: {:?}",
+        &sandbox_path,
+        &orientation_white,
+        &board_image_path
+    );
+
     // Determine the order of numbers
     let numbers_order = if orientation_white {
         ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
@@ -350,21 +351,13 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     Ok(())
 }
 
-use std::time::UNIX_EPOCH;
-use std::time::SystemTime;
-fn timestamp() -> u128 {
-    match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(duration) => duration.as_secs() as u128,
-        Err(error) => {
-            eprintln!("Error: {}", error);
-            0
-        }
-    }
-}
-
 
 fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: bool) -> Result<(), Error> {
-
+    println!(
+        "generate_chessboard_backboard_wrapper images...\ngame_name: {:?}\norientation_white: {:?}",
+        &game_name,
+        &orientation_white,
+    );
     /*
     Add ~two changes:
     1. a new input to the function: game_name(str)
@@ -391,13 +384,6 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
 
     let final_image_path: String = format!("games/{}", game_name);
 
-    // // Check if the sandbox already exists
-    // if fs::metadata(&sandbox_path).is_ok() {
-    //     return Err(Error::new(
-    //         ErrorKind::AlreadyExists,
-    //         "Sandbox already exists; please try again later.",
-    //     ));
-    // }
 
     // Create the temporary directory
     fs::create_dir_all(&sandbox_path)?;
@@ -409,11 +395,8 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
     let board_image_path = format!("{}/back_board.png", sandbox_path);
     make_and_attach_letter_bar(&sandbox_path, orientation_white, &board_image_path)?;
 
-
     // Add number bar
     make_and_attach_number_bar(&sandbox_path, orientation_white, &board_image_path)?;
-
-
 
     // Assuming the final image is first created inside sandbox as final_image.png
     // then moved to the game folder
@@ -432,36 +415,156 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
 }
 
 
-// use image::{GenericImageView, ImageError};
 
+// Make chess_pieces_layer()
+// fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+
+
+fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+    println!(
+        "\ncreate_chess_pieces_layer images...\nchessboard: {:?}",
+        &chessboard,
+    );
+
+    let mut img = ImageBuffer::new(800, 800); // Assuming 100x100 pixels for each square
+    for (row, row_pieces) in chessboard.iter().enumerate() {
+        for (col, &piece) in row_pieces.iter().enumerate() {
+            let square_color = if (row + col) % 2 == 0 { "darksquare" } else { "lightsquare" }; // Fixed logic
+            let (piece_prefix, piece_suffix) = match piece {
+
+                // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+                    
+                //     let mut img = ImageBuffer::new(800, 800);
+                //     // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>>, io::Error> {
+                //     //     let mut img = ImageBuffer::new(800, 800); // Assuming 100x100 pixels for each square
+
+                //     for (row, row_pieces) in chessboard.iter().enumerate() {
+                //         for (col, &piece) in row_pieces.iter().enumerate() {
+                //             let square_color = if (row + col) % 2 == 0 { "lightsquare" } else { "darksquare" };
+                //             let (piece_prefix, piece_suffix) = match piece {
+                'p' => ("p_", square_color),
+                'r' => ("r_", square_color),
+                'n' => ("n_", square_color),
+                'b' => ("b_", square_color),
+                'q' => ("q_", square_color),
+                'k' => ("k_", square_color),
+                'P' => ("P_", square_color),
+                'R' => ("R_", square_color),
+                'N' => ("N_", square_color),
+                'B' => ("B_", square_color),
+                'Q' => ("Q_", square_color),
+                'K' => ("K_", square_color),
+                _ => continue,
+            };
+
+            // let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
+            // let piece_image = image::open(Path::new(&piece_image_path))?;
+
+
+
+            // let piece_image_path = format!("image_files/gamepieces/{}{}/image.png", piece_prefix, piece_suffix); // Added a slash and image filename
+
+            let texture_directory = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
+            let piece_image_path = random_image_from_directory(&texture_directory)?;
+
+            println!("Piece: {}", piece);
+            println!("piece_prefix: {}", piece_prefix);
+            println!("piece_suffix: {}", piece_suffix);
+            println!("piece_image_path: {}", piece_image_path);
+
+            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+
+
+            
+            // let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+
+
+            // let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
+            // let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+         
+            // let piece_image: DynamicImage = piece_image; // Ensure the correct type for piece_image
+            let (x, y) = (col * 100, row * 100);
+
+            // Overlay the piece image on the correct square
+            for (i, j, pixel) in piece_image.pixels() {
+                let (x_new, y_new) = (x + i as usize, y + j as usize);
+                img.put_pixel(x_new as u32, y_new as u32, pixel);
+            }
+        }
+    }
+
+    Ok(img)
+}
+
+use std::io::ErrorKind;
+
+// fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str) -> Result<(), io::Error> {
+//     let pieces_image = create_chess_pieces_layer(game_board_state)?;
+//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+//     pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     let back_board_path = format!("games/{}/back_board.png", game_name);
+//     let output_path = format!("games/{}/board.png", game_name);
+
+//     overlay_images(Path::new(&back_board_path), Path::new(&pieces_image_path), Path::new(&output_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+// }
+
+fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str) -> Result<(), io::Error> {
+    println!(
+        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+        &game_board_state,
+    );
+
+    let pieces_image = create_chess_pieces_layer(game_board_state)?;
+    let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+    pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+    let back_board_path = format!("games/{}/back_board.png", game_name);
+    let output_path = format!("games/{}/board.png", game_name);
+
+    overlay_images(Path::new(&back_board_path), Path::new(&pieces_image_path), Path::new(&output_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+}
+
+
+
+
+// // Define the show_board_png function to get the PNG content from the file or other sources
+// fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
+//     let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
+//     let mut buffer = Vec::new();
+//     file.read_to_end(&mut buffer)?;
+//     Ok(buffer)
+// }
 
 
 fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
     let white = true;
 
+    // Set up board
+    let board: [[char; 8]; 8] = [
+        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+
+    let game_board_state:[[char; 8]; 8] = board;
+
+
     generate_chessboard_backboard_wrapper(game_name, white)?;
 
 
-    // Addit
-    // combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle.png")?;
-
-    // overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
-
-    // overlay_images("dark_wood_square.png", "white_pawn_darksquare.png", "dark_overlay.png")?;
-
-
+    create_chessboard_with_pieces(&game_board_state, game_name)?;
+ 
 
     Ok(())
 }
-
-
-
-// Define the show_board_png function to get the PNG content from the file or other sources
-fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
-    let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    Ok(buffer)
-}
-

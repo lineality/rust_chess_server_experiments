@@ -29,6 +29,8 @@ steps: do ONE STEP AT A TIME
 3. make function to make 8x lettters bar at attach it to the bottom of the board, and have it called by the wrapper-function to make the board.
 4. make function to make 8x numbers bar at attach it to the bottom of the board,
 starting with blank.png file, and have it called by the wrapper-function to make the board.
+5. Modify the overall wrapper to set
+the sandbox path to:
 
 
 ## File structure:
