@@ -1,34 +1,28 @@
 
-# to do
-
-and make another wrapper...
-mkdir p_darksquare p_lightsquare P_darksquare P_lightsquare r_darksquare r_lightsquare R_darksquare R_lightsquare n_darksquare n_lightsquare N_darksquare N_lightsquare b_darksquare b_lightsquare B_darksquare B_lightsquare q_darksquare q_lightsquare Q_darksquare Q_lightsquare k_darksquare k_lightsquare K_darksquare K_lightsquare 
-
-
-# two layers, two functions
-board_layer
-gamepiece_layer
-
-The board_layer can be automatically generated with no inputs
-because there is no board state.
-
-two function: make white board, make black oriented board
-with the legend reversed.
 
 ## Goals:
 There is already a set of functions to make the back_board for the chess board,
 in directory games/{game_name}/back_board.png
 
+9x9 squares, each 75pixcels*75, so 675*675 overall. 
+that is an 8x8 plus a legend, so 9x9.
+
 functions exist to added png images vertically and horizontally
 
-there is a game-state
+a blank 8x1 and 9x1 exist to add 
+
+there is a game-state for input.
+
+there is a function that makes the pieces layer
 
 Task: 
-1. make a function (or set of functions) to create a png image file
-that places black and white pieces (selected from directories of variant images,
-depending on light or dark squares: so each piece-type has four directies)
+
+1 this includes making the 8x8 arrangment of pieces 9x9, by adding 
+8x_blank_bottom.png, 9x_blank_top.png
+
 2. overlay the chess_pieces.png with the board_back.png, 
 and save that file as 
+
 games/{game_name}/board.png
 
 
@@ -38,46 +32,6 @@ games/{game_name}/board.png
  arrange_pieces.md               Cargo.lock   games         junk   target
  Cargo.toml                      image_files  src
 
-
-image_files/gamepieces]$ ls
-p_darksquare
-p_lightsquare
-P_darksquare
-P_lightsquare
-
-r_darksquare
-r_lightsquare
-R_darksquare
-R_lightsquare
-
-n_darksquare
-n_lightsquare
-N_darksquare
-N_lightsquare
-
-b_darksquare
-b_lightsquare
-B_darksquare
-B_lightsquare
-
-q_darksquare
-q_lightsquare
-Q_darksquare
-Q_lightsquare
-
-k_darksquare
-k_lightsquare
-K_darksquare
-K_lightsquare
-
-
-
-
-## Factors:
-- white piece or black piece orientation
-- light and dark background squares randomly selected from directories of variation textures (.png files)
-- bottom and side are blank files
-image_files/legend_alpha_num/blank.png
 
 
 
@@ -137,59 +91,34 @@ fn main() -> Result<(), std::io::Error> {
 }
 
 
+The task and problem are with this function, which does not correctly
+make the 9x9 or overlay it.
 
+the above simple function ALREADY EXIST to do these operations,
+e.g.
+fn main() -> Result<(), image::ImageError> {
 
-these functions are maybe a start but they malfunction: 
+    combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle_side_by_side.png")?;
 
+    combine_top_to_bottom("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "rectangle_top_to_bottom.png")?;
 
-fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
-    
-    let mut img = ImageBuffer::new(800, 800);
-    // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>>, io::Error> {
-    //     let mut img = ImageBuffer::new(800, 800); // Assuming 100x100 pixels for each square
+    overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
 
-    for (row, row_pieces) in chessboard.iter().enumerate() {
-        for (col, &piece) in row_pieces.iter().enumerate() {
-            let square_color = if (row + col) % 2 == 0 { "lightsquare" } else { "darksquare" };
-            let (piece_prefix, piece_suffix) = match piece {
-                'p' => ("p_", square_color),
-                'r' => ("r_", square_color),
-                'n' => ("n_", square_color),
-                'b' => ("b_", square_color),
-                'q' => ("q_", square_color),
-                'k' => ("k_", square_color),
-                'P' => ("P_", square_color),
-                'R' => ("R_", square_color),
-                'N' => ("N_", square_color),
-                'B' => ("B_", square_color),
-                'Q' => ("Q_", square_color),
-                'K' => ("K_", square_color),
-                _ => continue,
-            };
+    overlay_images("dark_wood_square.png", "white_pawn_darksquare.png", "dark_overlay.png")?;
 
-            // let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
-            // let piece_image = image::open(Path::new(&piece_image_path))?;
-
-
-            let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
-            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-            // let piece_image: DynamicImage = piece_image; // Ensure the correct type for piece_image
-            let (x, y) = (col * 100, row * 100);
-
-            // Overlay the piece image on the correct square
-            for (i, j, pixel) in piece_image.pixels() {
-                let (x_new, y_new) = (x + i as usize, y + j as usize);
-                img.put_pixel(x_new as u32, y_new as u32, pixel);
-            }
-        }
-    }
-
-    Ok(img)
+    Ok(())
 }
+
+these need to be fixed: 
 
 use std::io::ErrorKind;
 
 fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str) -> Result<(), io::Error> {
+    println!(
+        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+        &game_board_state,
+    );
+
     let pieces_image = create_chess_pieces_layer(game_board_state)?;
     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
     pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
@@ -201,25 +130,48 @@ fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &
         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
 }
 
-e.g. see this output:
-combine_top_to_bottom...
-image_path1: "games/game/sandboxes/sandbox_backboard/tmp_1.png.png"
-image_path2: "image_files/legend_alpha_num/blank.png"
-output_path: "games/game/sandboxes/sandbox_backboard/tmp_blank.png"
-combine_side_by_side...
-image_path1: "games/game/sandboxes/sandbox_backboard/tmp_blank.png"
-image_path2: "games/game/sandboxes/sandbox_backboard/back_board.png"
-output_path: "games/game/sandboxes/sandbox_backboard/back_board.png"
-Error: Custom { kind: Other, error: IoError(Os { code: 2, kind: NotFound, message: "No such file or directory" }) }
 
 
+use std::io::ErrorKind;
+fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str,orientation_white: bool) -> Result<(), io::Error> {
+    println!(
+        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+        &game_board_state,
+    );
 
-the original idea is to
-step 1: make a png set of pieces
-step 2: overlay that onto the back_board
+    let pieces_image = create_chess_pieces_layer(game_board_state, orientation_white)?;
+    let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+    pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
-but the above code appears to try to put each pieces over the backboard in one for-loop,
-and the error says a temp is being merged side by side with the backboard which makes no sense.
+    let back_board_path = format!("games/{}/back_board.png", game_name);
+    let output_path = format!("games/{}/board.png", game_name);
+
+    overlay_images(Path::new(&back_board_path), Path::new(&pieces_image_path), Path::new(&output_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+}
+
+
+// fn create_chessboard_with_pieces(chessboard: &[[char; 8]; 8], game_name: &str, white_orientation: bool) -> Result<(), io::Error> {
+//     let pieces_image = create_chess_pieces_layer(chessboard, white_orientation)?;
+
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let top_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     let top_blank_image = image::open(Path::new(top_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     let mut vertical_combined = ImageBuffer::new(675, 675); // 9x9 squares at 75 pixels
+//     combine_top_to_bottom(&pieces_image, &bottom_blank_image, &mut vertical_combined)?;
+    
+//     let mut final_image = ImageBuffer::new(675, 675); // 9x9 squares at 75 pixels
+//     combine_side_by_side(&vertical_combined, &top_blank_image, &mut final_image)?;
+
+//     let board_back_path = format!("games/{}/back_board.png", game_name);
+//     overlay_images(&board_back_path, &final_image, format!("games/{}/board.png", game_name))?;
+
+//     Ok(())
+// }
+
+
 
 
 

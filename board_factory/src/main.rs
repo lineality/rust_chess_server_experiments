@@ -415,33 +415,99 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
 }
 
 
+// use image::DynamicImage;
+// // Make chess_pieces_layer()
 
-// Make chess_pieces_layer()
 // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+//     println!(
+//         "\ncreate_chess_pieces_layer images...\nchessboard: {:?}",
+//         &chessboard,
+//     );
+
+//     let mut img = ImageBuffer::new(600, 600); // Assuming 75x75 pixels for each square
+//     for (row, row_pieces) in chessboard.iter().enumerate() {
+//         for (col, &piece) in row_pieces.iter().enumerate() {
+//             let square_color = if (row + col) % 2 == 0 { "darksquare" } else { "lightsquare" }; // Fixed logic
+//             let (piece_prefix, piece_suffix) = match piece {
+
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
+//             };
+
+//             // let piece_image_path = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             // let piece_image = image::open(Path::new(&piece_image_path))?;
+
+//             // let piece_image_path = format!("image_files/chess_pieces/{}{}/image.png", piece_prefix, piece_suffix); // Added a slash and image filename
+
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+
+//             println!("Piece: {}", piece);
+//             println!("piece_prefix: {}", piece_prefix);
+//             println!("piece_suffix: {}", piece_suffix);
+//             println!("piece_image_path: {}", piece_image_path);
+
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//             let piece_image_path = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+         
+//             let piece_image: DynamicImage = piece_image; // Ensure the correct type for piece_image
+//             let (x, y) = (col * 100, row * 100);
+
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//         }
+//     }
+
+//     //  append the blank rows and columns
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let top_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+
+//     let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     let top_blank_image = image::open(Path::new(top_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Concatenate the images
+//     let mut final_image = ImageBuffer::new(675, 675); // 9x9 squares at 75 pixels
+//     image::imageops::overlay(&mut final_image, &img, 0, 0);
+//     image::imageops::overlay(&mut final_image, &bottom_blank_image, 0, 600); // Append to the bottom
+//     image::imageops::overlay(&mut final_image, &top_blank_image, 600, 0); // Append to the right side
+
+//     Ok(final_image)
+
+// }
 
 
-fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
-    println!(
-        "\ncreate_chess_pieces_layer images...\nchessboard: {:?}",
-        &chessboard,
-    );
+fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8], white_orientation: bool) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+    let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
 
-    let mut img = ImageBuffer::new(800, 800); // Assuming 100x100 pixels for each square
     for (row, row_pieces) in chessboard.iter().enumerate() {
         for (col, &piece) in row_pieces.iter().enumerate() {
-            let square_color = if (row + col) % 2 == 0 { "darksquare" } else { "lightsquare" }; // Fixed logic
+            let (actual_row, actual_col) = if white_orientation {
+                (row, col)
+            } else {
+                (7 - row, 7 - col)
+            };
+            
+            let square_color = if (actual_row + actual_col) % 2 == 0 { "darksquare" } else { "lightsquare" };
             let (piece_prefix, piece_suffix) = match piece {
 
-                // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
-                    
-                //     let mut img = ImageBuffer::new(800, 800);
-                //     // fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<Rgba<u8>>, io::Error> {
-                //     //     let mut img = ImageBuffer::new(800, 800); // Assuming 100x100 pixels for each square
-
-                //     for (row, row_pieces) in chessboard.iter().enumerate() {
-                //         for (col, &piece) in row_pieces.iter().enumerate() {
-                //             let square_color = if (row + col) % 2 == 0 { "lightsquare" } else { "darksquare" };
-                //             let (piece_prefix, piece_suffix) = match piece {
                 'p' => ("p_", square_color),
                 'r' => ("r_", square_color),
                 'n' => ("n_", square_color),
@@ -455,37 +521,14 @@ fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<
                 'Q' => ("Q_", square_color),
                 'K' => ("K_", square_color),
                 _ => continue,
+            
             };
 
-            // let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
-            // let piece_image = image::open(Path::new(&piece_image_path))?;
-
-
-
-            // let piece_image_path = format!("image_files/gamepieces/{}{}/image.png", piece_prefix, piece_suffix); // Added a slash and image filename
-
-            let texture_directory = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
+            let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
             let piece_image_path = random_image_from_directory(&texture_directory)?;
-
-            println!("Piece: {}", piece);
-            println!("piece_prefix: {}", piece_prefix);
-            println!("piece_suffix: {}", piece_suffix);
-            println!("piece_image_path: {}", piece_image_path);
-
             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
-
-
-            
-            // let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-
-
-
-            // let piece_image_path = format!("image_files/gamepieces/{}{}", piece_prefix, piece_suffix);
-            // let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-         
-            // let piece_image: DynamicImage = piece_image; // Ensure the correct type for piece_image
-            let (x, y) = (col * 100, row * 100);
+            let (x, y) = (col * 75, row * 75);
 
             // Overlay the piece image on the correct square
             for (i, j, pixel) in piece_image.pixels() {
@@ -498,10 +541,15 @@ fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8]) -> Result<ImageBuffer<
     Ok(img)
 }
 
-use std::io::ErrorKind;
 
-// fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str) -> Result<(), io::Error> {
-//     let pieces_image = create_chess_pieces_layer(game_board_state)?;
+use std::io::ErrorKind;
+// fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str,orientation_white: bool) -> Result<(), io::Error> {
+//     println!(
+//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+//         &game_board_state,
+//     );
+
+//     let pieces_image = create_chess_pieces_layer(game_board_state, orientation_white)?;
 //     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
 //     pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
@@ -512,24 +560,26 @@ use std::io::ErrorKind;
 //         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
 // }
 
-fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &str) -> Result<(), io::Error> {
-    println!(
-        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
-        &game_board_state,
-    );
 
-    let pieces_image = create_chess_pieces_layer(game_board_state)?;
-    let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
-    pieces_image.save(Path::new(&pieces_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+// fn create_chessboard_with_pieces(chessboard: &[[char; 8]; 8], game_name: &str, white_orientation: bool) -> Result<(), io::Error> {
+//     let pieces_image = create_chess_pieces_layer(chessboard, white_orientation)?;
 
-    let back_board_path = format!("games/{}/back_board.png", game_name);
-    let output_path = format!("games/{}/board.png", game_name);
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let top_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     let top_blank_image = image::open(Path::new(top_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
-    overlay_images(Path::new(&back_board_path), Path::new(&pieces_image_path), Path::new(&output_path))
-        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
-}
+//     let mut vertical_combined = ImageBuffer::new(675, 675); // 9x9 squares at 75 pixels
+//     combine_top_to_bottom(&pieces_image, &bottom_blank_image, &mut vertical_combined)?;
+    
+//     let mut final_image = ImageBuffer::new(675, 675); // 9x9 squares at 75 pixels
+//     combine_side_by_side(&vertical_combined, &top_blank_image, &mut final_image)?;
 
+//     let board_back_path = format!("games/{}/back_board.png", game_name);
+//     overlay_images(&board_back_path, &final_image, format!("games/{}/board.png", game_name))?;
 
+//     Ok(())
+// }
 
 
 // // Define the show_board_png function to get the PNG content from the file or other sources
@@ -539,6 +589,51 @@ fn create_chessboard_with_pieces(game_board_state: &[[char; 8]; 8], game_name: &
 //     file.read_to_end(&mut buffer)?;
 //     Ok(buffer)
 // }
+
+
+fn create_chessboard_with_pieces(
+    game_board_state: &[[char; 8]; 8],
+    game_name: &str,
+    orientation_white: bool,
+) -> Result<(), io::Error> {
+    println!(
+        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+        &game_board_state
+    );
+
+    let pieces_image = create_chess_pieces_layer(game_board_state, orientation_white)?;
+    let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+    pieces_image
+        .save(Path::new(&pieces_image_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+    // Open the bottom and top blank images
+    let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+    let top_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+    let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    let top_blank_image = image::open(Path::new(top_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+    // Combine pieces with bottom blank
+    let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+    combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+
+
+
+    // Combine vertical combined with top blank
+    let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+    combine_side_by_side(vertical_combined_path.to_string(), top_blank_path.to_string(), final_pieces_image_path.to_string())
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    let back_board_path = format!("games/{}/back_board.png", game_name);
+    let output_path = format!("games/{}/board.png", game_name);
+
+    // Overlay the backboard with final pieces image
+    overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+}
+
 
 
 fn main() -> Result<(), std::io::Error> {
@@ -563,7 +658,7 @@ fn main() -> Result<(), std::io::Error> {
     generate_chessboard_backboard_wrapper(game_name, white)?;
 
 
-    create_chessboard_with_pieces(&game_board_state, game_name)?;
+    create_chessboard_with_pieces(&game_board_state, game_name, white)?;
  
 
     Ok(())
