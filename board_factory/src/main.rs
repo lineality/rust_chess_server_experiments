@@ -623,7 +623,7 @@ fn create_chessboard_with_pieces(
 
     // Combine vertical combined with top blank
     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
-    combine_side_by_side(vertical_combined_path.to_string(), top_blank_path.to_string(), final_pieces_image_path.to_string())
+    combine_side_by_side(top_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     let back_board_path = format!("games/{}/back_board.png", game_name);
