@@ -60,12 +60,12 @@ fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, 
 
 
 fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
-    // println!(
-    //     "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
-    //     &image_path1,
-    //     &image_path2,
-    //     &output_path
-    // );
+    println!(
+        "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+        &image_path1,
+        &image_path2,
+        &output_path
+    );
     // Load the images
     let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path1))))?;
     let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path2))))?;
@@ -178,6 +178,12 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
     // println!("\nmake_board_core()...");
     let mut row_images = Vec::new();
 
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
     // Make the 8 Rows
     for row in 0..8 {
         let mut row_image_path = String::new();
@@ -225,7 +231,7 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
 
 
     // Move (create?) the final image inside the sandbox
-    let sandbox_path = format!("{}/back_board.png", sandbox_path);
+    let sandbox_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
     fs::rename(final_board_image_path, sandbox_path)?;
 
     Ok(())
@@ -239,6 +245,13 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
     //     &orientation_white,
     //     &board_image_path
     // );
+
+    // ONLY HERE
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
 
     // Determine the order of letters
     let letters_order = if orientation_white {
@@ -261,8 +274,9 @@ fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board
         }
     }
 
+
     // Combine the letter bar with the board image
-    let final_image_with_letters_path = format!("{}/back_board.png", sandbox_path);
+    let final_image_with_letters_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
     combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
 
@@ -285,6 +299,13 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     //     &orientation_white,
     //     &board_image_path
     // );
+
+    // ONLY HERE
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
 
     // Determine the order of numbers
     let numbers_order = if orientation_white {
@@ -316,7 +337,7 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
     number_bar_path = new_output_path.clone();
 
     // Combine the number bar with the board image
-    let final_image_with_numbers_path = format!("{}/back_board.png", sandbox_path);
+    let final_image_with_numbers_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
     combine_side_by_side(&number_bar_path, &board_image_path.to_string(), &final_image_with_numbers_path)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
 
@@ -336,12 +357,18 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
 }
 
 
-fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+fn generate_chessboard_backboards(game_name: &str, orientation_white: bool) -> Result<(), Error> {
     // println!(
-    //     "generate_chessboard_backboard_wrapper images...\ngame_name: {:?}\norientation_white: {:?}",
+    //     "generate_chessboard_backboards images...\ngame_name: {:?}\norientation_white: {:?}",
     //     &game_name,
     //     &orientation_white,
     // );
+
+    let orientation_string: String = if orientation_white {
+            "white".to_string()
+        } else {
+            "black".to_string()
+        };
 
     let sandbox_path: String = format!("games/{}/sandboxes/sandbox_backboard", game_name);
 
@@ -366,7 +393,7 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
     let result = make_board_core(&sandbox_path, orientation_white);
     
     // Add letter bar
-    let board_image_path = format!("{}/back_board.png", sandbox_path);
+    let board_image_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
     make_and_attach_letter_bar(&sandbox_path, orientation_white, &board_image_path)?;
 
     // Add number bar
@@ -374,8 +401,8 @@ fn generate_chessboard_backboard_wrapper(game_name: &str, orientation_white: boo
 
     // Assuming the final image is first created inside sandbox as final_image.png
     // then moved to the game folder
-    let final_image_source = format!("{}/back_board.png", sandbox_path);
-    let final_image_destination = format!("{}/back_board.png", final_image_path);
+    let final_image_source = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    let final_image_destination = format!("{}/back_board_{}.png", final_image_path, orientation_string);
 
     // Move the final image to the desired location
     if result.is_ok() {
@@ -532,6 +559,12 @@ fn create_chessboard_with_pieces(
         &game_board_state
     );
 
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
     let pieces_image = create_chess_pieces_layer(game_board_state, orientation_white)?;
     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
     pieces_image
@@ -554,7 +587,7 @@ fn create_chessboard_with_pieces(
     combine_side_by_side(top_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-    let back_board_path = format!("games/{}/back_board.png", game_name);
+    let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
     let output_path = format!("games/{}/board.png", game_name);
 
     // Overlay the backboard with final pieces image
@@ -567,9 +600,12 @@ fn create_chessboard_with_pieces(
 fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
 
-    let white: bool = true; // 
+    let board_orientation: bool = true; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
 
-    // let white = false;
+    // let board_orientation: bool = false; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
+
 
     // Set up board
     let board: [[char; 8]; 8] = [
@@ -586,10 +622,7 @@ fn main() -> Result<(), std::io::Error> {
     let game_board_state:[[char; 8]; 8] = board;
 
 
-    generate_chessboard_backboard_wrapper(game_name, white)?;
-
-
-    create_chessboard_with_pieces(&game_board_state, game_name, white)?;
+    create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
  
 
     Ok(())
