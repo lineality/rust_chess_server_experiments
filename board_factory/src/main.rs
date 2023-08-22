@@ -60,12 +60,12 @@ fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, 
 
 
 fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
-    println!(
-        "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
-        &image_path1,
-        &image_path2,
-        &output_path
-    );
+    // println!(
+    //     "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+    //     &image_path1,
+    //     &image_path2,
+    //     &output_path
+    // );
     // Load the images
     let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path1))))?;
     let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path2))))?;
@@ -573,9 +573,9 @@ fn create_chessboard_with_pieces(
 
     // Open the bottom and top blank images
     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
-    let top_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+    let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-    // let top_blank_image = image::open(Path::new(top_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
     // Combine pieces with bottom blank
     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
@@ -583,8 +583,8 @@ fn create_chessboard_with_pieces(
     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     // Combine vertical combined with top blank
-    let final_pieces_image_path = format!("games/{}/final_pieces.png/", game_name);
-    combine_side_by_side(top_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+    let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+    combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
@@ -601,10 +601,10 @@ fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
 
     let board_orientation: bool = true; // 
-    // generate_chessboard_backboards(game_name, board_orientation)?;
+    generate_chessboard_backboards(game_name, board_orientation)?;
 
-    // let board_orientation: bool = false; // 
-    // generate_chessboard_backboards(game_name, board_orientation)?;
+    let board_orientation: bool = false; // 
+    generate_chessboard_backboards(game_name, board_orientation)?;
 
 
     // Set up board
@@ -618,12 +618,14 @@ fn main() -> Result<(), std::io::Error> {
         ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
     ];
-
     let game_board_state:[[char; 8]; 8] = board;
 
 
+    let board_orientation: bool = true; // 
     create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
- 
+
+    let board_orientation: bool = false; // 
+    create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
 
     Ok(())
 }
