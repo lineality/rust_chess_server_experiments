@@ -188,19 +188,26 @@ fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io
     for row in 0..8 {
         let mut row_image_path = String::new();
 
+        // for col in 0..8 {
+        //     let texture_directory = if (row + col) % 2 == 0 {
+        //         if orientation_white {
+        //             "image_files/lightsquares"
+        //         } else {
+        //             "image_files/darksquares"
+        //         }
+        //     } else {
+        //         if orientation_white {
+        //             "image_files/darksquares"
+        //         } else {
+        //             "image_files/lightsquares"
+        //         }
+        //     };
+
         for col in 0..8 {
             let texture_directory = if (row + col) % 2 == 0 {
-                if orientation_white {
-                    "image_files/lightsquares"
-                } else {
-                    "image_files/darksquares"
-                }
+                "image_files/lightsquares"
             } else {
-                if orientation_white {
-                    "image_files/darksquares"
-                } else {
-                    "image_files/lightsquares"
-                }
+                "image_files/darksquares"
             };
 
             let random_image_path = random_image_from_directory(texture_directory)?;
@@ -357,7 +364,9 @@ fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board
 }
 
 
+// fn generate_chessboard_backboards(game_name: &str, orientation_white: bool) -> Result<(), Error> {
 fn generate_chessboard_backboards(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+
     // println!(
     //     "generate_chessboard_backboards images...\ngame_name: {:?}\norientation_white: {:?}",
     //     &game_name,
@@ -624,8 +633,8 @@ fn main() -> Result<(), std::io::Error> {
     let board_orientation: bool = true; // 
     create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
 
-    let board_orientation: bool = false; // 
-    create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
+    // let board_orientation: bool = false; // 
+    // create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
 
     Ok(())
 }
