@@ -489,24 +489,21 @@ fn create_chess_pieces_layer(
         mutable_board[from_row][from_col] = '>';
     }
 
-
-    
-
     /*
     1. get the piece locations as the board game-state
     2. get the from-to move data
     */
 
-    // Initialize an empty board state for the from-to overlay
-    let mut from_to_board_state = [[None; 8]; 8];
+    // // Initialize an empty board state for the from-to overlay
+    // let mut from_to_board_state = [[None; 8]; 8];
 
-    // Populate from_to_board_state based on the from and to positions
-    if let Some((from_row, from_col)) = from {
-        from_to_board_state[from_row][from_col] = Some("from");
-    }
-    if let Some((to_row, to_col)) = to {
-        from_to_board_state[to_row][to_col] = Some("to");
-    }
+    // // Populate from_to_board_state based on the from and to positions
+    // if let Some((from_row, from_col)) = from {
+    //     from_to_board_state[from_row][from_col] = Some("from");
+    // }
+    // if let Some((to_row, to_col)) = to {
+    //     from_to_board_state[to_row][to_col] = Some("to");
+    // }
 
 
     // Add '>' to the chessboard array for the 'from' square
@@ -548,7 +545,13 @@ fn create_chess_pieces_layer(
                 img.put_pixel(x_new as u32, y_new as u32, pixel);
             }
 
-            // if to square is the same as row and col:
+
+            /* To->Here border-box overlay: 
+            this whole huge next section 
+            for just that little line 
+            face palm*/
+
+            // if to-square is the same as current row and col:
             if let Some((to_row, to_col)) = to {
                 if to_row == row && to_col == col {
 
@@ -651,11 +654,11 @@ fn create_chess_pieces_layer(
             }
         }
 
-
+            // .rev().enumerate()
     } else {
         for (row, row_pieces) in mutable_board.iter().rev().enumerate() {
             for (col, &piece) in row_pieces.iter().rev().enumerate() {
-                // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
+                // Process the piece, (row, col) will be the actual coordinates for white orientation
                 let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
             let (piece_prefix, piece_suffix) = match piece {
 
@@ -671,6 +674,7 @@ fn create_chess_pieces_layer(
                 'B' => ("B_", square_color),
                 'Q' => ("Q_", square_color),
                 'K' => ("K_", square_color),
+                '>' => ("from_to_box_", square_color),
                 _ => continue,
             
             };
@@ -686,9 +690,73 @@ fn create_chess_pieces_layer(
                 let (x_new, y_new) = (x + i as usize, y + j as usize);
                 img.put_pixel(x_new as u32, y_new as u32, pixel);
             }
+
+            // if to square is the same as row and col:
+            if let Some((to_row, to_col)) = to {
+                if to_row == row && to_col == col {
+
+                    if let Some((to_row, to_col)) = to {
+                        let to_piece_char = chessboard[to_row][to_col];
+                    
+                        let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+    
+
+                        // Determine the directory where the "to" border image is stored
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", "lightsquare");
+
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", border_directory);
+                        let random_border_path = random_image_from_directory(&border_directory)?;
+        
+                        // Determine the directory where the "to" border image is stored
+                        let texture_directory = format!("image_files/chess_pieces/{}_{}", to_piece_char, to_square_color);
+                        // image_files/chess_pieces/from_to_box_lightsquare
+
+                        // Create a string that uniquely identifies the from-to move
+                        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+                
+                        // Make a unique temp directory based on game_name and the move
+                        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+                
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", texture_directory);
+                        let random_piece_image_path = random_image_from_directory(&texture_directory)?;
+                
+                        // overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
+
+                        // Perform the overlay
+                        println!("About to overlay image. Temp directory: {}", temp_directory);
+                        overlay_images(random_piece_image_path, random_border_path, temp_directory)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+                        // Make a unique temp directory based on game_name and the move
+                        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+            
+                        // Load the image from the temporary directory
+                        let piece_image = image::open(Path::new(&temp_directory))
+                            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+                
+                        let (x, y) = if !white_orientation {
+                            ((7 - col) * 75, (7 - row) * 75)
+                        } else {
+                            (col * 75, row * 75)
+                        };
+                        
+
+                        // let (x, y) = (col * 75, row * 75);
+                
+                        // Overlay the piece image on the correct square
+                        for (i, j, pixel) in piece_image.pixels() {
+                            let (x_new, y_new) = (x + i as usize, y + j as usize);
+                            img.put_pixel(x_new as u32, y_new as u32, pixel);
+                        }
+                }
+
+                }
             }
-        }    
+        }
     }
+}
 
     Ok(img)
 }
@@ -915,8 +983,8 @@ fn main() -> Result<(), std::io::Error> {
     let board_orientation: bool = true; // 
     create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
 
-    // let board_orientation: bool = false; // 
-    // create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
+    let board_orientation: bool = false; // 
+    create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
 
     Ok(())
 }
