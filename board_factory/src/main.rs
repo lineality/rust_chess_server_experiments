@@ -479,13 +479,18 @@ fn create_chess_pieces_layer(
     from: Option<(usize, usize)>, 
     to: Option<(usize, usize)>,
     white_orientation: bool,
+    game_name: &str,
 ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
     let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
     let mut mutable_board = *chessboard;
+
+    // save move-from location
     if let Some((from_row, from_col)) = from {
         mutable_board[from_row][from_col] = '>';
     }
 
+
+    
 
     /*
     1. get the piece locations as the board game-state
@@ -542,6 +547,107 @@ fn create_chess_pieces_layer(
                 let (x_new, y_new) = (x + i as usize, y + j as usize);
                 img.put_pixel(x_new as u32, y_new as u32, pixel);
             }
+
+            // if to square is the same as row and col:
+            if let Some((to_row, to_col)) = to {
+                if to_row == row && to_col == col {
+
+                    if let Some((to_row, to_col)) = to {
+                        let to_piece_char = chessboard[to_row][to_col];
+                    
+                        let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+    
+
+                        // Determine the directory where the "to" border image is stored
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", "lightsquare");
+
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", border_directory);
+                        let random_border_path = random_image_from_directory(&border_directory)?;
+        
+                        // Determine the directory where the "to" border image is stored
+                        let texture_directory = format!("image_files/chess_pieces/{}_{}", to_piece_char, to_square_color);
+                        // image_files/chess_pieces/from_to_box_lightsquare
+
+                        // Create a string that uniquely identifies the from-to move
+                        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+                
+                        // Make a unique temp directory based on game_name and the move
+                        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+                
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", texture_directory);
+                        let random_piece_image_path = random_image_from_directory(&texture_directory)?;
+                
+                        // overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
+
+                        // Perform the overlay
+                        println!("About to overlay image. Temp directory: {}", temp_directory);
+                        overlay_images(random_piece_image_path, random_border_path, temp_directory)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+                        // Make a unique temp directory based on game_name and the move
+                        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+            
+                        // Load the image from the temporary directory
+                        let piece_image = image::open(Path::new(&temp_directory))
+                            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+                
+                        let (x, y) = (col * 75, row * 75);
+                
+                        // Overlay the piece image on the correct square
+                        for (i, j, pixel) in piece_image.pixels() {
+                            let (x_new, y_new) = (x + i as usize, y + j as usize);
+                            img.put_pixel(x_new as u32, y_new as u32, pixel);
+                        }
+                }
+
+                }
+            }
+            
+
+
+
+
+            // Inside your row and col loop
+            // if let Some((to_row, to_col)) = to {
+            //     // println!("Checking to_row to_col at: row {}, col {}", to_row, to_col);  // Debugging line
+            //     // println!("Checking    row    col at: row {}, col {}", row, col);  // Debugging line
+
+            //     if to_row == row && to_col == col {
+            //         // println!("Checking to_row to_col at: row {}, col {}", to_row, to_col);  // Debugging line
+            //         // println!("Checking ___row ___col at: row {}, col {}", row, col);  // Debugging line
+
+
+
+            //         // Determine the directory where the "to" border image is stored
+            //         let texture_directory = format!("image_files/chess_pieces/from_to_box_lightsquare");
+
+            //         let from_to_name: String = from.to_string() + to.to_string();
+
+            //         // make randomized name temp directory
+            //         let temp_directory = format!("games/{game_name}/sandboxes/temp_{}.png", from_to_name);
+
+            //         // Get a random image path from the directory
+            //         let piece_image_path = random_image_from_directory(&texture_directory)?;
+
+            //         overlay_images(piece_image_path, texture_directory, temp_directory)?;
+
+
+            //         // Load the image
+            //         let piece_image = image::open(Path::new(&temp_directory)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+            //         let (x, y) = (col * 75, row * 75);
+
+            //         // Overlay the piece image on the correct square
+            //         for (i, j, pixel) in piece_image.pixels() {
+            //             let (x_new, y_new) = (x + i as usize, y + j as usize);
+            //             img.put_pixel(x_new as u32, y_new as u32, pixel);
+            //         }
+            //     }
+            // }
+
+
             }
         }
 
@@ -699,7 +805,7 @@ fn create_chessboard_with_pieces(
         "black".to_string()
     };
 
-    let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white)?;
+    let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
     pieces_image
         .save(Path::new(&pieces_image_path))
@@ -783,25 +889,25 @@ fn create_chessboard_with_pieces(
 fn main() -> Result<(), std::io::Error> {
     let game_name = "game";
 
-    let board_orientation: bool = true; // 
-    generate_chessboard_backboards(game_name, board_orientation)?;
+    // let board_orientation: bool = true; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
 
-    let board_orientation: bool = false; // 
-    generate_chessboard_backboards(game_name, board_orientation)?;
+    // let board_orientation: bool = false; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
 
-    let from = Some((4, 4)); // Replace with your desired values
-    let to = Some((5, 7));   // Replace with your desired values
+    let from = Some((7, 1)); // Replace with your desired values
+    let to = Some((5, 2));   // Replace with your desired values
 
     // Set up board
     let board: [[char; 8]; 8] = [
-        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
-        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ['r', 'n', 'b', 'q', 'k', 'b', ' ', 'r'],
+        ['p', 'p', 'p', 'p', ' ', 'p', 'p', 'p'],
+        [' ', ' ', ' ', ' ', ' ', 'n', ' ', ' '],
+        [' ', ' ', ' ', ' ', 'p', ' ', ' ', ' '],
+        [' ', 'P', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', 'N', ' ', ' ', ' ', ' ', ' '],
+        ['P', ' ', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', ' ', 'B', 'Q', 'K', 'B', 'N', 'R']
     ];
     let game_board_state:[[char; 8]; 8] = board;
 
