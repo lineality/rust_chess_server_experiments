@@ -602,10 +602,10 @@ fn create_chess_pieces_layer(
             if let Some((to_row, to_col)) = to {
                 if to_row == row && to_col == col {
 
-                    println!("WHITE inspect before more_to png ovelay");
-                    dbg!("this piece, to_row -> ", row);
-                    dbg!("this piece, to_col -> ", col);
-                    dbg!("(input) to -> ", to);
+                    // println!("WHITE inspect before more_to png ovelay");
+                    // dbg!("this piece, to_row -> ", row);
+                    // dbg!("this piece, to_col -> ", col);
+                    // dbg!("(input) to -> ", to);
 
 
                     // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
@@ -720,21 +720,21 @@ fn create_chess_pieces_layer(
 
                 if to_row == row && to_col == col {
 
-                    println!("black inspect before more_to png ovelay");
-                    dbg!("this piece, to_row -> ", row);
-                    dbg!("this piece, to_col -> ", col);
-                    dbg!("(input) to -> ", to);
-                    dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+                    // println!("black inspect before more_to png ovelay");
+                    // dbg!("this piece, to_row -> ", row);
+                    // dbg!("this piece, to_col -> ", col);
+                    // dbg!("(input) to -> ", to);
+                    // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
 
 
 
                     if let Some((to_row, to_col)) = to {
 
-                        println!("black inspect before more_to png ovelay");
-                        dbg!("this piece, to_row -> ", row);
-                        dbg!("this piece, to_col -> ", col);
-                        dbg!("(input) to -> ", to);
-                        dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+                        // println!("black inspect before more_to png ovelay");
+                        // dbg!("this piece, to_row -> ", row);
+                        // dbg!("this piece, to_col -> ", col);
+                        // dbg!("(input) to -> ", to);
+                        // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
 
                         let to_piece_char = chessboard[to_row][to_col];
                     
@@ -1487,12 +1487,12 @@ fn main() -> Result<(), std::io::Error> {
         );
 
     let from: (char, u8) = (
-        'g',
-        1,
+        'f',
+        8,
         );
     let to: (char, u8) = (
-        'h',
-        3,
+        'd',
+        6,
         );
 
     // Set up board
