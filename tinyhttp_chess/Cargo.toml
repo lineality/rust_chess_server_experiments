@@ -7,8 +7,9 @@ edition = "2021"
 
 [dependencies]
 tiny_http = "0.12"
+image = "0.24.7"
 csv = "1.2.2"
 svg = "0.13.1"
-zeroize = "1.6.0"
+# zeroize = "1.6.0"
 rand = "0.8.5"
 base64 = "0.21.2"

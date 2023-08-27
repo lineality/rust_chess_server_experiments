@@ -10,7 +10,6 @@ fn board_to_string_simple(board: &[[char; 8]; 8]) -> String {
     board_string
 }
 
-
         // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
         if {
             let queue = in_memory_queue.lock().unwrap();
@@ -53,6 +52,14 @@ fn to_chess_notation(coords: (usize, usize)) -> String {
     let row = (8 - coords.0).to_string();
     format!("{}{}", col, row)
 }
+
+
+// fn board_coordinates_char_u8_to_usize_tuple(input: (char, u8)) -> Option<(usize, usize)> {
+//     let col = input.0 as u8 - b'a'; // Assuming 'a' maps to 0
+//     let row = input.1;
+//     Some((col as usize, row as usize))
+// }
+
 
 fn current_week_of_year() -> u32 {
     let duration_since_epoch = SystemTime::now()

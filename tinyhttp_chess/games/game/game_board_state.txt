@@ -2,7 +2,7 @@ rnbqkbnr
 pppp ppp
   P     
   P     
-  P p   
+  p p   
         
 PP PPPPP
 RNBQKBNR
