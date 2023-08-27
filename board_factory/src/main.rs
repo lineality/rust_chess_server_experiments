@@ -613,7 +613,7 @@ fn create_chess_pieces_layer(
 
                         let to_piece_char = chessboard[to_row][to_col];
                     
-                        let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+                        let to_square_color = if (to_row + to_col) % 2 == 0 { "darksquare" } else { "lightsquare" };
     
                         // Determine the directory where the "to" border image is stored
                         let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", "lightsquare");
@@ -1510,7 +1510,7 @@ fn main() -> Result<(), std::io::Error> {
 
 
     let board_orientation: bool = false; // Black Pieces Orientation
-    // let board_orientation: bool = true; // White
+    let board_orientation: bool = true; // White
     generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 
     

@@ -13,6 +13,7 @@ http://0.0.0.0:8000/game/Pc2c4
 /* TODO:
 https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces 
 
+$ sudo lsof -n -i :8000 | grep LISTEN
 $ sudo lsof -n -i :80 | grep LISTEN
 $ kill -9 <PID #####>
 
@@ -394,7 +395,7 @@ extern crate image;
 use image::{Rgba, ImageBuffer, GenericImageView};
 use rand::Rng;
 use std::fmt::Debug;
-use std::any::type_name;
+// use std::any::type_name;
 
 
 use std::collections::VecDeque;
@@ -4940,7 +4941,7 @@ fn create_chess_pieces_layer(
                         let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
     
                         // Determine the directory where the "to" border image is stored
-                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", "lightsquare");
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", to_square_color);
 
                         // Get a random image path from the directory
                         println!("About to select random image from directory: {}", border_directory);
@@ -5065,7 +5066,7 @@ fn create_chess_pieces_layer(
                         let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
 
                         // Determine the directory where the "to" border image is stored
-                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", "lightsquare");
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", to_square_color);
 
                         // Get a random image path from the directory
                         println!("About to select random image from directory: {}", border_directory);
@@ -5440,93 +5441,93 @@ fn create_chessboard_with_pieces(
     }
     
 
-fn old_create_chessboard_with_pieces(
-    game_board_state: &[[char; 8]; 8],
-    game_name: &str,
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>,
-    orientation_white: bool,
-) -> Result<(), io::Error> {
-    println!(
-        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
-        &game_board_state
-    );
+// fn old_create_chessboard_with_pieces(
+//     game_board_state: &[[char; 8]; 8],
+//     game_name: &str,
+//     from: Option<(usize, usize)>, 
+//     to: Option<(usize, usize)>,
+//     orientation_white: bool,
+// ) -> Result<(), io::Error> {
+//     println!(
+//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+//         &game_board_state
+//     );
 
-    /*
-    TODO set up temp file sandbox:
+//     /*
+//     TODO set up temp file sandbox:
 
-    // 1. Create a string that uniquely identifies the from-to move
-    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
-
-
-    // 2. If directory already exists, delete the old one.
+//     // 1. Create a string that uniquely identifies the from-to move
+//     let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
 
 
-
-    // 3. Make a unique temp directory based on game_name and the move
-    let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
-
-    */
-
-    let orientation_string: String = if orientation_white {
-        "white".to_string()
-    } else {
-        "black".to_string()
-    };
-
-    let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
-    let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
-    pieces_image
-        .save(Path::new(&pieces_image_path))
-        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-
-    // Open the bottom and top blank images
-    let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
-    let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
-    // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-    // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-
-    // Combine pieces with bottom blank
-    let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
-    combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
-    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-    // Combine vertical combined with top blank
-    let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
-    combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
-    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-    let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
-    let output_path = format!("games/{}/board.png", game_name);
-
-    // Overlay the backboard with final pieces image
-    overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
-        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+//     // 2. If directory already exists, delete the old one.
 
 
-    /*
-    TODO clean up temp file sandbox:
 
-    // Recoursively delete sandbox direcory.
+//     // 3. Make a unique temp directory based on game_name and the move
+//     let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
 
-// 1. Create a string that uniquely identifies the from-to move
+//     */
+
+//     let orientation_string: String = if orientation_white {
+//         "white".to_string()
+//     } else {
+//         "black".to_string()
+//     };
+
+//     let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
+//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+//     pieces_image
+//         .save(Path::new(&pieces_image_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Open the bottom and top blank images
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Combine pieces with bottom blank
+//     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+//     combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     // Combine vertical combined with top blank
+//     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+//     combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+//     let output_path = format!("games/{}/board.png", game_name);
+
+//     // Overlay the backboard with final pieces image
+//     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
 
 
-    // Clean up temporary files created during the process
-    for letter in &letters_order {
-        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
-        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
-        if std::path::Path::new(&temp_directory).exists() {
-            let _ = std::fs::remove_file(temp_directory);
-        }
-    }
+//     /*
+//     TODO clean up temp file sandbox:
+
+//     // Recoursively delete sandbox direcory.
+
+// // 1. Create a string that uniquely identifies the from-to move
 
 
-    */
+//     // Clean up temporary files created during the process
+//     for letter in &letters_order {
+//         let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+//         let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+//         if std::path::Path::new(&temp_directory).exists() {
+//             let _ = std::fs::remove_file(temp_directory);
+//         }
+//     }
 
-    // TODO Clean up files here
 
-    }
+//     */
+
+//     // TODO Clean up files here
+
+//     }
 
 
 
@@ -5716,20 +5717,20 @@ fn generate_png_chess_board(
     */
     // // Perform the cleanup at the end
     // // Perform the cleanup at the end
-    // match clean_up_directory(&formatted_dir_name) {
-    //     Ok(_) => {
-    //         // Successfully cleaned up
-    //         println!("Cleanup was successful.");
-    //         Ok(())
-    //     }
-    //     Err(e) => {
-    //         // Failed to clean up
-    //         eprintln!("Cleanup failed: {}", e);
-    //         Err(e)
-    //     }
-    // }
+    match clean_up_directory(&formatted_dir_name) {
+        Ok(_) => {
+            // Successfully cleaned up
+            println!("Cleanup was successful.");
+            Ok(())
+        }
+        Err(e) => {
+            // Failed to clean up
+            eprintln!("Cleanup failed: {}", e);
+            Err(e)
+        }
+    }
 
-    Ok(())
+    // Ok(())
 }
 
  // Cleanup function that deletes the directory and returns Result
