@@ -599,8 +599,6 @@ fn create_chess_pieces_layer(
             // if to-square is the same as current row and col:
             // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
 
-
-
             if let Some((to_row, to_col)) = to {
                 if to_row == row && to_col == col {
 
@@ -611,7 +609,7 @@ fn create_chess_pieces_layer(
 
 
                     // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
-                        if let Some((to_row, to_col)) = to {
+                        // if let Some((to_row, to_col)) = to {
 
                         let to_piece_char = chessboard[to_row][to_col];
                     
@@ -664,7 +662,7 @@ fn create_chess_pieces_layer(
                             img.put_pixel(x_new as u32, y_new as u32, pixel);
                         }
                 }
-                }
+                // }
             }
             }
         }
@@ -705,15 +703,19 @@ fn create_chess_pieces_layer(
                 img.put_pixel(x_new as u32, y_new as u32, pixel);
             }
 
-            dbg!("this piece, piece -> ", piece);
-            dbg!("this piece, to_row -> ", row);
-            dbg!("this piece, to_col -> ", col);
-            dbg!("(input) to -> ", to);
-            dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+            // dbg!("this piece, piece -> ", piece);
+            // dbg!("this piece, to_row -> ", row);
+            // dbg!("this piece, to_col -> ", col);
+            // dbg!("(input) to -> ", to);
+            // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+
+
+            /* To->Here border-box overlay: 
+            this whole huge next section 
+            for just that little line 
+            face palm*/
 
             // if to_square is the same as current iteration row and col:
-            // if let Some((to_row, to_col)) = to {
-
             if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
 
                 if to_row == row && to_col == col {
@@ -775,14 +777,14 @@ fn create_chess_pieces_layer(
                         let piece_image = image::open(Path::new(&temp_image_path))
                             .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
                 
-                        let (x, y) = if !white_orientation {
-                            ((7 - col) * 75, (7 - row) * 75)
-                        } else {
-                            (col * 75, row * 75)
-                        };
+                        // let (x, y) = if !white_orientation {
+                        //     ((7 - col) * 75, (7 - row) * 75)
+                        // } else {
+                        //     (col * 75, row * 75)
+                        // };
                         
 
-                        // let (x, y) = (col * 75, row * 75);
+                        let (x, y) = (col * 75, row * 75);
                 
                         // Overlay the piece image on the correct square
                         for (i, j, pixel) in piece_image.pixels() {
