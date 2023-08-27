@@ -394,7 +394,7 @@ extern crate image;
 use image::{Rgba, ImageBuffer, GenericImageView};
 use rand::Rng;
 use std::fmt::Debug;
-
+use std::any::type_name;
 
 
 use std::collections::VecDeque;
@@ -1486,7 +1486,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 let to_x_y_coordinates: (usize, usize);
 
                 // "FROM" moves
-                let from_coords_result = to_coords(&format!("{}{}", from.0, from.1));
+                let from_coords_result = to_coords_chess(&format!("{}{}", from.0, from.1));
                 let from_coords = from_coords_result?;
                 let (x, y) = from_coords;
                 board[x][y] = ' ';
@@ -1494,11 +1494,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
 
                 // "TO" moves
-                let to_coords_result = to_coords(&format!("{}{}", to.0, to.1));
-                let to_coords = to_coords_result?;
-                let (x, y) = to_coords;
+                let to_coords_chess_result = to_coords_chess(&format!("{}{}", to.0, to.1));
+                let to_coords_chess = to_coords_chess_result?;
+                let (x, y) = to_coords_chess;
                 board[x][y] = piece;
-                to_x_y_coordinates = to_coords;
+                to_x_y_coordinates = to_coords_chess;
 
 
                 // Save game (save game_board_state to .txt file)
@@ -1521,11 +1521,30 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     board_string
                 ));
 
-                // generate svg
-
+                // generate png
                 // Assuming from and to are already defined as (char, u8)
-                let from_option: Option<(usize, usize)> = Some((from.1 as usize - 1, (from.0 as u8 - b'a') as usize));
-                let to_option: Option<(usize, usize)> = Some((to.1 as usize - 1, (to.0 as u8 - b'a') as usize));
+                // let from_option: Option<(usize, usize)> = Some((from.1 as usize - 1, (from.0 as u8 - b'a') as usize));
+                // let to_option: Option<(usize, usize)> = Some((to.1 as usize - 1, (to.0 as u8 - b'a') as usize));
+
+
+                // let from_option: Option<(usize, usize)> = Some(((from.0 as u8 - b'a') as usize, from.1 as usize - 1));
+                // let to_option: Option<(usize, usize)> = Some(((to.0 as u8 - b'a') as usize, to.1 as usize - 1));
+                
+                dbg!("from -> ", from);
+                dbg!("to -> ", to);
+                println!("Value of my_variable: {} Type: {}", from, type_of(from));
+                println!("Value of my_variable: {} Type: {}", to, type_of(to));
+
+
+
+                // // Flip the row for the PNG coordinate system
+                let from_png_row = 7 - (from.1 as usize - 1);
+                let to_png_row = 7 - (to.1 as usize - 1);
+
+                let from_option: Option<(usize, usize)> = Some((from_png_row, (from.0 as u8 - b'a') as usize));
+                let to_option: Option<(usize, usize)> = Some((to_png_row, (to.0 as u8 - b'a') as usize));
+
+
 
                 // Now pass these converted options to your function
                 generate_png_chess_board(&board, &game_name, from_option, to_option, !is_black)?;
@@ -1655,7 +1674,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     }
 
 
-    fn to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
+    fn to_coords_chess(chess_notation: &str) -> Result<(usize, usize), String> {
         if chess_notation.len() != 2 {
             return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
         }
@@ -2719,8 +2738,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         doc = doc.add(highlight);
                     }
     
-                    if let Some(to_coords) = to {
-                        let (row, col) = to_coords;
+                    if let Some(to_coords_chess) = to {
+                        let (row, col) = to_coords_chess;
                         let x = 100 + col * 100;
                         let y = 100 + row * 100;
     
@@ -2856,8 +2875,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     //                     doc = doc.add(highlight);
     //                 }
                     
-    //                 if let Some(to_coords) = to {
-    //                     let (row, col) = to_coords;
+    //                 if let Some(to_coords_chess) = to {
+    //                     let (row, col) = to_coords_chess;
     //                     let x = 50 + col * 50;
     //                     let y = 50 + row * 50;
                     
@@ -2994,8 +3013,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     //                 doc = doc.add(highlight);
     //             }
                 
-    //             if let Some(to_coords) = to {
-    //                 let (row, col) = to_coords;
+    //             if let Some(to_coords_chess) = to {
+    //                 let (row, col) = to_coords_chess;
     //                 let x = 50 + col * 50;
     //                 let y = 50 + row * 50;
                 
@@ -3131,8 +3150,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         doc = doc.add(highlight);
                     }
                     
-                    if let Some(to_coords) = to {
-                        let (row, col) = to_coords;
+                    if let Some(to_coords_chess) = to {
+                        let (row, col) = to_coords_chess;
                         let x = 100 + col * 100;
                         let y = 100 + row * 100;
                     
@@ -3269,8 +3288,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     //                     doc = doc.add(highlight);
     //                 }
                     
-    //                 if let Some(to_coords) = to {
-    //                     let (row, col) = to_coords;
+    //                 if let Some(to_coords_chess) = to {
+    //                     let (row, col) = to_coords_chess;
     //                     let x = 50 + col * 50;
     //                     let y = 50 + row * 50;
                     
@@ -3418,8 +3437,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 //                         doc = doc.add(highlight);
 //                     }
                     
-//                     if let Some(to_coords) = to {
-//                         let (row, col) = to_coords;
+//                     if let Some(to_coords_chess) = to {
+//                         let (row, col) = to_coords_chess;
 //                         let x = 50 + col * 50;
 //                         let y = 50 + row * 50;
                     
@@ -5419,22 +5438,22 @@ fn generate_png_chess_board(
 
 
 
-    // Perform the cleanup at the end
-    // Perform the cleanup at the end
-    match clean_up_directory(&formatted_dir_name) {
-        Ok(_) => {
-            // Successfully cleaned up
-            println!("Cleanup was successful.");
-            Ok(())
-        }
-        Err(e) => {
-            // Failed to clean up
-            eprintln!("Cleanup failed: {}", e);
-            Err(e)
-        }
-    }
+    // // Perform the cleanup at the end
+    // // Perform the cleanup at the end
+    // match clean_up_directory(&formatted_dir_name) {
+    //     Ok(_) => {
+    //         // Successfully cleaned up
+    //         println!("Cleanup was successful.");
+    //         Ok(())
+    //     }
+    //     Err(e) => {
+    //         // Failed to clean up
+    //         eprintln!("Cleanup failed: {}", e);
+    //         Err(e)
+    //     }
+    // }
 
-    // Ok(())
+    Ok(())
 }
 
  // Cleanup function that deletes the directory and returns Result
@@ -5457,7 +5476,9 @@ fn clean_up_directory(formatted_dir_name: &str) -> Result<(), io::Error> {
     }
 }
 
-
+fn type_of<T>(_: T) -> &'static str {
+    type_name::<T>()
+}
 
 
 /*

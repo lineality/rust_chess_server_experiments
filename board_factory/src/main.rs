@@ -483,6 +483,25 @@ fn format_directory_name(dir_name: &str) -> String {
     formatted
 }
 
+
+fn to_coords_chess(chess_notation: &str) -> Result<(usize, usize), String> {
+    if chess_notation.len() != 2 {
+        return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
+    }
+    let col = chess_notation.chars().nth(0).unwrap();
+    let row = chess_notation.chars().nth(1).unwrap();
+
+    if !('a'..='h').contains(&col) || !('1'..='8').contains(&row) {
+        return Err(format!("Invalid chess notation: '{}'. It should be in the form 'e4'.", chess_notation));
+    }
+
+    let col = col as usize - 'a' as usize;
+    let row = 8 - row.to_digit(10).unwrap() as usize;
+
+    Ok((row, col))
+}
+
+
 fn create_chess_pieces_layer(
     chessboard: &[[char; 8]; 8],
     from: Option<(usize, usize)>, 
@@ -577,10 +596,14 @@ fn create_chess_pieces_layer(
             face palm*/
 
             // if to-square is the same as current row and col:
+            // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+
             if let Some((to_row, to_col)) = to {
                 if to_row == row && to_col == col {
 
-                    if let Some((to_row, to_col)) = to {
+                    // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+                        if let Some((to_row, to_col)) = to {
+
                         let to_piece_char = chessboard[to_row][to_col];
                     
                         let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
@@ -1056,13 +1079,101 @@ fn old_create_chessboard_with_pieces(
 // }
 
 
+// // Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// // Takes the output of to_coords_chess function
+// fn adjust_to_png_coords(chess_coords: (usize, usize)) -> Option<(usize, usize)> {
+//     // Extract row and column from the input tuple
+//     let (row, column) = chess_coords;
+
+//     // Validate column index
+//     if column > 7 {
+//         return None; // Invalid column index
+//     }
+
+//     // Validate and reverse row index
+//     let row_index = match row {
+//         0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+//         _ => return None,  // Invalid row number
+//     };
+
+//     Some((row_index, column))
+// }
+// Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// Takes an Option of a tuple as input
+fn adjust_to_png_coords(chess_coords_option: Option<(usize, usize)>) -> Option<(usize, usize)> {
+    if let Some((row, column)) = chess_coords_option {
+        // Validate column index
+        if column > 7 {
+            return None; // Invalid column index
+        }
+
+        // Validate and reverse row index
+        let row_index = match row {
+            0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+            _ => return None,  // Invalid row number
+        };
+
+        return Some((row_index, column));
+    }
+    None
+}
+
 fn generate_png_chess_board(
     game_board_state: &[[char; 8]; 8],
     game_name: &str,
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>,
+    // from: Option<(usize, usize)>, 
+    // to: Option<(usize, usize)>,
+    from_char_u8: (char, u8),
+    to_char_u8: (char, u8),
     orientation_white: bool,
 ) -> Result<(), io::Error> {
+
+
+    // Flip the row for the PNG coordinate system
+    /*
+    Convert type and convert coordinates
+    chess-coordinates (column, row) to png pixel (0,0 top left row, colum)
+    (char, u8) -> Option<(usize, usize)> 
+    */
+
+    // inspect Before conversion
+    println!("inspect Before conversion");
+    dbg!("from_char_u8 -> ", from_char_u8);
+    dbg!("to_char_u8 -> ", to_char_u8);
+
+    // // convert number scale
+    // let from_png_row = 7 - (from_char_u8.1 as usize - 1);
+    // let to_png_row = 7 - (to_char_u8.1 as usize - 1);
+
+    // // letter and number to number and number
+    // let from: Option<(usize, usize)> = Some((from_png_row, (from_char_u8.0 as u8 - b'a') as usize));
+    // let to: Option<(usize, usize)> = Some((to_png_row, (to_char_u8.0 as u8 - b'a') as usize));
+
+    // // Convert chess coordinates to png with a function
+    // let from: Option<(usize, usize)> = chess_to_png_coords(from_char_u8);
+    // let to: Option<(usize, usize)> = chess_to_png_coords(to_char_u8);
+
+    // Convert chess coordinates to 0,0 array coordinates (bottom right is 0,0)
+    let from_char_u8_str = format!("{}{}", from_char_u8.0, from_char_u8.1);
+    let to_char_u8_str = format!("{}{}", to_char_u8.0, to_char_u8.1);
+    let from: Option<(usize, usize)> = to_coords_chess(&from_char_u8_str).ok();
+    let to: Option<(usize, usize)> = to_coords_chess(&to_char_u8_str).ok();
+    
+    
+
+    // inspect After conversion
+    println!("inspect After conversion");
+    dbg!("from -> ", from);
+    dbg!("to -> ", to);
+
+    // manually entering what the results should be: 
+    let from = Some((7, 1)); // Replace with your desired values
+    let to = Some((5, 2));   // Replace with your desired values
+
+    // inspect After conversion
+    println!("should be! -> ");
+    dbg!("from -> ", from);
+    dbg!("to -> ", to);
 
     /*
     Section: Make sure fresh directory exists:
@@ -1149,8 +1260,35 @@ fn main() -> Result<(), std::io::Error> {
     // let board_orientation: bool = false; // 
     // generate_chessboard_backboards(game_name, board_orientation)?;
 
+    /*
+    [src/main.rs:1533] "from -> " = "from -> "
+    [src/main.rs:1533] from = (
+    'c',
+    2,
+    )
+    [src/main.rs:1534] "to -> " = "to -> "
+    [src/main.rs:1534] to = (
+    'c',
+    4,
+    )
+    from: (char, u8),
+    to: (char, u8),
+    */
+
+
+
     let from = Some((7, 1)); // Replace with your desired values
     let to = Some((5, 2));   // Replace with your desired values
+
+    let from: (char, u8) = (
+        'b',
+        2,
+        );
+    let to: (char, u8) = (
+        'c',
+        3,
+        );
+
 
     // Set up board
     let board: [[char; 8]; 8] = [
@@ -1166,12 +1304,8 @@ fn main() -> Result<(), std::io::Error> {
     let game_board_state:[[char; 8]; 8] = board;
 
 
-    let board_orientation: bool = true; // 
-    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
-    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
-
-    let board_orientation: bool = false; // 
-    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+    let board_orientation: bool = false; // Black Pieces Orientation
+    let board_orientation: bool = true; // White
     generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 
     
