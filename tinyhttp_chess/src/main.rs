@@ -1532,22 +1532,17 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 
                 dbg!("from -> ", from);
                 dbg!("to -> ", to);
-                println!("Value of my_variable: {} Type: {}", from, type_of(from));
-                println!("Value of my_variable: {} Type: {}", to, type_of(to));
 
+                // // // Flip the row for the PNG coordinate system
+                // let from_png_row = 7 - (from.1 as usize - 1);
+                // let to_png_row = 7 - (to.1 as usize - 1);
 
-
-                // // Flip the row for the PNG coordinate system
-                let from_png_row = 7 - (from.1 as usize - 1);
-                let to_png_row = 7 - (to.1 as usize - 1);
-
-                let from_option: Option<(usize, usize)> = Some((from_png_row, (from.0 as u8 - b'a') as usize));
-                let to_option: Option<(usize, usize)> = Some((to_png_row, (to.0 as u8 - b'a') as usize));
-
+                // let from_option: Option<(usize, usize)> = Some((from_png_row, (from.0 as u8 - b'a') as usize));
+                // let to_option: Option<(usize, usize)> = Some((to_png_row, (to.0 as u8 - b'a') as usize));
 
 
                 // Now pass these converted options to your function
-                generate_png_chess_board(&board, &game_name, from_option, to_option, !is_black)?;
+                generate_png_chess_board(&board, &game_name, from, to, !is_black)?;
 
 
                 // Generate png with board_string
@@ -4330,11 +4325,6 @@ fn sanitize_url(input: &str) -> String {
         .collect()
 }
 
-
-/*
-png image functions
-*/
-
 // Define the show_board_png function to get the PNG content from the file or other sources
 fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
     let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
@@ -4342,6 +4332,14 @@ fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
     file.read_to_end(&mut buffer)?;
     Ok(buffer)
 }
+
+
+
+
+
+/*
+png image functions
+*/
 
 // extern crate image;
 // use std::path::Path;
@@ -4828,6 +4826,7 @@ fn format_directory_name(dir_name: &str) -> String {
     formatted
 }
 
+
 fn create_chess_pieces_layer(
     chessboard: &[[char; 8]; 8],
     from: Option<(usize, usize)>, 
@@ -4922,10 +4921,14 @@ fn create_chess_pieces_layer(
             face palm*/
 
             // if to-square is the same as current row and col:
+            // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+
             if let Some((to_row, to_col)) = to {
                 if to_row == row && to_col == col {
 
-                    if let Some((to_row, to_col)) = to {
+                    // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+                        if let Some((to_row, to_col)) = to {
+
                         let to_piece_char = chessboard[to_row][to_col];
                     
                         let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
@@ -5064,7 +5067,6 @@ fn create_chess_pieces_layer(
                         let piece_image = image::open(Path::new(&temp_image_path))
                             .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
                 
-                        // // for black orientation 
                         let (x, y) = if !white_orientation {
                             ((7 - col) * 75, (7 - row) * 75)
                         } else {
@@ -5092,95 +5094,95 @@ fn create_chess_pieces_layer(
 
 
 
-fn no_move_create_chess_pieces_layer(
-    chessboard: &[[char; 8]; 8],
-    white_orientation: bool,
-) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
-    let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+// fn no_move_create_chess_pieces_layer(
+//     chessboard: &[[char; 8]; 8],
+//     white_orientation: bool,
+// ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+//     let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
 
-    /*
-    1. get the piece locations as the board game-state
-    2. get the from-to move data
-    */
+//     /*
+//     1. get the piece locations as the board game-state
+//     2. get the from-to move data
+//     */
 
-    if white_orientation {
-        for (row, row_pieces) in chessboard.iter().enumerate() {
-            for (col, &piece) in row_pieces.iter().enumerate() {
-                // Process the piece, (row, col) will be the actual coordinates for white orientation
-                let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
-            let (piece_prefix, piece_suffix) = match piece {
+//     if white_orientation {
+//         for (row, row_pieces) in chessboard.iter().enumerate() {
+//             for (col, &piece) in row_pieces.iter().enumerate() {
+//                 // Process the piece, (row, col) will be the actual coordinates for white orientation
+//                 let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+//             let (piece_prefix, piece_suffix) = match piece {
 
-                'p' => ("p_", square_color),
-                'r' => ("r_", square_color),
-                'n' => ("n_", square_color),
-                'b' => ("b_", square_color),
-                'q' => ("q_", square_color),
-                'k' => ("k_", square_color),
-                'P' => ("P_", square_color),
-                'R' => ("R_", square_color),
-                'N' => ("N_", square_color),
-                'B' => ("B_", square_color),
-                'Q' => ("Q_", square_color),
-                'K' => ("K_", square_color),
-                _ => continue,
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
             
-            };
+//             };
 
-            let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
-            let piece_image_path = random_image_from_directory(&texture_directory)?;
-            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
-            let (x, y) = (col * 75, row * 75);
+//             let (x, y) = (col * 75, row * 75);
 
-            // Overlay the piece image on the correct square
-            for (i, j, pixel) in piece_image.pixels() {
-                let (x_new, y_new) = (x + i as usize, y + j as usize);
-                img.put_pixel(x_new as u32, y_new as u32, pixel);
-            }
-            }
-        }
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//             }
+//         }
 
 
-    } else {
-        for (row, row_pieces) in chessboard.iter().rev().enumerate() {
-            for (col, &piece) in row_pieces.iter().rev().enumerate() {
-                // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
-                let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
-            let (piece_prefix, piece_suffix) = match piece {
+//     } else {
+//         for (row, row_pieces) in chessboard.iter().rev().enumerate() {
+//             for (col, &piece) in row_pieces.iter().rev().enumerate() {
+//                 // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
+//                 let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+//             let (piece_prefix, piece_suffix) = match piece {
 
-                'p' => ("p_", square_color),
-                'r' => ("r_", square_color),
-                'n' => ("n_", square_color),
-                'b' => ("b_", square_color),
-                'q' => ("q_", square_color),
-                'k' => ("k_", square_color),
-                'P' => ("P_", square_color),
-                'R' => ("R_", square_color),
-                'N' => ("N_", square_color),
-                'B' => ("B_", square_color),
-                'Q' => ("Q_", square_color),
-                'K' => ("K_", square_color),
-                _ => continue,
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
             
-            };
+//             };
 
-            let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
-            let piece_image_path = random_image_from_directory(&texture_directory)?;
-            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
 
-            let (x, y) = (col * 75, row * 75);
+//             let (x, y) = (col * 75, row * 75);
 
-            // Overlay the piece image on the correct square
-            for (i, j, pixel) in piece_image.pixels() {
-                let (x_new, y_new) = (x + i as usize, y + j as usize);
-                img.put_pixel(x_new as u32, y_new as u32, pixel);
-            }
-            }
-        }    
-    }
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//             }
+//         }    
+//     }
 
-    Ok(img)
-}
+//     Ok(img)
+// }
 
 
 
@@ -5265,99 +5267,150 @@ fn create_chessboard_with_pieces(
 
 
 
-// fn old_create_chessboard_with_pieces(
-//     game_board_state: &[[char; 8]; 8],
-//     game_name: &str,
-//     from: Option<(usize, usize)>, 
-//     to: Option<(usize, usize)>,
-//     orientation_white: bool,
-// ) -> Result<(), io::Error> {
-//     println!(
-//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
-//         &game_board_state
-//     );
+    fn no_move_create_chess_pieces_layer(
+        chessboard: &[[char; 8]; 8],
+        white_orientation: bool,
+    ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+        let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+    
+        /*
+        1. get the piece locations as the board game-state
+        2. get the from-to move data
+        */
+    
+        if white_orientation {
+            for (row, row_pieces) in chessboard.iter().enumerate() {
+                for (col, &piece) in row_pieces.iter().enumerate() {
+                    // Process the piece, (row, col) will be the actual coordinates for white orientation
+                    let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+                let (piece_prefix, piece_suffix) = match piece {
+    
+                    'p' => ("p_", square_color),
+                    'r' => ("r_", square_color),
+                    'n' => ("n_", square_color),
+                    'b' => ("b_", square_color),
+                    'q' => ("q_", square_color),
+                    'k' => ("k_", square_color),
+                    'P' => ("P_", square_color),
+                    'R' => ("R_", square_color),
+                    'N' => ("N_", square_color),
+                    'B' => ("B_", square_color),
+                    'Q' => ("Q_", square_color),
+                    'K' => ("K_", square_color),
+                    _ => continue,
+                
+                };
+    
+                let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+                let piece_image_path = random_image_from_directory(&texture_directory)?;
+                let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+                let (x, y) = (col * 75, row * 75);
+    
+                // Overlay the piece image on the correct square
+                for (i, j, pixel) in piece_image.pixels() {
+                    let (x_new, y_new) = (x + i as usize, y + j as usize);
+                    img.put_pixel(x_new as u32, y_new as u32, pixel);
+                }
+                }
+            }
+    
+    
+        } else {
+            for (row, row_pieces) in chessboard.iter().rev().enumerate() {
+                for (col, &piece) in row_pieces.iter().rev().enumerate() {
+                    // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
+                    let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+                let (piece_prefix, piece_suffix) = match piece {
+    
+                    'p' => ("p_", square_color),
+                    'r' => ("r_", square_color),
+                    'n' => ("n_", square_color),
+                    'b' => ("b_", square_color),
+                    'q' => ("q_", square_color),
+                    'k' => ("k_", square_color),
+                    'P' => ("P_", square_color),
+                    'R' => ("R_", square_color),
+                    'N' => ("N_", square_color),
+                    'B' => ("B_", square_color),
+                    'Q' => ("Q_", square_color),
+                    'K' => ("K_", square_color),
+                    _ => continue,
+                
+                };
+    
+                let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+                let piece_image_path = random_image_from_directory(&texture_directory)?;
+                let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+                let (x, y) = (col * 75, row * 75);
+    
+                // Overlay the piece image on the correct square
+                for (i, j, pixel) in piece_image.pixels() {
+                    let (x_new, y_new) = (x + i as usize, y + j as usize);
+                    img.put_pixel(x_new as u32, y_new as u32, pixel);
+                }
+                }
+            }    
+        }
+    
+        Ok(img)
+    }
+    
+    
+    
+    fn no_move_create_chessboard_with_pieces(
+        game_board_state: &[[char; 8]; 8],
+        game_name: &str,
+        orientation_white: bool,
+    ) -> Result<(), io::Error> {
+        println!(
+            "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+            &game_board_state
+        );
+    
+        let orientation_string: String = if orientation_white {
+            "white".to_string()
+        } else {
+            "black".to_string()
+        };
+    
+        let pieces_image = no_move_create_chess_pieces_layer(game_board_state, orientation_white)?;
+        let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+        pieces_image
+            .save(Path::new(&pieces_image_path))
+            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+        // Open the bottom and top blank images
+        let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+        let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+        // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+        // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+        // Combine pieces with bottom blank
+        let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+        combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+        // Combine vertical combined with top blank
+        let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+        combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+        let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+        let output_path = format!("games/{}/board.png", game_name);
+    
+        // Overlay the backboard with final pieces image
+        overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+            .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+    }
+    
 
-//     /*
-//     TODO set up temp file sandbox:
-
-//     // 1. Create a string that uniquely identifies the from-to move
-//     let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
-
-
-//     // 2. If directory already exists, delete the old one.
-
-
-
-//     // 3. Make a unique temp directory based on game_name and the move
-//     let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
-
-//     */
-
-//     let orientation_string: String = if orientation_white {
-//         "white".to_string()
-//     } else {
-//         "black".to_string()
-//     };
-
-//     let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
-//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
-//     pieces_image
-//         .save(Path::new(&pieces_image_path))
-//         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-
-//     // Open the bottom and top blank images
-//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
-//     let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
-//     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-//     // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
-
-//     // Combine pieces with bottom blank
-//     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
-//     combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
-//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-//     // Combine vertical combined with top blank
-//     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
-//     combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
-//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-//     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
-//     let output_path = format!("games/{}/board.png", game_name);
-
-//     // Overlay the backboard with final pieces image
-//     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
-//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
-
-
-//     /*
-//     TODO clean up temp file sandbox:
-
-//     // Recoursively delete sandbox direcory.
-
-// // 1. Create a string that uniquely identifies the from-to move
-
-
-//     // Clean up temporary files created during the process
-//     for letter in &letters_order {
-//         let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
-//         let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
-//         if std::path::Path::new(&temp_directory).exists() {
-//             let _ = std::fs::remove_file(temp_directory);
-//         }
-//     }
-
-
-//     */
-
-//     // TODO Clean up files here
-
-//     }
-
-
-
-fn no_move_create_chessboard_with_pieces(
+fn old_create_chessboard_with_pieces(
     game_board_state: &[[char; 8]; 8],
     game_name: &str,
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>,
     orientation_white: bool,
 ) -> Result<(), io::Error> {
     println!(
@@ -5365,13 +5418,29 @@ fn no_move_create_chessboard_with_pieces(
         &game_board_state
     );
 
+    /*
+    TODO set up temp file sandbox:
+
+    // 1. Create a string that uniquely identifies the from-to move
+    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+
+
+    // 2. If directory already exists, delete the old one.
+
+
+
+    // 3. Make a unique temp directory based on game_name and the move
+    let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+
+    */
+
     let orientation_string: String = if orientation_white {
         "white".to_string()
     } else {
         "black".to_string()
     };
 
-    let pieces_image = no_move_create_chess_pieces_layer(game_board_state, orientation_white)?;
+    let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
     pieces_image
         .save(Path::new(&pieces_image_path))
@@ -5399,16 +5468,176 @@ fn no_move_create_chessboard_with_pieces(
     // Overlay the backboard with final pieces image
     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
-}
 
+
+    /*
+    TODO clean up temp file sandbox:
+
+    // Recoursively delete sandbox direcory.
+
+// 1. Create a string that uniquely identifies the from-to move
+
+
+    // Clean up temporary files created during the process
+    for letter in &letters_order {
+        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+        let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+        if std::path::Path::new(&temp_directory).exists() {
+            let _ = std::fs::remove_file(temp_directory);
+        }
+    }
+
+
+    */
+
+    // TODO Clean up files here
+
+    }
+
+
+
+// fn no_move_create_chessboard_with_pieces(
+//     game_board_state: &[[char; 8]; 8],
+//     game_name: &str,
+//     orientation_white: bool,
+// ) -> Result<(), io::Error> {
+//     println!(
+//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+//         &game_board_state
+//     );
+
+//     let orientation_string: String = if orientation_white {
+//         "white".to_string()
+//     } else {
+//         "black".to_string()
+//     };
+
+//     let pieces_image = no_move_create_chess_pieces_layer(game_board_state, orientation_white)?;
+//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+//     pieces_image
+//         .save(Path::new(&pieces_image_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Open the bottom and top blank images
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Combine pieces with bottom blank
+//     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+//     combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     // Combine vertical combined with top blank
+//     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+//     combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+//     let output_path = format!("games/{}/board.png", game_name);
+
+//     // Overlay the backboard with final pieces image
+//     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+// }
+
+
+// // Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// // Takes the output of to_coords_chess function
+// fn adjust_to_png_coords(chess_coords: (usize, usize)) -> Option<(usize, usize)> {
+//     // Extract row and column from the input tuple
+//     let (row, column) = chess_coords;
+
+//     // Validate column index
+//     if column > 7 {
+//         return None; // Invalid column index
+//     }
+
+//     // Validate and reverse row index
+//     let row_index = match row {
+//         0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+//         _ => return None,  // Invalid row number
+//     };
+
+//     Some((row_index, column))
+// }
+// Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// Takes an Option of a tuple as input
+fn adjust_to_png_coords(chess_coords_option: Option<(usize, usize)>) -> Option<(usize, usize)> {
+    if let Some((row, column)) = chess_coords_option {
+        // Validate column index
+        if column > 7 {
+            return None; // Invalid column index
+        }
+
+        // Validate and reverse row index
+        let row_index = match row {
+            0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+            _ => return None,  // Invalid row number
+        };
+
+        return Some((row_index, column));
+    }
+    None
+}
 
 fn generate_png_chess_board(
     game_board_state: &[[char; 8]; 8],
     game_name: &str,
-    from: Option<(usize, usize)>, 
-    to: Option<(usize, usize)>,
+    // from: Option<(usize, usize)>, 
+    // to: Option<(usize, usize)>,
+    from_char_u8: (char, u8),
+    to_char_u8: (char, u8),
     orientation_white: bool,
 ) -> Result<(), io::Error> {
+
+
+    // Flip the row for the PNG coordinate system
+    /*
+    Convert type and convert coordinates
+    chess-coordinates (column, row) to png pixel (0,0 top left row, colum)
+    (char, u8) -> Option<(usize, usize)> 
+    */
+
+    // inspect Before conversion
+    println!("inspect Before conversion");
+    dbg!("from_char_u8 -> ", from_char_u8);
+    dbg!("to_char_u8 -> ", to_char_u8);
+
+    // // convert number scale
+    // let from_png_row = 7 - (from_char_u8.1 as usize - 1);
+    // let to_png_row = 7 - (to_char_u8.1 as usize - 1);
+
+    // // letter and number to number and number
+    // let from: Option<(usize, usize)> = Some((from_png_row, (from_char_u8.0 as u8 - b'a') as usize));
+    // let to: Option<(usize, usize)> = Some((to_png_row, (to_char_u8.0 as u8 - b'a') as usize));
+
+    // // Convert chess coordinates to png with a function
+    // let from: Option<(usize, usize)> = chess_to_png_coords(from_char_u8);
+    // let to: Option<(usize, usize)> = chess_to_png_coords(to_char_u8);
+
+    // Convert chess coordinates to 0,0 array coordinates (bottom right is 0,0)
+    let from_char_u8_str = format!("{}{}", from_char_u8.0, from_char_u8.1);
+    let to_char_u8_str = format!("{}{}", to_char_u8.0, to_char_u8.1);
+    let from: Option<(usize, usize)> = to_coords_chess(&from_char_u8_str).ok();
+    let to: Option<(usize, usize)> = to_coords_chess(&to_char_u8_str).ok();
+    
+    
+
+    // inspect After conversion
+    println!("inspect After conversion");
+    dbg!("from -> ", from);
+    dbg!("to -> ", to);
+
+    // manually entering what the results should be: 
+    let from = Some((7, 1)); // Replace with your desired values
+    let to = Some((5, 2));   // Replace with your desired values
+
+    // inspect After conversion
+    println!("should be! -> ");
+    dbg!("from -> ", from);
+    dbg!("to -> ", to);
 
     /*
     Section: Make sure fresh directory exists:
@@ -5438,22 +5667,22 @@ fn generate_png_chess_board(
 
 
 
-    // // Perform the cleanup at the end
-    // // Perform the cleanup at the end
-    // match clean_up_directory(&formatted_dir_name) {
-    //     Ok(_) => {
-    //         // Successfully cleaned up
-    //         println!("Cleanup was successful.");
-    //         Ok(())
-    //     }
-    //     Err(e) => {
-    //         // Failed to clean up
-    //         eprintln!("Cleanup failed: {}", e);
-    //         Err(e)
-    //     }
-    // }
+    // Perform the cleanup at the end
+    // Perform the cleanup at the end
+    match clean_up_directory(&formatted_dir_name) {
+        Ok(_) => {
+            // Successfully cleaned up
+            println!("Cleanup was successful.");
+            Ok(())
+        }
+        Err(e) => {
+            // Failed to clean up
+            eprintln!("Cleanup failed: {}", e);
+            Err(e)
+        }
+    }
 
-    Ok(())
+    // Ok(())
 }
 
  // Cleanup function that deletes the directory and returns Result
@@ -5475,12 +5704,7 @@ fn clean_up_directory(formatted_dir_name: &str) -> Result<(), io::Error> {
         }
     }
 }
-
-fn type_of<T>(_: T) -> &'static str {
-    type_name::<T>()
-}
-
-
+   
 /*
     let board_orientation: bool = true; // 
     // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
@@ -5490,4 +5714,3 @@ fn type_of<T>(_: T) -> &'static str {
     // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
     generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 */
-

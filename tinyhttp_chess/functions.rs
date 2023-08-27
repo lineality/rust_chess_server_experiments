@@ -54,6 +54,70 @@ fn to_chess_notation(coords: (usize, usize)) -> String {
 }
 
 
+fn main() -> Result<(), std::io::Error> {
+    let game_name = "game";
+
+    // let board_orientation: bool = true; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
+
+    // let board_orientation: bool = false; // 
+    // generate_chessboard_backboards(game_name, board_orientation)?;
+
+    /*
+    [src/main.rs:1533] "from -> " = "from -> "
+    [src/main.rs:1533] from = (
+    'c',
+    2,
+    )
+    [src/main.rs:1534] "to -> " = "to -> "
+    [src/main.rs:1534] to = (
+    'c',
+    4,
+    )
+    from: (char, u8),
+    to: (char, u8),
+    */
+
+
+
+    let from = Some((7, 1)); // Replace with your desired values
+    let to = Some((5, 2));   // Replace with your desired values
+
+    let from: (char, u8) = (
+        'b',
+        2,
+        );
+    let to: (char, u8) = (
+        'c',
+        3,
+        );
+
+
+    // Set up board
+    let board: [[char; 8]; 8] = [
+        ['r', 'n', 'b', 'q', 'k', 'b', ' ', 'r'],
+        ['p', 'p', 'p', 'p', ' ', 'p', 'p', 'p'],
+        [' ', ' ', ' ', ' ', ' ', 'n', ' ', ' '],
+        [' ', ' ', ' ', ' ', 'p', ' ', ' ', ' '],
+        [' ', 'P', ' ', ' ', ' ', ' ', ' ', ' '],
+        [' ', ' ', 'N', ' ', ' ', ' ', ' ', ' '],
+        ['P', ' ', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', ' ', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+    let game_board_state:[[char; 8]; 8] = board;
+
+
+    let board_orientation: bool = false; // Black Pieces Orientation
+    let board_orientation: bool = true; // White
+    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+
+    
+
+
+    Ok(())
+}
+
+
 // fn board_coordinates_char_u8_to_usize_tuple(input: (char, u8)) -> Option<(usize, usize)> {
 //     let col = input.0 as u8 - b'a'; // Assuming 'a' maps to 0
 //     let row = input.1;
