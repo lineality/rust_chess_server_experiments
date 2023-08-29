@@ -1234,9 +1234,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
             } 
 
-            //////////
-            // setup    (new game)
-            /////////
+            ///////////////////////////
+            // setup    (new project)
+            /////////////////////////
             else if url_parts.len() == 5 {
                 let mode = url_parts[1].to_string();
                 if mode != "setup" {
@@ -1252,9 +1252,21 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     let game_name = url_parts[3].to_string();
                     let game_phrase = url_parts[4].to_string();
 
+                    // check for game-modes
+                    time_data_parse_get_request(&game_name);
+
+                    // strip out modules
+
+                    // // strip out gamename
+                    // if let Some(game_name) = extract_game_name(&whole_game_name) {
+                    //     println!("Game name is: {}", game_name);
+                    // } else {
+                    //     println!("Failed to extract game name.");
+                    // }
+
+
                     // Call e.g. setup_new_png_chess_game here
 
-                    // Check the game type and call the corresponding function
 
                     // Check the game type and call the corresponding function
                     let response = if game_type == "chess960" {
@@ -3792,6 +3804,10 @@ fn main() -> Result<(), &'static str> {
 
 */
 
+fn extract_game_name(input: &str) -> Option<&str> {
+    input.split('_').next()
+}
+
 
 fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
     let mut rng = rand::thread_rng();
@@ -5838,29 +5854,19 @@ fn clean_up_directory(formatted_dir_name: &str) -> Result<(), io::Error> {
 //     // let board_orientation: bool = true; // White
 //     generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 
-    
-
-
 //     Ok(())
 // }
 
 
 
-/* Timed Projects */
+/* 
+Timed Projects 
+*/
 #[derive(Debug)]
-// struct TimedGame {
-//     game_name: String,
-//     start_time: u64,  // POSIX timestamp
-//     increments_tuple_list: Vec<(i32, i32)>,  // (on_move, time_added) tuples
-//     timecontrolminutes_tuple_list: Vec<(i32, i32)>,  // (on_move, time_added) tuples
-
-//     last_move_time: u64,
-//     player_white: bool,
-//     game_move_number: u64,
-
-// }
-
-struct TimedGame {
+/*
+Time Modes 
+*/
+struct TimedProject {
     game_name: String,
     start_time: u64,
     increments_tuple_list: Vec<(i32, i32)>,
@@ -5870,71 +5876,63 @@ struct TimedGame {
     game_move_number: usize,
 }
 
-impl TimedGame {
 
-    // let mut time_struct = TimedGame {
-    //     game_name: "".to_string(),
-    //     start_time: 0,
-    //     increments_tuple_list: vec![],
-    //     timecontrolminutes_tuple_list: vec![],
-    //     last_move_time: 0,
-    //     player_white: true,
-    //     game_move_number: 0,
-    // };
-
-    fn from_str(input: &str) -> Option<TimedGame> {
+impl TimedProject {
+    // Modified `from_str` function to handle the described format
+    fn from_increment_and_time_control(input: &str) -> Option<TimedProject> {
+        // Split the input into segments by underscores
         let segments: Vec<&str> = input.split('_').collect();
+        
         if segments.len() < 2 {
             return None;
         }
-    
-        // Declare variables here
+
+        let game_name = segments[0].to_string();
         let mut start_time: u64 = 0;
         let mut increments_tuple_list: Vec<(i32, i32)> = Vec::new();
         let mut timecontrolminutes_tuple_list: Vec<(i32, i32)> = Vec::new();
-    
+
+        // Parse the remaining segments
+        // Parse the remaining segments
         for segment in &segments[1..] {
+            if *segment == "norway120" || *segment == "norwayarmageddon" {
+                return TimedProject::from_preset(segment);
+            }
+
             let mut iter = segment.split('(');
-    
             let control_type = iter.next()?;
-            let tuple_str = iter.next()?;
-    
-            let tuple_str = &tuple_str[0..tuple_str.len() - 1];
             
-            match control_type {
-                "timed" => {
-                    start_time = tuple_str.parse().ok()?;
-                },
-                "incrementseconds" => {
-                    let tuple_elements: Vec<i32> = tuple_str.split(',')
-                        .filter_map(|x| x.parse().ok())
-                        .collect();
-                    if tuple_elements.len() % 2 == 0 {
-                        for i in 0..(tuple_elements.len() / 2) {
-                            increments_tuple_list.push((tuple_elements[i * 2], tuple_elements[i * 2 + 1]));
-                        }
-                    } else {
-                        return None;
-                    }
-                },
-                "timecontrolmin" => {
-                    let tuple_elements: Vec<i32> = tuple_str.split(',')
-                        .filter_map(|x| x.parse().ok())
-                        .collect();
-                    if tuple_elements.len() % 2 == 0 {
-                        for i in 0..(tuple_elements.len() / 2) {
-                            timecontrolminutes_tuple_list.push((tuple_elements[i * 2], tuple_elements[i * 2 + 1]));
-                        }
-                    } else {
-                        return None;
-                    }
-                },
-                _ => return None,
+            // Gather all tuples
+            let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
+            let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
+    
+            for tuple_str in tuple_strs {
+                if tuple_str.is_empty() {
+                    continue;
+                }
+                
+                let elements: Vec<i32> = tuple_str.split(',')
+                    .filter_map(|x| x.parse().ok())
+                    .collect();
+                
+                if elements.len() != 2 {
+                    return None;
+                }
+
+                match control_type {
+                    "incrementseconds" => {
+                        increments_tuple_list.push((elements[0], elements[1]));
+                    },
+                    "timecontrolmin" => {
+                        timecontrolminutes_tuple_list.push((elements[0], elements[1]));
+                    },
+                    _ => return None,
+                }
             }
         }
-    
-        Some(TimedGame {
-            game_name: "".to_string(), // Default to an empty string for now
+
+        Some(TimedProject {
+            game_name,
             start_time,
             increments_tuple_list,
             timecontrolminutes_tuple_list,
@@ -5943,7 +5941,72 @@ impl TimedGame {
             game_move_number: 0,
         })
     }
+
+
+    // fn from_increment_and_time_control(input: &str) -> Option<TimedProject> {
+    //     let segments: Vec<&str> = input.split('_').collect();
+    //     if segments.len() < 2 {
+    //         return None;
+    //     }
     
+    //     // Declare variables here
+    //     let mut start_time: u64 = 0;
+    //     let mut increments_tuple_list: Vec<(i32, i32)> = Vec::new();
+    //     let mut timecontrolminutes_tuple_list: Vec<(i32, i32)> = Vec::new();
+    
+    //     for segment in &segments[1..] {
+    //         let mut iter = segment.split('(');
+    
+    //         let control_type = iter.next()?;
+    //         let tuple_str = iter.next()?;
+    
+    //         let tuple_str = &tuple_str[0..tuple_str.len() - 1];
+            
+    //         match control_type {
+    //             "timed" => {
+    //                 start_time = tuple_str.parse().ok()?;
+    //             },
+    //             "incrementseconds" => {
+    //                 let tuple_elements: Vec<i32> = tuple_str.split(',')
+    //                     .filter_map(|x| x.parse().ok())
+    //                     .collect();
+    //                 if tuple_elements.len() % 2 == 0 {
+    //                     for i in 0..(tuple_elements.len() / 2) {
+    //                         increments_tuple_list.push((tuple_elements[i * 2], tuple_elements[i * 2 + 1]));
+    //                     }
+    //                 } else {
+    //                     return None;
+    //                 }
+    //             },
+    //             "timecontrolmin" => {
+    //                 let tuple_elements: Vec<i32> = tuple_str.split(',')
+    //                     .filter_map(|x| x.parse().ok())
+    //                     .collect();
+    //                 if tuple_elements.len() % 2 == 0 {
+    //                     for i in 0..(tuple_elements.len() / 2) {
+    //                         timecontrolminutes_tuple_list.push((tuple_elements[i * 2], tuple_elements[i * 2 + 1]));
+    //                     }
+    //                 } else {
+    //                     return None;
+    //                 }
+    //             },
+    //             _ => return None,
+    //         }
+    //     }
+    
+    //     Some(TimedProject {
+    //         game_name: "".to_string(), // Default to an empty string for now
+    //         start_time,
+    //         increments_tuple_list,
+    //         timecontrolminutes_tuple_list,
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     })
+    // }
+    
+
+
     fn to_html(&self, white_time: i32, black_time: i32, game_move: i32) -> String {
         format!(
             "<p>White Time: {}</p>
@@ -5952,11 +6015,6 @@ impl TimedGame {
             white_time, black_time, game_move
         )
     }
-
-    // fn process_chess_time_file(game_name: &str) -> String {
-    //     // ... rest of the code remains the same
-    //     // Initialize time_struct here, if you need it
-    // }
 
 
     fn save_to_txt(&self) -> std::io::Result<()> {
@@ -5980,13 +6038,13 @@ impl TimedGame {
     }
 
 
-    fn parse_get_request(url: &str) -> Option<TimedGame> {
+    fn parse_get_request(url: &str) -> Option<TimedProject> {
         // ... your code
         // Make sure to return a value at the end
-        TimedGame::from_str("") // This is a placeholder; replace it with real data
+        TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
     }
 
-    fn load_from_txt(game_name: &str) -> io::Result<TimedGame> {
+    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
         let path = format!("games/{}/time_data.txt", game_name);
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
@@ -6019,7 +6077,7 @@ impl TimedGame {
             }
         }
 
-        Ok(TimedGame {
+        Ok(TimedProject {
             game_name: game_name.to_string(),
             start_time,
             increments_tuple_list,
@@ -6031,10 +6089,10 @@ impl TimedGame {
     }
 
 
-/// Create a TimedGame from a known preset
-pub fn from_preset(preset: &str) -> Option<TimedGame> {
+/// Create a TimedProject from a known preset
+pub fn from_preset(preset: &str) -> Option<TimedProject> {
     match preset {
-        "norway120" => Some(TimedGame {
+        "norway120" => Some(TimedProject {
             game_name: "Norway 120 Minutes".to_string(),
             start_time: 7200, // 120 minutes in seconds
             increments_tuple_list: vec![(40, 1800)], // Add 30 minutes after move 40
@@ -6043,7 +6101,7 @@ pub fn from_preset(preset: &str) -> Option<TimedGame> {
             player_white: true, // Initialize missing field
             game_move_number: 0, // Initialize missing field
         }),
-        "norwayarmageddon" => Some(TimedGame {
+        "norwayarmageddon" => Some(TimedProject {
             game_name: "Norway Armageddon".to_string(),
             start_time: 300, // 5 minutes in seconds
             increments_tuple_list: vec![], // No increment
@@ -6071,7 +6129,7 @@ pub fn from_preset(preset: &str) -> Option<TimedGame> {
         };
     
         let mut reader = BufReader::new(file);
-        let mut time_struct = TimedGame {
+        let mut time_struct = TimedProject {
             game_name: "".to_string(),
             start_time: 0,
             increments_tuple_list: vec![],
@@ -6094,46 +6152,112 @@ pub fn from_preset(preset: &str) -> Option<TimedGame> {
 
 
 
-
+// End of struct implimentation: TimedProject
 }
 
 
-fn time_data_parse_get_request(url: &str) -> Option<TimedGame> {
-    /*
-        if let Some(game) = parse_get_request(url) {
-        // Save the game
-        if let Err(e) = save_game(&game) {
-            println!("Failed to save game: {:?}", e);
-        }
-        // Output HTML
-        println!("{}", game.to_html(100, 100, 1));
-    } else {
-        println!("Failed to parse game from URL.");
-    }
-     */
-    // Split URL into segments
-    let segments: Vec<&str> = url.split('/').collect();
-    
-    // Validate segment count
-    if segments.len() < 4 {
+// New function to parse time_section_string
+fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
+    // Split the input into segments by underscores
+    let segments: Vec<&str> = time_section_string.split('_').collect();
+    if segments.is_empty() {
         return None;
     }
     
-    // Extract game data segment
-    let game_data_segment = segments[3];
-    
-    // Pass it to TimedGame::from_str for parsing
-    TimedGame::from_str(game_data_segment);
-
-
-    let game_data_segment = segments[3];
-
-    if game_data_segment == "norway120" || game_data_segment == "norwayarmageddon" {
-        // Handle these special cases
-        Some(TimedGame::from_preset(game_data_segment)?)
-    } else {
-        // Pass it to TimedGame::from_str for parsing
-        TimedGame::from_str(game_data_segment)
+    // Check the first segment to see if it's a known type or preset
+    let first_segment = segments[0];
+    match first_segment {
+        "incrimentseconds" | "timecontrolmin" => {
+            // Delegate to the existing from_increment_and_time_control method
+            TimedProject::from_increment_and_time_control(time_section_string)
+        },
+        "norway120" | "norwayarmageddon" => {
+            // Delegate to the existing from_preset method
+            TimedProject::from_preset(first_segment)
+        },
+        _ => None,
     }
-
 }
+
+
+
+// fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
+//         /*
+//         if let Some(game) = parse_get_request(time_section_string) {
+//         // Save the game
+//         if let Err(e) = save_game(&game) {
+//             println!("Failed to save game: {:?}", e);
+//         }
+//         // Output HTML
+//         println!("{}", game.to_html(100, 100, 1));
+//     } else {
+//         println!("Failed to parse game from time_section_string.");
+//     }
+//      */
+//     let segments: Vec<&str> = time_section_string.split('_').collect();
+
+//     if segments.is_empty() {
+//         return None;
+//     }
+
+//     let mode = segments[0];
+
+//     match mode {
+//         "incrimentseconds" | "timecontrolmin" => {
+//             let mut increments: Vec<(u32, u32)> = Vec::new();
+//             let mut time_controls: Vec<(u32, u32)> = Vec::new();
+
+//             for segment in segments[1..].iter() {
+//                 let time_data: Vec<&str> = segment.split('-').collect();
+//                 for tuple_str in time_data.iter() {
+//                     let tuple_vals: Vec<&str> = tuple_str.split(',').collect();
+//                     if tuple_vals.len() != 2 {
+//                         return None;
+//                     }
+
+//                     let first_val = tuple_vals[0].parse::<u32>().ok()?;
+//                     let second_val = tuple_vals[1].parse::<u32>().ok()?;
+
+//                     if mode == "incrimentseconds" {
+//                         increments.push((first_val, second_val));
+//                     } else {
+//                         time_controls.push((first_val, second_val));
+//                     }
+//                 }
+//             }
+//             TimedProject::from_increment_and_time_control(increments, time_controls)
+//         },
+//         "norway120" | "norwayarmageddon" => TimedProject::from_preset(mode),
+//         _ => None,
+//     }
+// }
+
+
+// fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
+
+//     // Split time_section_string into segments
+//     let segments: Vec<&str> = time_section_string.split('/').collect();
+    
+//     // Validate segment count
+//     if segments.len() < 4 {
+//         return None;
+//     }
+    
+//     // Extract game data segment
+//     let game_data_segment = segments[3];
+    
+//     // Pass it to TimedProject::from_increment_and_time_control for parsing
+//     TimedProject::from_increment_and_time_control(game_data_segment);
+
+
+//     let game_data_segment = segments[3];
+
+//     if game_data_segment == "norway120" || game_data_segment == "norwayarmageddon" {
+//         // Handle these special cases
+//         Some(TimedProject::from_preset(game_data_segment)?)
+//     } else {
+//         // Pass it to TimedProject::from_increment_and_time_control for parsing
+//         TimedProject::from_increment_and_time_control(game_data_segment)
+//     }
+
+// }
