@@ -1249,15 +1249,26 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
                 } else {
                     let game_type = url_parts[2].to_string();
-                    let game_name = url_parts[3].to_string();
+                    let raw_game_name_section = url_parts[3].to_string();
                     let game_phrase = url_parts[4].to_string();
 
                     // check for game-modes
-                    time_data_parse_get_request(&game_name);
+                    time_data_parse_get_request(&raw_game_name_section);
 
                     // strip out modules
 
                     // // strip out gamename
+                    let game_name = raw_game_name_section.chars()
+                        .take_while(|&ch| ch != '_')
+                        .collect::<String>();
+
+                    // let game_name: String = raw_game_name_section
+                    //     .split('_')[0];
+                    //     // .skip(0)  // Skip the first part before '_'
+                    //     // .collect(); // Collect the rest of the parts into a String
+                
+
+
                     // if let Some(game_name) = extract_game_name(&whole_game_name) {
                     //     println!("Game name is: {}", game_name);
                     // } else {
