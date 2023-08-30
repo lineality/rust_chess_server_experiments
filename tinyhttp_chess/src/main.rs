@@ -5891,6 +5891,8 @@ struct TimedProject {
 impl TimedProject {
     // Modified `from_str` function to handle the described format
     fn from_increment_and_time_control(input: &str) -> Option<TimedProject> {
+        println!("starting from_increment_and_time_control()");
+
         // Split the input into segments by underscores
         let segments: Vec<&str> = input.split('_').collect();
         
@@ -5907,7 +5909,7 @@ impl TimedProject {
         // Parse the remaining segments
         for segment in &segments[1..] {
             if *segment == "norway120" || *segment == "norwayarmageddon" {
-                return TimedProject::from_preset(segment);
+                return TimedProject::from_preset_time_modes_chess(segment);
             }
 
             let mut iter = segment.split('(');
@@ -6019,6 +6021,8 @@ impl TimedProject {
 
 
     fn to_html(&self, white_time: i32, black_time: i32, game_move: i32) -> String {
+        println!("starting to_html()");
+
         format!(
             "<p>White Time: {}</p>
             <p>Black Time: {}</p>
@@ -6029,6 +6033,8 @@ impl TimedProject {
 
 
     fn save_to_txt(&self) -> std::io::Result<()> {
+        println!("starting save_to_txt()");
+
         let path = format!("games/{}.txt", self.game_name);
         let mut file = fs::File::create(path)?;
 
@@ -6050,12 +6056,15 @@ impl TimedProject {
 
 
     fn parse_get_request(url: &str) -> Option<TimedProject> {
+        println!("starting parse_get_request()");
         // ... your code
         // Make sure to return a value at the end
         TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
     }
 
     fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+        println!("starting load_from_txt()");
+
         let path = format!("games/{}/time_data.txt", game_name);
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
@@ -6101,7 +6110,8 @@ impl TimedProject {
 
 
 /// Create a TimedProject from a known preset
-pub fn from_preset(preset: &str) -> Option<TimedProject> {
+pub fn from_preset_time_modes_chess(preset: &str) -> Option<TimedProject> {
+    println!("starting from_preset_time_modes_chess()");
     match preset {
         "norway120" => Some(TimedProject {
             game_name: "Norway 120 Minutes".to_string(),
@@ -6128,6 +6138,9 @@ pub fn from_preset(preset: &str) -> Option<TimedProject> {
 
 
     fn process_chess_time_file(game_name: &str) -> String {
+        println!("starting process_chess_time_file()");
+
+
         let path = format!("games/{}/time_data.txt", game_name);
     
         if !Path::new(&path).exists() {
@@ -6169,23 +6182,37 @@ pub fn from_preset(preset: &str) -> Option<TimedProject> {
 
 // New function to parse time_section_string
 fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
+    println!("starting time_data_parse_get_request()");
+    println!("time_section_string ->{}", time_section_string);
+
     // Split the input into segments by underscores
     let segments: Vec<&str> = time_section_string.split('_').collect();
     if segments.is_empty() {
+        println!("segments.is_empty()");
         return None;
     }
     
     // Check the first segment to see if it's a known type or preset
     let first_segment = segments[0];
+
+    println!("first_segment ->{}", first_segment);
+
     match first_segment {
+
         "incrimentseconds" | "timecontrolmin" => {
+            println!("incrimentseconds | timecontrolmin =>");
+
             // Delegate to the existing from_increment_and_time_control method
             TimedProject::from_increment_and_time_control(time_section_string)
         },
         "norway120" | "norwayarmageddon" => {
-            // Delegate to the existing from_preset method
-            TimedProject::from_preset(first_segment)
+            println!("norway120 | norwayarmageddon =>");
+
+            // Delegate to the existing from_preset_time_modes_chess method
+            TimedProject::from_preset_time_modes_chess(first_segment)
         },
+        // println!("no time data found");
+
         _ => None,
     }
 }
@@ -6238,7 +6265,7 @@ fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject
 //             }
 //             TimedProject::from_increment_and_time_control(increments, time_controls)
 //         },
-//         "norway120" | "norwayarmageddon" => TimedProject::from_preset(mode),
+//         "norway120" | "norwayarmageddon" => TimedProject::from_preset_time_modes_chess(mode),
 //         _ => None,
 //     }
 // }
@@ -6265,7 +6292,7 @@ fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject
 
 //     if game_data_segment == "norway120" || game_data_segment == "norwayarmageddon" {
 //         // Handle these special cases
-//         Some(TimedProject::from_preset(game_data_segment)?)
+//         Some(TimedProject::from_preset_time_modes_chess(game_data_segment)?)
 //     } else {
 //         // Pass it to TimedProject::from_increment_and_time_control for parsing
 //         TimedProject::from_increment_and_time_control(game_data_segment)
