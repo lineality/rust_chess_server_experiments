@@ -1253,7 +1253,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     let game_phrase = url_parts[4].to_string();
 
                     // check for game-modes
-                    time_data_parse_get_request(&raw_game_name_section);
+                    time_data_parse_setup_string(&raw_game_name_section);
 
                     // strip out modules
 
@@ -6180,122 +6180,146 @@ pub fn from_preset_time_modes_chess(preset: &str) -> Option<TimedProject> {
 }
 
 
-// New function to parse time_section_string
-fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
-    println!("starting time_data_parse_get_request()");
-    println!("time_section_string ->{}", time_section_string);
+// fn time_data_parse_setup_string(time_section_string: &str) -> Option<TimedProject> {
+//     /*
+//     This function should look at a string such as this
+//     thisgamename_incrimentseconds-(start,30)-(300,10)-(30,5)_timecontrolmin-(40,30)-(60,15)
 
-    // Split the input into segments by underscores
-    let segments: Vec<&str> = time_section_string.split('_').collect();
-    if segments.is_empty() {
-        println!("segments.is_empty()");
-        return None;
-    }
-    
-    // Check the first segment to see if it's a known type or preset
-    let first_segment = segments[0];
+//     step 1, split it into sections based on '_' underscore delimiter
+//     step 2, look for specific sections relating to time:
+//     2.1 pre-set time modes: norway120 or norwaynorwayarmageddon etc
+//     2.2 incrimentseconds: delimited by '-', each incriment in tuples
+//     2.3 timecontrolmin: delimited by '-', teach time control in minutes
+        
+//     2. the structure of the time data is systematic:
+//     date segment is split on '_' underscore
+//     _incrimentseconds-(0,30)-(300,10)-(30,5)_
+//     _timecontrolmin-(40,30)-(60,15)/gamephrase_
+//     each section can be split on '-' dash
+//     the tuples are right there
 
-    println!("first_segment ->{}", first_segment);
+//     for incrimentseconds: the first tuple number is the time in seconds when the incriment rule starts, the second number is how many seconds the player's clock gets incrimented by each move
 
-    match first_segment {
-
-        "incrimentseconds" | "timecontrolmin" => {
-            println!("incrimentseconds | timecontrolmin =>");
-
-            // Delegate to the existing from_increment_and_time_control method
-            TimedProject::from_increment_and_time_control(time_section_string)
-        },
-        "norway120" | "norwayarmageddon" => {
-            println!("norway120 | norwayarmageddon =>");
-
-            // Delegate to the existing from_preset_time_modes_chess method
-            TimedProject::from_preset_time_modes_chess(first_segment)
-        },
-        // println!("no time data found");
-
-        _ => None,
-    }
-}
+//     the timecontrolmin: the first tuple number is the number of moves into the game when time gets added to the clock, the second number is how many minutes get added.
 
 
+//     this function is largely wrong and needs to be fixed.
+//     */
 
-// fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
-//         /*
-//         if let Some(game) = parse_get_request(time_section_string) {
-//         // Save the game
-//         if let Err(e) = save_game(&game) {
-//             println!("Failed to save game: {:?}", e);
-//         }
-//         // Output HTML
-//         println!("{}", game.to_html(100, 100, 1));
-//     } else {
-//         println!("Failed to parse game from time_section_string.");
-//     }
-//      */
+//     // Step 1: Split the string into segments based on '_' underscore delimiter.
 //     let segments: Vec<&str> = time_section_string.split('_').collect();
 
-//     if segments.is_empty() {
+//     // Ensure that there are segments to work with
+//     if segments.len() < 2 {
 //         return None;
 //     }
 
-//     let mode = segments[0];
+//     // Step 2: Loop through each segment (skipping the first one which is the game name)
+//     // to identify the relevant time-related settings.
+//     for segment in segments.iter().skip(1) {
+//         let keyword: Vec<&str> = segment.split('-').collect();
 
-//     match mode {
-//         "incrimentseconds" | "timecontrolmin" => {
-//             let mut increments: Vec<(u32, u32)> = Vec::new();
-//             let mut time_controls: Vec<(u32, u32)> = Vec::new();
+//         // Step 2.1: Handle increment seconds
+//         if keyword[0] == "incrimentseconds" {
+//             println!("incrimentseconds => {}", keyword[0]);
 
-//             for segment in segments[1..].iter() {
-//                 let time_data: Vec<&str> = segment.split('-').collect();
-//                 for tuple_str in time_data.iter() {
-//                     let tuple_vals: Vec<&str> = tuple_str.split(',').collect();
-//                     if tuple_vals.len() != 2 {
-//                         return None;
-//                     }
+//             return TimedProject::from_increment_and_time_control(segment);
+//         }
 
-//                     let first_val = tuple_vals[0].parse::<u32>().ok()?;
-//                     let second_val = tuple_vals[1].parse::<u32>().ok()?;
+//         // Step 2.2: Handle time control minutes
+//         if keyword[0] == "timecontrolmin" {
+//             println!("timecontrolmin => {}", keyword[0]);
 
-//                     if mode == "incrimentseconds" {
-//                         increments.push((first_val, second_val));
-//                     } else {
-//                         time_controls.push((first_val, second_val));
-//                     }
-//                 }
-//             }
-//             TimedProject::from_increment_and_time_control(increments, time_controls)
-//         },
-//         "norway120" | "norwayarmageddon" => TimedProject::from_preset_time_modes_chess(mode),
-//         _ => None,
+//             return TimedProject::from_increment_and_time_control(segment);
+//         }
+
+//         // Step 2.3: Handle pre-set time modes
+//         if keyword[0] == "norway120" || keyword[0] == "norwayarmageddon" {
+//             println!("pre-set time mode => {}", keyword[0]);
+
+//             return TimedProject::from_preset_time_modes_chess(keyword[0]);
+//         }
 //     }
+
+//     None
 // }
 
 
-// fn time_data_parse_get_request(time_section_string: &str) -> Option<TimedProject> {
 
-//     // Split time_section_string into segments
-//     let segments: Vec<&str> = time_section_string.split('/').collect();
-    
-//     // Validate segment count
-//     if segments.len() < 4 {
-//         return None;
-//     }
-    
-//     // Extract game data segment
-//     let game_data_segment = segments[3];
-    
-//     // Pass it to TimedProject::from_increment_and_time_control for parsing
-//     TimedProject::from_increment_and_time_control(game_data_segment);
+// Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
+fn handle_segment(segment: &str) -> Option<TimedProject> {
+    let keyword: Vec<&str> = segment.split('-').collect();
+
+    // Step 2.1: Handle increment seconds
+    if keyword[0] == "incrimentseconds" {
+        println!("incrimentseconds => {}", keyword[0]);
+        println!("segment => {}", segment);
 
 
-//     let game_data_segment = segments[3];
+        return TimedProject::from_increment_and_time_control(segment);
+    }
 
-//     if game_data_segment == "norway120" || game_data_segment == "norwayarmageddon" {
-//         // Handle these special cases
-//         Some(TimedProject::from_preset_time_modes_chess(game_data_segment)?)
-//     } else {
-//         // Pass it to TimedProject::from_increment_and_time_control for parsing
-//         TimedProject::from_increment_and_time_control(game_data_segment)
-//     }
+    // Step 2.2: Handle time control minutes
+    if keyword[0] == "timecontrolmin" {
+        println!("timecontrolmin => {}", keyword[0]);
+        println!("segment => {}", segment);
 
-// }
+        return TimedProject::from_increment_and_time_control(segment);
+    }
+
+    // Step 2.3: Handle pre-set time modes
+    if keyword[0] == "norway120" || keyword[0] == "norwayarmageddon" {
+        println!("pre-set time mode => {}", keyword[0]);
+        println!("segment => {}", segment);
+
+        return TimedProject::from_preset_time_modes_chess(keyword[0]);
+    }
+
+    None
+}
+
+// Function to parse the time_section_string
+fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
+      /*
+    This function should look at a string such as this
+    thisgamename_incrimentseconds-(start,30)-(300,10)-(30,5)_timecontrolmin-(40,30)-(60,15)
+
+    step 1, split it into sections based on '_' underscore delimiter
+    step 2, look for specific sections relating to time:
+    2.1 pre-set time modes: norway120 or norwaynorwayarmageddon etc
+    2.2 incrimentseconds: delimited by '-', each incriment in tuples
+    2.3 timecontrolmin: delimited by '-', teach time control in minutes
+        
+    2. the structure of the time data is systematic:
+    date segment is split on '_' underscore
+    _incrimentseconds-(0,30)-(300,10)-(30,5)_
+    _timecontrolmin-(40,30)-(60,15)/gamephrase_
+    each section can be split on '-' dash
+    the tuples are right there
+
+    for incrimentseconds: the first tuple number is the time in seconds when the incriment rule starts, the second number is how many seconds the player's clock gets incrimented by each move
+
+    the timecontrolmin: the first tuple number is the number of moves into the game when time gets added to the clock, the second number is how many minutes get added.
+
+
+    this function is largely wrong and needs to be fixed.
+    */
+
+    let mut projects = Vec::new();
+
+    // Step 1: Split the string into segments based on '_' underscore delimiter
+    let segments: Vec<&str> = time_section_string.split('_').collect();
+
+    // // Ensure that there are segments to work with
+    // if segments.len() < 2 {
+    //     return None;
+    // }
+
+    // Step 2: Loop through each segment, skipping the first one (game name),
+    // and parse the relevant time-related settings
+    for segment in segments.iter().skip(1) {
+        projects.push(handle_segment(segment));
+    }
+
+    projects
+}
