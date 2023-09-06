@@ -6012,9 +6012,19 @@ impl TimedProject {
         // Try to create the file
         match fs::File::create(&path) {
             Ok(mut file) => {
-                writeln!(file, "Game Name: {}", self.game_name)?;
-                writeln!(file, "Start Time: {}", self.start_time)?;
-                // ... (rest of the writing code)
+                writeln!(file, "game_name: {}", self.game_name)?;
+                writeln!(file, "start_time Time: {}", self.start_time)?;
+
+                // This will use Debug formatting for `increments_tuple_list`
+                writeln!(file, "increments_tuple_list: {:?}", self.increments_tuple_list)?;
+
+                // Similarly for `timecontrolminutes_tuple_list`
+                writeln!(file, "timecontrolminutes_tuple_list: {:?}", self.timecontrolminutes_tuple_list)?;
+
+                writeln!(file, "last_move_time: {}", self.last_move_time)?;
+                writeln!(file, "player_white: {}", self.player_white)?;
+                writeln!(file, "game_move_number: {}", self.game_move_number)?;
+
                 println!("Successfully saved time_data.txt at path: {}", path);
                 Ok(())
             }
