@@ -1,7 +1,0 @@
-game_name: t2
-start_time Time: 7200
-increments_tuple_list: [(40, 1800)]
-timecontrolminutes_tuple_list: []
-last_move_time: 0
-player_white: true
-game_move_number: 0

@@ -1,4 +1,8 @@
 
+Rust project: 
+The task here is to fix how game_name is handled in the last two functions time_data_parse_setup_string and handle_segment. time_data_parse_setup_string should send two inputs to handle_segment, sending the game_name separately. somehow, various functions need to send that back to the impl of the struct, and I am not sure the calling of a single struct to store all the data is being done correctly.
+
+
 
 Q: can gamephrase be optional?
 
