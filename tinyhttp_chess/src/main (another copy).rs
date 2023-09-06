@@ -5897,9 +5897,8 @@ struct TimedProject {
 
 impl TimedProject {
     // Modified `from_str` function to handle the described format
-    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
+    fn from_increment_and_time_control(input: &str) -> Option<TimedProject> {
         println!("starting from_increment_and_time_control() input:{}", input);
-        println!("starting from_increment_and_time_control() game_name:{}", game_name);
 
         // Split the input into segments by underscores
         let segments: Vec<&str> = input.split('_').collect();
@@ -5908,12 +5907,16 @@ impl TimedProject {
             return None;
         }
 
+        let game_name = segments[0].to_string();
+        println!("game_name:{}", game_name);
 
-        let start_time: u64 = 0;
+
+
+        let mut start_time: u64 = 0;
         let mut increments_tuple_list: Vec<(i32, i32)> = Vec::new();
         let mut timecontrolminutes_tuple_list: Vec<(i32, i32)> = Vec::new();
 
-
+        // Parse the remaining segments
         // Parse the remaining segments
         for segment in &segments[1..] {
             if *segment == "norway120" || *segment == "norwayarmageddon" {
@@ -5952,9 +5955,8 @@ impl TimedProject {
             }
         }
 
-
         Some(TimedProject {
-            game_name: game_name.to_string(),
+            game_name,
             start_time,
             increments_tuple_list,
             timecontrolminutes_tuple_list,
@@ -5978,8 +5980,8 @@ impl TimedProject {
         )
     }
 
-    // fn save_time_data_to_txt(&self) -> std::io::Result<()> {
-    //     println!("starting save_time_data_to_txt()");
+    // fn save_to_txt(&self) -> std::io::Result<()> {
+    //     println!("starting save_to_txt()");
 
     //     let path = format!("games/{}/time_data.txt", self.game_name);
     //     let mut file = fs::File::create(path)?;
@@ -6004,7 +6006,7 @@ impl TimedProject {
     //     use std::fs;
     // use std::io::Write;
 
-    fn save_time_data_to_txt(&self) -> std::io::Result<()> {
+    fn save_to_txt(&self) -> std::io::Result<()> {
         // Generate the intended path for debugging purposes
         let path = format!("games/{}/time_data.txt", self.game_name);
         println!("Attempting to save at path: {}", path);
@@ -6028,12 +6030,12 @@ impl TimedProject {
 
 
 
-    // fn parse_get_request(url: &str) -> Option<TimedProject> {
-    //     println!("starting parse_get_request()");
-    //     // ... your code
-    //     // Make sure to return a value at the end
-    //     TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
-    // }
+    fn parse_get_request(url: &str) -> Option<TimedProject> {
+        println!("starting parse_get_request()");
+        // ... your code
+        // Make sure to return a value at the end
+        TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
+    }
 
     fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("starting load_from_txt()");
@@ -6180,14 +6182,6 @@ fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedPr
     */
     println!("time_section_string: {}", time_section_string);
 
-    // // strip out gamename
-    let game_name = time_section_string.chars()
-        .take_while(|&ch| ch != '_')
-        .collect::<String>();
-
-    println!("game_name: {}", game_name);
-
-
     let mut projects = Vec::new();
 
     // Step 1: Split the string into segments based on '_' underscore delimiter
@@ -6196,15 +6190,13 @@ fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedPr
     // Step 2: Loop through each segment, skipping the first one (game name),
     // and parse the relevant time-related settings
     for segment in segments.iter().skip(1) {
-        println!("segment: {}", segment);
-
-        projects.push(handle_segment(&game_name, segment, ));
+        projects.push(handle_segment(segment, ));
     }
 
     // Save the parsed projects to a file at the end of the setup.
     for project in &projects {
         if let Some(valid_project) = project {
-            if let Err(e) = valid_project.save_time_data_to_txt() {
+            if let Err(e) = valid_project.save_to_txt() {
                 println!("Failed to save project: {}", e);
             }
         }
@@ -6215,9 +6207,14 @@ fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedPr
 
 
 // Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
-fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
+fn handle_segment(segment: &str) -> Option<TimedProject> {
     println!("segment: {}", segment);
     let keyword: Vec<&str> = segment.split('-').collect();
+
+    // Split the input into segments by underscores
+    let split_sub_segments: Vec<&str> = segment.split('_').collect();
+
+    let game_name = split_sub_segments[0].to_string();
 
     // Step 2.1: Handle increment seconds
     if keyword[0] == "incrimentseconds" {
@@ -6225,7 +6222,7 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
         println!("segment => {}", segment);
 
 
-        return TimedProject::from_increment_and_time_control(&game_name, segment);
+        return TimedProject::from_increment_and_time_control(segment);
     }
 
     // Step 2.2: Handle time control minutes
@@ -6233,7 +6230,7 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
         println!("timecontrolmin => {}", keyword[0]);
         println!("segment => {}", segment);
 
-        return TimedProject::from_increment_and_time_control(&game_name, segment);
+        return TimedProject::from_increment_and_time_control(segment);
     }
 
     // Step 2.3: Handle pre-set time modes

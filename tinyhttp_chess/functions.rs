@@ -1838,3 +1838,14 @@ if let Err(e) = request.respond(response) {
             eprintln!("Error responding to request");
         }
     }
+
+
+
+        // game_name
+        let split_sub_segments: Vec<&str> = segment.split('_').collect();
+        let game_name = split_sub_segments[0].to_string();
+
+        
+        // game_name
+        let game_name = segments[0].to_string();
+        println!("game_name:{}", game_name);
