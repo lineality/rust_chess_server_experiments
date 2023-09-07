@@ -1,5 +1,70 @@
 
 Rust project: 
+
+
+
+Three functionst that work together related to time based around a struct:
+
+tasks:
+A. improve system to find a good minimal format for recording a dynamic number of tuple or dictionary settings in two areas (incriments and time controls)
+perhaps as a dictionary in a struct text file, or perhaps separate files, perhaps tuples, perhaps dictionaries. NO SERD!
+B. impliment that for how tuple data is saves, loaded, and used to generate html
+
+For the struct:
+Let's use a hashmap (~dictionary) use std::collections::HashMap;
+to store the time_control and time_incriment information.
+
+For the file:
+increments_sec_sec_tuple_list:0,30-300,10-30,5
+timecontrol_move_min_tuple_list:40,60-100,15
+
+
+3 functions:
+1. load data from file into a struct
+2. update data and turn data from struct into html
+3. save data back to file. 
+there is no system-state memory other than that file.
+
+here is an example of how it is saved now:
+
+game_name: t5
+project_start_time_timstamp: 7200
+white_time_remaining_sec: 7200
+black_time_remaining_sec: 7200
+increments_sec_sec_tuple_list: [(40, 1800)]
+timecontrol_move_min_tuple_list: []
+last_move_time: 0
+player_white: true
+game_move_number: 0
+
+
+Tasks:
+
+1. update the struct so that it uses a hashmap and not a list of tuples
+Let's use a hashmap (~dictionary) use std::collections::HashMap;
+to store the time_control and time_incriment information.
+
+2. update how data is saved in the file 
+(format: )
+For the file:
+increments_sec_sec_tuple_list:0,30-300,10-30,5
+timecontrol_move_min_tuple_list:40,60-100,15
+
+note: fix how tuples are written, this never worked correctly (only pre-set worked)
+
+3. update how data is loaded from the file 
+
+4. update how data is updated
+update_and_html() function
+
+5. update how html is written
+update_and_html() function
+
+
+
+////
+
+
 The task here is to fix how game_name is handled in the last two functions time_data_parse_setup_string and handle_segment. time_data_parse_setup_string should send two inputs to handle_segment, sending the game_name separately. somehow, various functions need to send that back to the impl of the struct, and I am not sure the calling of a single struct to store all the data is being done correctly.
 
 

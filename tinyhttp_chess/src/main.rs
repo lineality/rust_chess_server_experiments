@@ -5894,18 +5894,36 @@ thisgamename_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,
 /*
 Time Modes 
 */
-struct TimedProject {
-    game_name: String,
-    project_start_time_timestamp: u64,
-    white_time_remaining_sec: u32,
-    black_time_remaining_sec: u32,
-    increments_sec_sec_tuple_list: Vec<(u32, u32)>,
-    timecontrol_move_min_tuple_list: Vec<(u16, u16)>,
-    last_move_time: u64,
-    player_white: bool,
-    game_move_number: usize,
-}
+// struct TimedProject {
+//     game_name: String,
+//     project_start_time_timestamp: u64,
+//     white_time_remaining_sec: u32,
+//     black_time_remaining_sec: u32,
+//     increments_sec_sec_tuple_list: Vec<(u32, u32)>,
+//     timecontrol_move_min_tuple_list: Vec<(u16, u16)>,
+//     last_move_time: u64,
+//     player_white: bool,
+//     game_move_number: usize,
+// }
 
+// use std::collections::HashMap;
+
+struct TimedProject {
+    game_name: String, // The name of the game
+    project_start_time_timestamp: u64, // Timestamp when the project started
+    white_time_remaining_sec: u32, // Remaining time for white player in seconds
+    black_time_remaining_sec: u32, // Remaining time for black player in seconds
+    
+    // HashMap containing increment settings
+    increments: HashMap<String, (u32, u32)>,
+    
+    // HashMap containing time control settings
+    time_controls: HashMap<String, (u16, u16)>,
+    
+    last_move_time: u64, // Timestamp of the last move
+    player_white: bool, // Indicates if the player is white
+    game_move_number: usize, // Current move number in the game
+}
 
 impl TimedProject {
     // Modified `from_str` function to handle the described format
@@ -6030,6 +6048,27 @@ impl TimedProject {
         }
         }
 
+
+
+/*
+Rust project: 
+Three functionst that work together related to time based around a struct:
+
+tasks:
+A. improve system to find a good minimal format for recording a dynamic number of tuple or dictionary settings in two areas (incriments and time controls)
+perhaps as a dictionary in a struct text file, or perhaps separate files, perhaps tuples, perhaps dictionaries. NO SERD!
+B. impliment that for how tuple data is saves, loaded, and used to generate html
+
+3 functions:
+1. load data from file into a struct
+2. update data and turn data from struct into html
+3. save data back to file. 
+there is no system-state memory other than that file.
+
+first question: how do you recommend storing the tuple data?
+
+
+*/
 
     pub fn to_html(&self) -> String {
         /*
