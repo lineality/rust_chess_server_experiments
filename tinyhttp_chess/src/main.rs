@@ -5895,17 +5895,18 @@ thisgamename_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,
 Time Modes 
 */
 // struct TimedProject {
-//     game_name: String,
-//     project_start_time_timestamp: u64,
-//     white_time_remaining_sec: u32,
-//     black_time_remaining_sec: u32,
-//     increments_sec_sec_tuple_list: Vec<(u32, u32)>,
-//     timecontrol_move_min_tuple_list: Vec<(u16, u16)>,
-//     last_move_time: u64,
-//     player_white: bool,
-//     game_move_number: usize,
+//     game_name: String, // The name of the game
+//     project_start_time_timestamp: u64, // Timestamp when the project started
+//     white_time_remaining_sec: u32, // Remaining time for white player in seconds
+//     black_time_remaining_sec: u32, // Remaining time for black player in seconds
+//     // HashMap containing increment settings
+//     increments_sec_sec_tuple_list: HashMap<String, (u32, u32)>,
+//     // HashMap containing time control settings
+//     timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)>,
+//     last_move_time: u64, // Timestamp of the last move
+//     player_white: bool, // Indicates if the player is white
+//     game_move_number: usize, // Current move number in the game
 // }
-
 // use std::collections::HashMap;
 
 struct TimedProject {
@@ -5913,13 +5914,10 @@ struct TimedProject {
     project_start_time_timestamp: u64, // Timestamp when the project started
     white_time_remaining_sec: u32, // Remaining time for white player in seconds
     black_time_remaining_sec: u32, // Remaining time for black player in seconds
-    
     // HashMap containing increment settings
-    increments: HashMap<String, (u32, u32)>,
-    
+    increments_sec_sec_tuple_list: HashMap<String, (u32, u32)>,
     // HashMap containing time control settings
-    time_controls: HashMap<String, (u16, u16)>,
-    
+    timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)>,
     last_move_time: u64, // Timestamp of the last move
     player_white: bool, // Indicates if the player is white
     game_move_number: usize, // Current move number in the game
@@ -5951,8 +5949,8 @@ impl TimedProject {
         }
 
         let project_start_time_timestamp: u64 = current_timestamp;
-        let mut increments_sec_sec_tuple_list: Vec<(u32, u32)> = Vec::new();
-        let mut timecontrol_move_min_tuple_list: Vec<(u16, u16)> = Vec::new();
+        let mut increments_sec_sec_tuple_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)> = HashMap::new();
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
 
@@ -6014,7 +6012,7 @@ impl TimedProject {
             game_move_number: 0,
         })
     }
-// }
+
     
 
     /// Create a TimedProject from a known preset
@@ -6050,6 +6048,8 @@ impl TimedProject {
 
 
 
+
+        
 /*
 Rust project: 
 Three functionst that work together related to time based around a struct:
@@ -6187,11 +6187,14 @@ first question: how do you recommend storing the tuple data?
         let mut project_start_time_timestamp: u64 = 0;
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
-        let mut increments_sec_sec_tuple_list: Vec<(u32, u32)> = Vec::new();
-        let mut timecontrol_move_min_tuple_list: Vec<(u16, u16)> = Vec::new();
+        let mut increments_sec_sec_tuple_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)> = HashMap::new();
         let mut last_move_time: u64 = 0;
         let mut player_white: bool = true;
         let mut game_move_number: usize = 0;
+
+
+
 
 
         // Open and read the file line by line
@@ -6293,6 +6296,20 @@ fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
 }
 
 
+/*
+// to use, e.g.:
+
+let increments_str = "0,30-300,10-30,5";
+let increments_map: HashMap<u32, u32> = string_to_specialized_map(&increments_str);
+
+let timecontrol_str = "40,60-100,15";
+let timecontrol_map: HashMap<u16, u16> = string_to_specialized_map(&timecontrol_str);
+
+let increments_str_converted = specialized_map_to_string(&increments_map);
+let timecontrol_str_converted = specialized_map_to_string(&timecontrol_map);
+
+*/
+
 
 // Function to parse the time_section_string
 fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
@@ -6388,3 +6405,123 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
     None
 }
 
+
+
+
+
+
+
+// use std::collections::HashMap;
+use std::fmt::Display;
+
+// /// Converts a file-string to a HashMap
+// pub fn string_to_hashmap<K, V1, V2>(file_str: &str) -> HashMap<K, (V1, V2)> 
+// where
+//     K: std::str::FromStr + std::hash::Hash + Eq,
+//     V1: std::str::FromStr,
+//     V2: std::str::FromStr,
+//     <K as std::str::FromStr>::Err: std::fmt::Debug,
+//     <V1 as std::str::FromStr>::Err: std::fmt::Debug,
+//     <V2 as std::str::FromStr>::Err: std::fmt::Debug,
+// {
+//     let mut map = HashMap::new();
+//     for entry in file_str.split(';') {
+//         let parts: Vec<&str> = entry.split(':').collect();
+//         if parts.len() == 2 {
+//             if let (Ok(key), Ok(val1), Ok(val2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
+//                 map.insert(key, (val1, val2));
+//             }
+//         }
+//     }
+//     map
+// }
+
+// /// Converts a HashMap to a file-string
+// pub fn hashmap_to_string<K, V1, V2>(map: &HashMap<K, (V1, V2)>) -> String
+// where
+//     K: Display,
+//     V1: Display,
+//     V2: Display,
+// {
+//     map.iter()
+//         .map(|(key, (val1, val2))| format!("{}:{}-{}", key, val1, val2))
+//         .collect::<Vec<String>>()
+//         .join(";")
+// }
+
+
+// use std::collections::HashMap;
+
+
+// use std::collections::HashMap;
+// use std::hash::Hash;
+// use std::cmp::Eq;
+
+// /// Converts a specialized file-string to a HashMap
+// pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
+// where
+//     V1: std::str::FromStr,
+//     V2: std::str::FromStr,
+//     <V1 as std::str::FromStr>::Err: std::fmt::Debug,
+//     <V2 as std::str::FromStr>::Err: std::fmt::Debug,
+// {
+//     let mut map = HashMap::new();
+//     let pairs = file_str.split('-').collect::<Vec<&str>>();
+//     for pair in pairs.chunks(2) {
+//         if pair.len() == 2 {
+//             if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
+//                 map.insert(key, value);
+//             }
+//         }
+//     }
+//     map
+// }
+
+// /// Converts a HashMap to a specialized file-string
+// pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
+// where
+//     V1: std::fmt::Display,
+//     V2: std::fmt::Display,
+// {
+//     let entries: Vec<String> = map
+//         .iter()
+//         .map(|(key, value)| format!("{},{}", key, value))
+//         .collect();
+//     entries.join("-")
+// }
+
+use core::hash::Hash;
+// use std::hash::Hash;
+
+/// Converts a specialized file-string to a HashMap
+pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
+where
+    V1: std::str::FromStr + Hash + Eq,
+    V2: std::str::FromStr,
+    <V1 as std::str::FromStr>::Err: std::fmt::Debug,
+    <V2 as std::str::FromStr>::Err: std::fmt::Debug,
+{
+    let mut map = HashMap::new();
+    let pairs = file_str.split('-').collect::<Vec<&str>>();
+    for pair in pairs.chunks(2) {
+        if pair.len() == 2 {
+            if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
+                map.insert(key, value);
+            }
+        }
+    }
+    map
+}
+
+/// Converts a HashMap to a specialized file-string
+pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
+where
+    V1: std::fmt::Display,
+    V2: std::fmt::Display,
+{
+    let entries: Vec<String> = map
+        .iter()
+        .map(|(key, value)| format!("{},{}", key, value))
+        .collect();
+    entries.join("-")
+}
