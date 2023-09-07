@@ -7,6 +7,9 @@ http://0.0.0.0:8000/game/Pc2c4
 
 http://0.0.0.0:8000/setup/chess960/ramen/two
 http://0.0.0.0:8000/game/Pc2c4
+
+http://0.0.0.0:8000/setup/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
+
 */
 
 
@@ -389,6 +392,7 @@ use base64::engine::general_purpose::STANDARD;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::time::Duration;
+use std::str::FromStr;
 
 extern crate image;
 
@@ -5892,7 +5896,7 @@ Time Modes
 */
 struct TimedProject {
     game_name: String,
-    project_start_time_timstamp: u64,
+    project_start_time_timestamp: u64,
     white_time_remaining_sec: u32,
     black_time_remaining_sec: u32,
     increments_sec_sec_tuple_list: Vec<(u32, u32)>,
@@ -5905,103 +5909,7 @@ struct TimedProject {
 
 impl TimedProject {
     // Modified `from_str` function to handle the described format
-    // fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
-    //     println!("starting from_increment_and_time_control() input:{}", input);
-    //     println!("starting from_increment_and_time_control() game_name:{}", game_name);
-
-    //     // Split the input into segments by underscores
-    //     let segments: Vec<&str> = input.split('_').collect();
-        
-    //     if segments.len() < 2 {
-    //         return None;
-    //     }
-
-
-    //     let project_start_time_timstamp: u64 = 0;
-    //     let mut increments_sec_sec_tuple_list: Vec<(u32, u32)> = Vec::new();
-    //     let mut timecontrol_move_min_tuple_list: Vec<(u16, u16)> = Vec::new();
-
-
-    //     // Parse the remaining segments
-    //     for segment in &segments[1..] {
-
-    //         println!("in from_increment_and_time_control() this segment:{}", segment);
-
-
-    //         if *segment == "norway120" || *segment == "norwayarmageddon" {
-    //             return TimedProject::from_preset_time_modes_chess(segment, &game_name);
-    //         }
-
-    //         let mut iter = segment.split('(');
-    //         let control_type = iter.next()?;
-            
-    //         // Gather all tuples
-    //         let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
-    //         let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
-    
-    //         for tuple_str in tuple_strs {
-    //             if tuple_str.is_empty() {
-    //                 continue;
-    //             }
-                
-    //             let elements: Vec<i32> = tuple_str.split(',')
-    //                 .filter_map(|x| x.parse().ok())
-    //                 .collect();
-                
-    //             if elements.len() != 2 {
-    //                 return None;
-    //             }
-
-    //             /*
-    //             TODO
-    //             input form
-    //             incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)
-
-    //             1. this needs to iterate through look for any number of tuples, iterating through all
-    //             2. this ineeds to set starting countdown clocks bases on incrimentseconds-(0,30)
-
-
-    //              */
-    //             match control_type {
-    //                 "incrementseconds" => {
-    //                     increments_sec_sec_tuple_list.push((elements[0], elements[1]));
-
-
-    //                 },
-    //                 "timecontrolmin" => {
-    //                     // set time added to clocks at move zero to be starting time-remaining
-    //                     if elements[0][0] == 0 {
-    //                         white_time_remaining_sec.push(elements[1]);
-    //                         black_time_remaining_sec.push(elements[1]);
-    //                     }
-
-
-
-    //                     timecontrol_move_min_tuple_list.push((elements[0], elements[1]));
-
-
-    //                 },
-    //                 _ => return None,
-    //             }
-    //         }
-    //     }
-
-
-    //     Some(TimedProject {
-    //         game_name: game_name.to_string(),
-    //         project_start_time_timstamp,
-    //         white_time_remaining_sec,
-    //         black_time_remaining_sec,
-    //         increments_sec_sec_tuple_list,
-    //         timecontrol_move_min_tuple_list,
-    //         last_move_time: 0,
-    //         player_white: true,
-    //         game_move_number: 0,
-    //     })
-
-    // }
-
-
+   
     fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
 
         println!("starting from_increment_and_time_control() input: {}", input);
@@ -6016,8 +5924,6 @@ impl TimedProject {
                 return None; // Return None to align with function's return type
             }
         };
-
-
 
         // Split the input into segments by underscores
         let segments: Vec<&str> = input.split('_').collect();
@@ -6100,7 +6006,7 @@ impl TimedProject {
         match preset {
             "norway120" => Some(TimedProject {
                 game_name: game_name.to_string(),
-                project_start_time_timstamp: 7200, // 120 minutes in seconds
+                project_start_time_timestamp: 7200, // 120 minutes in seconds
                 white_time_remaining_sec: 7200, // 120 minutes in seconds
                 black_time_remaining_sec: 7200, // 120 minutes in seconds
                 increments_sec_sec_tuple_list: vec![(40, 1800)], // Add 30 minutes after move 40
@@ -6111,7 +6017,7 @@ impl TimedProject {
             }),
             "norwayarmageddon" => Some(TimedProject {
                 game_name: game_name.to_string(),
-                project_start_time_timstamp: 300, // 5 minutes in seconds
+                project_start_time_timestamp: 300, // 5 minutes in seconds
                 white_time_remaining_sec: 300, // 5 minutes in seconds
                 black_time_remaining_sec: 300, // 5 minutes in seconds
                 increments_sec_sec_tuple_list: vec![], // No increment
@@ -6123,128 +6029,6 @@ impl TimedProject {
             _ => None, // Unknown preset
         }
         }
-
-
-    // fn to_html(&self, white_time: i32, black_time: i32, game_move: i32) -> String {
-
-
-    //     format!(
-    //         "<p>White Remaining: {}</p>
-    //         <p>Black Remaining: {}</p>
-    //         <p>Move Number: {}</p>
-    //         <p></p>
-    //         <p>This Turn: {}</p>
-    //         <p>This Game: {}</p>
-
-    //         <p>Time Control:</p>
-    //         <p>Next Time Control at Move: {}</p>
-    //         <p>Next Time Control Adds (min): {}</p>
-    //         <p></p>
-
-    //         <p>Increment:</p>
-    //         <p>Current Increment (sec): {}</p>
-    //         <p>Next increment starts at time (min:sec) {}</p>
-    //         <p>Next Increment (sec): {}</p>
-    //         ", 
-
-    //         white_time, 
-    //         black_time, 
-    //         game_move
-    //     )
-    // }
-
-
-    // pub fn to_html(&self) -> String {
-    //     /*
-
-    //     Likely the only input is the struct.
-
-    //     other items must be calculated.
-    //     e.g.
-    //     time remaining is as of the last move,
-    //     but the current player's time is continuing to run down
-    //     ~
-    //     so their time must have current this player time_remaining = ?_time_remaining - posix_timestamp - last_move_posix_stamp
-
-    //     then the last time timestamp gets updated
-    //     time spent for this move is updated
-    //     time spent for game is updated
-
-
-    //         white_time_remaining_sec,
-    //         black_time_remaining_sec,
-
-
-    //     struct TimedProject {
-    //         game_name: String,
-    //         project_start_time_timstamp: u64,
-    //         white_time_remaining_sec: u32,
-    //         black_time_remaining_sec: u32,
-    //         increments_sec_sec_tuple_list: Vec<(u32, u32)>,
-    //         timecontrol_move_min_tuple_list: Vec<(u16, u16)>,
-    //         last_move_time: u64,
-    //         player_white: bool,
-    //         game_move_number: usize,
-    //     }
-
-    //     current posix timestamp (sec)
-
-    //     Starting code:
-    //     What other struct-items are needed:
-    //     */
-
-    //     // Log for debugging purposes, will not appear in the final HTML
-    //     println!("Starting to_html() function");
-        
-    //     // Determine whose turn it is based on the move number
-    //     let current_turn = if game_move % 2 == 0 {
-    //         "White"
-    //     } else {
-    //         "Black"
-    //     };
-        
-    //     // // Calculate next time control and increment parameters
-    //     // // Placeholder: replace with actual calculation
-    //     // let next_time_control_at_move = game_move + 10;
-    //     // let next_time_control_adds_min = 5;
-        
-    //     // // Placeholder: replace with actual calculation
-    //     // let current_increment_sec = 30;
-    //     // let next_increment_time = "05:00";
-    //     // let next_increment_sec = 40;
-
-    //     // Format the information into an HTML string
-    //     format!(
-    //         "<p>White Remaining: {} seconds</p>
-    //         <p>Black Remaining: {} seconds</p>
-    //         <p>Move Number: {}</p>
-    //         <p></p>
-    //         <p>This Turn: {}</p>  
-    //         <p>This Game: {}</p>
-            
-    //         <p>Time Control:</p>
-    //         <p>Next Time Control at Move: {}</p>
-    //         <p>Next Time Control Adds: {} minutes</p>
-    //         <p></p>
-            
-    //         <p>Increment:</p>
-    //         <p>Current Increment: {} seconds</p>
-    //         <p>Next Increment Starts at Time: {}</p>
-    //         <p>Next Increment: {} seconds</p>
-    //         ", 
-    //         white_time_remaining_sec,
-    //         black_time_remaining_sec,
-    //         self.game_move_number, 
-
-    //         time_spent_on_this_move,  // time spent on this move
-    //         time_spent_during_this_game,  // time spent during this game
-    //         next_time_control_at_move,  
-    //         next_time_control_adds_min,
-    //         current_increment_sec,
-    //         next_increment_time,
-    //         next_increment_sec
-    //     )
-    // }
 
 
     pub fn to_html(&self) -> String {
@@ -6324,32 +6108,6 @@ impl TimedProject {
         )
     }
 
-    // fn save_time_data_to_txt(&self) -> std::io::Result<()> {
-    //     println!("starting save_time_data_to_txt()");
-
-    //     let path = format!("games/{}/time_data.txt", self.game_name);
-    //     let mut file = fs::File::create(path)?;
-
-    //     writeln!(file, "Game Name: {}", self.game_name)?;
-    //     writeln!(file, "Start Time: {}", self.project_start_time_timstamp)?;
-
-    //     writeln!(file, "Increments:")?;
-    //     for (on_move, time_added) in &self.increments_sec_sec_tuple_list {
-    //         writeln!(file, "{},{}", on_move, time_added)?;
-    //     }
-
-    //     writeln!(file, "Time Controls:")?;
-    //     for (on_move, time_added) in &self.timecontrol_move_min_tuple_list {
-    //         writeln!(file, "{},{}", on_move, time_added)?;
-    //     }
-    //     println!("time_data.txt saved! (...really??)");
-
-    //     Ok(())
-    // }
-
-    //     use std::fs;
-    // use std::io::Write;
-
     fn save_time_data_to_txt(&self) -> std::io::Result<()> {
         // Generate the intended path for debugging purposes
         let path = format!("games/{}/time_data.txt", self.game_name);
@@ -6359,14 +6117,11 @@ impl TimedProject {
         match fs::File::create(&path) {
             Ok(mut file) => {
                 writeln!(file, "game_name: {}", self.game_name)?;
-                writeln!(file, "project_start_time_timstamp Time: {}", self.project_start_time_timstamp)?;
-
-                // This will use Debug formatting for `increments_sec_sec_tuple_list`
+                writeln!(file, "project_start_time_timstamp: {}", self.project_start_time_timestamp)?;
+                writeln!(file, "white_time_remaining_sec: {}", self.white_time_remaining_sec)?;
+                writeln!(file, "black_time_remaining_sec: {}", self.black_time_remaining_sec)?;
                 writeln!(file, "increments_sec_sec_tuple_list: {:?}", self.increments_sec_sec_tuple_list)?;
-
-                // Similarly for `timecontrol_move_min_tuple_list`
                 writeln!(file, "timecontrol_move_min_tuple_list: {:?}", self.timecontrol_move_min_tuple_list)?;
-
                 writeln!(file, "last_move_time: {}", self.last_move_time)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
@@ -6383,126 +6138,119 @@ impl TimedProject {
     }
 
 
-
-    // fn parse_get_request(url: &str) -> Option<TimedProject> {
-    //     println!("starting parse_get_request()");
-    //     // ... your code
-    //     // Make sure to return a value at the end
-    //     TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
-    // }
-
     fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
-        /*
-        TODO
-        This looks like a catastrphy...not loading initial values from the file at all...
+        println!("Starting load_from_txt()");
 
-        This may need extra logic to:
-        - calculate whether a new timecontrol has been triggered,
-            1. load remaining_time_black/white from file
-            2. increiment move
-            3. does incrimented move = time_control start move?
-            4. if so, add that time to remaining time
-        - update
-        - 
-
-
-
-
-        this should also save the updates back to the file before sending out the HTML results
-
-        */
-
-        println!("starting load_from_txt()");
-
+        // Define the path to read from
         let path = format!("games/{}/time_data.txt", game_name);
+        
+        // Initialize variables to hold data read from the file
+        let mut project_start_time_timestamp: u64 = 0;
+        let mut white_time_remaining_sec: u32 = 0;
+        let mut black_time_remaining_sec: u32 = 0;
+        let mut increments_sec_sec_tuple_list: Vec<(u32, u32)> = Vec::new();
+        let mut timecontrol_move_min_tuple_list: Vec<(u16, u16)> = Vec::new();
+        let mut last_move_time: u64 = 0;
+        let mut player_white: bool = true;
+        let mut game_move_number: usize = 0;
+
+
+        // Open and read the file line by line
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
 
-        // let mut project_start_time_timstamp = 0;
-        // let mut increments_sec_sec_tuple_list = Vec::new();
-        // let mut timecontrol_move_min_tuple_list = Vec::new();
-        // let mut last_move_time = 0;  // initialize a default value
-        // let mut player_white = true;  // initialize a default value
-        // let mut game_move_number = 0;  // initialize a default value
-    
-        for (index, line) in reader.lines().enumerate() {
+        for line in reader.lines() {
             let line = line?;
-            match index {
-                // 0 => game_name = &line.replace("Game Name: ", ""),
-                // 1 => project_start_time_timstamp = line.replace("Start Time: ", "").parse().unwrap(), // NO UNWRAP!!!!!!!!!!!!!!!!!!!!!!!!!
-                2 => continue, // This is "Increments:"
-                _ => {
-                    let parts: Vec<&str> = line.split(',').collect();
-                    if parts.len() == 2 {
-                        let on_move: i32 = parts[0].parse().unwrap();
-                        let time_added: i32 = parts[1].parse().unwrap();
-                        if line.starts_with("Time Controls:") {
-                            timecontrol_move_min_tuple_list.push((on_move, time_added));
-                        } else {
-                            increments_sec_sec_tuple_list.push((on_move, time_added));
-                        }
-                    }
-                }
+            let parts: Vec<&str> = line.split(": ").collect();
+
+            match parts[0] {
+                "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                "white_time_remaining_sec" => white_time_remaining_sec= parts[2].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                "black_time_remaining_sec" => black_time_remaining_sec= parts[3].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+
+                "increments_sec_sec_tuple_list" => increments_sec_sec_tuple_list = parse_tuple_vec(parts[1])?,
+                "timecontrol_move_min_tuple_list" => timecontrol_move_min_tuple_list = parse_tuple_vec(parts[1])?,
+    
+
+                // "increments_sec_sec_tuple_list" => increments_sec_sec_tuple_list= parts[4].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                // "timecontrol_move_min_tuple_list" => timecontrol_move_min_tuple_list= parts[5].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                "last_move_time" => last_move_time= parts[6].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                "player_white" => player_white= parts[7].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                "game_move_number" => game_move_number= parts[8].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+                _ => {}
             }
         }
 
-
-
-        Some(TimedProject {
+        Ok(TimedProject {
             game_name: game_name.to_string(),
             project_start_time_timestamp,
             white_time_remaining_sec,
             black_time_remaining_sec,
             increments_sec_sec_tuple_list,
             timecontrol_move_min_tuple_list,
-            last_move_time: 0,
-            player_white: true,
-            game_move_number: 0,
+            last_move_time,
+            player_white,
+            game_move_number,
         })
     }
 
 
+    // fn process_chess_time_file(game_name: &str) -> String {
+    //     println!("starting process_chess_time_file()");
 
 
-
-    fn process_chess_time_file(game_name: &str) -> String {
-        println!("starting process_chess_time_file()");
-
-
-        let path = format!("games/{}/time_data.txt", game_name);
+    //     let path = format!("games/{}/time_data.txt", game_name);
     
-        if !Path::new(&path).exists() {
-            return "".to_string();
-        }
+    //     if !Path::new(&path).exists() {
+    //         return "".to_string();
+    //     }
     
-        let file = match File::open(&path) {
-            Ok(f) => f,
-            Err(_) => return "".to_string(),
-        };
+    //     let file = match File::open(&path) {
+    //         Ok(f) => f,
+    //         Err(_) => return "".to_string(),
+    //     };
     
-        let mut reader = BufReader::new(file);
-        let mut time_struct = TimedProject {
-            game_name: "".to_string(),
-            project_start_time_timstamp: 0,
-            increments_sec_sec_tuple_list: vec![],
-            timecontrol_move_min_tuple_list: vec![],
-            last_move_time: 0,
-            player_white: true,
-            game_move_number: 0,
-        };
+    //     let mut reader = BufReader::new(file);
+    //     let mut time_struct = TimedProject {
+    //         game_name: "".to_string(),
+    //         project_start_time_timestamp: 0,
+    //         white_time_remaining_sec:
+    //         black_time_remaining_sec:
+    //         increments_sec_sec_tuple_list: vec![],
+    //         timecontrol_move_min_tuple_list: vec![],
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     };
     
-        // Initialize `new_posix` and `current_increment` to remove "cannot find value" errors
-        let new_posix: u64 = 0; // Initialize properly
-        let current_increment: u64 = 0; // Initialize properly
+    //     // Initialize `new_posix` and `current_increment` to remove "cannot find value" errors
+    //     let new_posix: u64 = 0; // Initialize properly
+    //     let current_increment: u64 = 0; // Initialize properly
     
-        let mut this_player_time_spent = new_posix.saturating_sub(time_struct.last_move_time);
+    //     let mut this_player_time_spent = new_posix.saturating_sub(time_struct.last_move_time);
     
-        // ... (rest of your code, make sure to handle errors without unwrap)
+    //     // ... (rest of your code, make sure to handle errors without unwrap)
     
-        "Some HTML or response".to_string() // Return value
-    }
+    //     "Some HTML or response".to_string() // Return value
+    // }
 
 // End of struct implimentation: TimedProject
+}
+
+
+// Helper function to parse Vec of tuples from a string
+fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
+    s[1..s.len()-1].split("), (")
+        .map(|tuple_str| {
+            let parts: Vec<&str> = tuple_str.split(", ").collect();
+            if parts.len() != 2 {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid tuple data"));
+            }
+            let first = T::from_str(parts[0]).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid tuple data"))?;
+            let second = U::from_str(parts[1]).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid tuple data"))?;
+            Ok((first, second))
+        })
+        .collect()
 }
 
 
