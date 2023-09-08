@@ -17,6 +17,113 @@ struct TimedProject {
 }
 
 
+
+    /// Create a TimedProject with preset time modes for chess games
+    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
+                /*
+        TODO: 
+        update datastructures to be hashmaps not vec
+        
+        add other presets: fidewcmatch
+
+        fideworldchampmatch
+        QUote: FIDE 4. 2. Time control
+        The time control for each game is 120 minutes for the first 40 moves, followed by 60 minutes for the next 20 moves and then 15
+        minutes for the rest of the game with an increment of 30 seconds per move starting from move 61.
+         */
+        println!("starting from_preset_time_modes_chess()");
+        // Initialize HashMaps for storing time control and increment settings
+        let mut increments_map: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut time_control_map: HashMap<String, (u32, u32)> = HashMap::new();
+
+        // Match on provided preset string
+        match preset {
+            // string notation of key values: timecontrolmovemin-wb,0,120,30-40,30
+
+            /*
+            Players start with 120 minutes on their clocks, and after each move, 
+            they gain additional time, usually around 30 seconds per move. 
+            This time increment continues until the end of the game.  
+            */
+            "norway120" => {
+                increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: 7200,  // 120 minutes in seconds
+                    white_time_remaining_sec: 7200,  // 120 minutes in seconds
+                    black_time_remaining_sec: 7200,  // 120 minutes in seconds
+                    increments_sec_sec_key_value_list: increments_map,
+                    timecontrol_move_min_key_value_list: time_control_map,
+                    last_move_time: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+            "norwayarmageddon" => {
+                /*
+                For Norway Chess Armageddon, there is indeed a time increment, 
+                but it's a bit different from traditional chess time controls. 
+                In Armageddon, White gets 5 minutes on the clock, 
+                and Black gets 4 minutes. However, there's a crucial difference:
+
+                White must win to claim victory, while Black only needs a draw to win the game.
+                To compensate for this advantage, there is a time increment after move 60. 
+                Starting from move 61, both players receive an additional 3 seconds per move. 
+                This increment helps ensure that the game doesn't go on indefinitely 
+                and adds a level of fairness to the Armageddon format.
+
+                So, to summarize, there is a time increment in Norway Chess Armageddon, 
+                but it starts after move 60, with both players receiving an extra 3 seconds per move.
+                 */
+
+                // string notation of key values: timecontrolmovemin-w,0,5-b,0,4-wb,60,0,3
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: 300,  // 5 minutes in seconds
+                    white_time_remaining_sec: 300,  // 5 minutes in seconds
+                    black_time_remaining_sec: 240,  // 4 minutes in seconds
+                    increments_sec_sec_key_value_list: increments_map,
+                    timecontrol_move_min_key_value_list: time_control_map,
+                    last_move_time: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+            "fideworldchampmatch" => {
+                /*
+                TODO: 
+                fideworldchampmatch
+                QUote: FIDE 4. 2. Time control
+                The time control for each game is 120 minutes for the first 40 moves, 
+                followed by 60 minutes for the next 20 moves and then 
+                15 minutes for the rest of the game 
+                with an increment of 30 seconds per move starting from move 61.
+
+                string input format:
+                timecontrolmovemin-61,30
+                incrimentsecsec-wb,0,7200-wb,40,3600-wb,60,900
+                */
+                increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: 7200,  // 120 minutes in seconds
+                    white_time_remaining_sec: 7200,  // 120 minutes in seconds
+                    black_time_remaining_sec: 7200,  // 120 minutes in seconds
+                    increments_sec_sec_key_value_list: increments_map,
+                    timecontrol_move_min_key_value_list: time_control_map,
+                    last_move_time: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+            _ => None // Unknown preset returns None
+        }
+    }
+
+
+
+
+
 especially for these hash tables:
     // HashMap containing increment settings
     increments_sec_sec_key_value_list: HashMap<String, (u32, u32)>,
