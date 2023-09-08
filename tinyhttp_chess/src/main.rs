@@ -4359,8 +4359,8 @@ fn sanitize_url(input: &str) -> String {
         || c == '~'
         || c == '`'
         || c == ';'
-        || c == '('
-        || c == ')'
+        // || c == '('
+        // || c == ')'
         || c == ','
     )
         .collect()
@@ -5889,7 +5889,15 @@ Timed Projects
 e.g. string 
 thisgamename_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)
 
+thisgamename_incrimentseconds-0,30-300,10-30,5_timecontrolmin-0,240-40,30-60,15
+
+or just strip
+
 */
+
+
+// Time Section
+
 #[derive(Debug)]
 /*
 Time Modes 
@@ -5900,14 +5908,18 @@ Time Modes
 //     white_time_remaining_sec: u32, // Remaining time for white player in seconds
 //     black_time_remaining_sec: u32, // Remaining time for black player in seconds
 //     // HashMap containing increment settings
-//     increments_sec_sec_tuple_list: HashMap<String, (u32, u32)>,
+//     increments_sec_sec_key_value_list: HashMap<String, (u32, u32)>,
 //     // HashMap containing time control settings
-//     timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)>,
+//     timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)>,
 //     last_move_time: u64, // Timestamp of the last move
 //     player_white: bool, // Indicates if the player is white
 //     game_move_number: usize, // Current move number in the game
 // }
 // use std::collections::HashMap;
+
+// use std::collections::HashMap;
+// use std::fs::File;
+// use std::io::{self, BufRead, BufReader};
 
 struct TimedProject {
     game_name: String, // The name of the game
@@ -5915,103 +5927,170 @@ struct TimedProject {
     white_time_remaining_sec: u32, // Remaining time for white player in seconds
     black_time_remaining_sec: u32, // Remaining time for black player in seconds
     // HashMap containing increment settings
-    increments_sec_sec_tuple_list: HashMap<String, (u32, u32)>,
+    increments_sec_sec_key_value_list: HashMap<String, (u32, u32)>,
     // HashMap containing time control settings
-    timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)>,
+    timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)>,
     last_move_time: u64, // Timestamp of the last move
     player_white: bool, // Indicates if the player is white
     game_move_number: usize, // Current move number in the game
 }
 
 impl TimedProject {
-    // Modified `from_str` function to handle the described format
-   
-    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
+// Modified `from_str` function to handle the described format
 
-        println!("starting from_increment_and_time_control() input: {}", input);
-        println!("starting from_increment_and_time_control() game_name: {}", game_name);
-
-
-        // Determine the current POSIX timestamp in seconds
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
         let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
             Ok(duration) => duration.as_secs(),
-            Err(_) => {
-                println!("An error occurred while obtaining system time");
-                return None; // Return None to align with function's return type
-            }
+            Err(_) => return None,
         };
 
-        // Split the input into segments by underscores
-        let segments: Vec<&str> = input.split('_').collect();
-        
+        let segments: Vec<&str> = input.split('-').collect();
+
         if segments.len() < 2 {
             return None;
         }
 
-        let project_start_time_timestamp: u64 = current_timestamp;
-        let mut increments_sec_sec_tuple_list: HashMap<String, (u32, u32)> = HashMap::new();
-        let mut timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)> = HashMap::new();
+        let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut temp_timecontrol: HashMap<String, (u32, u32, Option<u32>)> = HashMap::new();
+        let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
 
-        // Parse the remaining segments
-        for segment in &segments[1..] {
-            println!("in from_increment_and_time_control() this segment: {}", segment);
+        for segment in segments.iter().skip(1) {
+            let elements: Vec<&str> = segment.split(',').collect();
 
             if *segment == "norway120" || *segment == "norwayarmageddon" {
                 return TimedProject::from_preset_time_modes_chess(segment, &game_name);
             }
 
-            let mut iter = segment.split('(');
-            let control_type = iter.next()?;
-            
-            // Gather all tuples
-            let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
-            let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
-    
-            for tuple_str in tuple_strs {
-                if tuple_str.is_empty() {
-                    continue;
-                }
-                
-                let elements: Vec<u32> = tuple_str.split(',')
-                    .filter_map(|x| x.parse().ok())
-                    .collect();
-                
-                if elements.len() != 2 {
-                    return None;
-                }
+            if elements.len() < 2 {
+                return None;
+            }
 
-                // Match the control type and process accordingly
-                match control_type {
-                    "incrementseconds" => {
-                        increments_sec_sec_tuple_list.push((elements[0], elements[1]));
-                    },
-                    "timecontrolmin" => {
-                        if elements[0] == 0 {
-                            white_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
-                            black_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
-                        }
-                        timecontrol_move_min_tuple_list.push((elements[0] as u16, elements[1] as u16));
-                    },
-                    _ => return None,
+            let key = elements[0].parse::<u32>().ok()?;
+            let value1 = elements[1].parse::<u32>().ok()?;
+            let value2 = elements.get(2).and_then(|x| x.parse().ok());
+
+            match segments[0] {
+                "incrimentsecsec" => {
+                    increments_sec_sec_key_value_list.insert(key.to_string(), (value1, value1));
                 }
+                "timecontrolmovemin" => {
+                    if key == 0 {
+                        white_time_remaining_sec = value1 * 60;
+                        black_time_remaining_sec = value1 * 60;
+                    }
+                    temp_timecontrol.insert(key.to_string(), (value1, value1, value2));
+                }
+                _ => return None,
             }
         }
 
-        // Create and return the TimedProject struct
+        // Convert the temporary HashMap to match the struct's type
+        for (k, (v1, v2, _)) in temp_timecontrol.iter() {
+            timecontrol_move_min_key_value_list.insert(k.clone(), (*v1, *v2));
+        }
+
         Some(TimedProject {
             game_name: game_name.to_string(),
-            project_start_time_timestamp,
+            project_start_time_timestamp: current_timestamp,
             white_time_remaining_sec,
             black_time_remaining_sec,
-            increments_sec_sec_tuple_list,
-            timecontrol_move_min_tuple_list,
+            increments_sec_sec_key_value_list,
+            timecontrol_move_min_key_value_list,
             last_move_time: 0,
             player_white: true,
             game_move_number: 0,
         })
     }
+    
+
+    // fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
+
+    //     println!("starting from_increment_and_time_control() input: {}", input);
+    //     println!("starting from_increment_and_time_control() game_name: {}", game_name);
+
+
+    //     // Determine the current POSIX timestamp in seconds
+    //     let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+    //         Ok(duration) => duration.as_secs(),
+    //         Err(_) => {
+    //             println!("An error occurred while obtaining system time");
+    //             return None; // Return None to align with function's return type
+    //         }
+    //     };
+
+    //     // Split the input into segments by underscores
+    //     let segments: Vec<&str> = input.split('_').collect();
+        
+    //     if segments.len() < 2 {
+    //         return None;
+    //     }
+
+    //     let project_start_time_timestamp: u64 = current_timestamp;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+
+    //     // Parse the remaining segments
+    //     for segment in &segments[1..] {
+    //         println!("in from_increment_and_time_control() this segment: {}", segment);
+
+    //         if *segment == "norway120" || *segment == "norwayarmageddon" {
+    //             return TimedProject::from_preset_time_modes_chess(segment, &game_name);
+    //         }
+
+    //         let mut iter = segment.split('(');
+    //         let control_type = iter.next()?;
+            
+    //         // Gather all tuples
+    //         let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
+    //         let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
+    
+    //         for tuple_str in tuple_strs {
+    //             if tuple_str.is_empty() {
+    //                 continue;
+    //             }
+                
+    //             let elements: Vec<u32> = tuple_str.split(',')
+    //                 .filter_map(|x| x.parse().ok())
+    //                 .collect();
+                
+    //             if elements.len() != 2 {
+    //                 return None;
+    //             }
+
+    //             // Match the control type and process accordingly
+    //             match control_type {
+    //                 "incrementseconds" => {
+    //                     increments_sec_sec_key_value_list.push((elements[0], elements[1]));
+    //                 },
+    //                 "timecontrolmin" => {
+    //                     if elements[0] == 0 {
+    //                         white_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+    //                         black_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+    //                     }
+    //                     timecontrol_move_min_key_value_list.push((elements[0] as u32, elements[1] as u32));
+    //                 },
+    //                 _ => return None,
+    //             }
+    //         }
+    //     }
+
+    //     // Create and return the TimedProject struct
+    //     Some(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     })
+    // }
 
     
 
@@ -6025,8 +6104,8 @@ impl TimedProject {
                 project_start_time_timestamp: 7200, // 120 minutes in seconds
                 white_time_remaining_sec: 7200, // 120 minutes in seconds
                 black_time_remaining_sec: 7200, // 120 minutes in seconds
-                increments_sec_sec_tuple_list: vec![(40, 1800)], // Add 30 minutes after move 40
-                timecontrol_move_min_tuple_list: vec![],
+                increments_sec_sec_key_value_list: vec![(40, 1800)], // Add 30 minutes after move 40
+                timecontrol_move_min_key_value_list: vec![],
                 last_move_time: 0,  // Initialize missing field
                 player_white: true, // Initialize missing field
                 game_move_number: 0, // Initialize missing field
@@ -6036,8 +6115,8 @@ impl TimedProject {
                 project_start_time_timestamp: 300, // 5 minutes in seconds
                 white_time_remaining_sec: 300, // 5 minutes in seconds
                 black_time_remaining_sec: 300, // 5 minutes in seconds
-                increments_sec_sec_tuple_list: vec![], // No increment
-                timecontrol_move_min_tuple_list: vec![],
+                increments_sec_sec_key_value_list: vec![], // No increment
+                timecontrol_move_min_key_value_list: vec![],
                 last_move_time: 0,  // Initialize missing field
                 player_white: true, // Initialize missing field
                 game_move_number: 0, // Initialize missing field
@@ -6050,25 +6129,25 @@ impl TimedProject {
 
 
         
-/*
-Rust project: 
-Three functionst that work together related to time based around a struct:
+    /*
+    Rust project: 
+    Three functionst that work together related to time based around a struct:
 
-tasks:
-A. improve system to find a good minimal format for recording a dynamic number of tuple or dictionary settings in two areas (incriments and time controls)
-perhaps as a dictionary in a struct text file, or perhaps separate files, perhaps tuples, perhaps dictionaries. NO SERD!
-B. impliment that for how tuple data is saves, loaded, and used to generate html
+    tasks:
+    A. improve system to find a good minimal format for recording a dynamic number of tuple or dictionary settings in two areas (incriments and time controls)
+    perhaps as a dictionary in a struct text file, or perhaps separate files, perhaps tuples, perhaps dictionaries. NO SERD!
+    B. impliment that for how tuple data is saves, loaded, and used to generate html
 
-3 functions:
-1. load data from file into a struct
-2. update data and turn data from struct into html
-3. save data back to file. 
-there is no system-state memory other than that file.
+    3 functions:
+    1. load data from file into a struct
+    2. update data and turn data from struct into html
+    3. save data back to file. 
+    there is no system-state memory other than that file.
 
-first question: how do you recommend storing the tuple data?
+    first question: how do you recommend storing the tuple data?
 
 
-*/
+    */
 
     pub fn to_html(&self) -> String {
         /*
@@ -6159,8 +6238,8 @@ first question: how do you recommend storing the tuple data?
                 writeln!(file, "project_start_time_timstamp: {}", self.project_start_time_timestamp)?;
                 writeln!(file, "white_time_remaining_sec: {}", self.white_time_remaining_sec)?;
                 writeln!(file, "black_time_remaining_sec: {}", self.black_time_remaining_sec)?;
-                writeln!(file, "increments_sec_sec_tuple_list: {:?}", self.increments_sec_sec_tuple_list)?;
-                writeln!(file, "timecontrol_move_min_tuple_list: {:?}", self.timecontrol_move_min_tuple_list)?;
+                writeln!(file, "increments_sec_sec_key_value_list: {:?}", self.increments_sec_sec_key_value_list)?;
+                writeln!(file, "timecontrol_move_min_key_value_list: {:?}", self.timecontrol_move_min_key_value_list)?;
                 writeln!(file, "last_move_time: {}", self.last_move_time)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
@@ -6177,64 +6256,190 @@ first question: how do you recommend storing the tuple data?
     }
 
 
-    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
-        println!("Starting load_from_txt()");
 
-        // Define the path to read from
+    
+    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
         let path = format!("games/{}/time_data.txt", game_name);
-        
-        // Initialize variables to hold data read from the file
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+    
         let mut project_start_time_timestamp: u64 = 0;
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
-        let mut increments_sec_sec_tuple_list: HashMap<String, (u32, u32)> = HashMap::new();
-        let mut timecontrol_move_min_tuple_list: HashMap<String, (u16, u16)> = HashMap::new();
+        let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
         let mut last_move_time: u64 = 0;
         let mut player_white: bool = true;
         let mut game_move_number: usize = 0;
-
-
-
-
-
-        // Open and read the file line by line
-        let file = File::open(&path)?;
-        let reader = BufReader::new(file);
-
+    
         for line in reader.lines() {
             let line = line?;
             let parts: Vec<&str> = line.split(": ").collect();
-
-            match parts[0] {
-                "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                "white_time_remaining_sec" => white_time_remaining_sec= parts[2].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                "black_time_remaining_sec" => black_time_remaining_sec= parts[3].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-
-                "increments_sec_sec_tuple_list" => increments_sec_sec_tuple_list = parse_tuple_vec(parts[1])?,
-                "timecontrol_move_min_tuple_list" => timecontrol_move_min_tuple_list = parse_tuple_vec(parts[1])?,
     
-
-                // "increments_sec_sec_tuple_list" => increments_sec_sec_tuple_list= parts[4].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                // "timecontrol_move_min_tuple_list" => timecontrol_move_min_tuple_list= parts[5].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                "last_move_time" => last_move_time= parts[6].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                "player_white" => player_white= parts[7].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
-                "game_move_number" => game_move_number= parts[8].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+            match parts[0] {
+                "project_start_time_timestamp" => {
+                    project_start_time_timestamp = parts[1].parse().unwrap();
+                }
+                "white_time_remaining_sec" => {
+                    white_time_remaining_sec = parts[1].parse().unwrap();
+                }
+                "black_time_remaining_sec" => {
+                    black_time_remaining_sec = parts[1].parse().unwrap();
+                }
+                "increments_sec_sec_key_value_list" => {
+                    increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
+                }
+                "timecontrol_move_min_key_value_list" => {
+                    timecontrol_move_min_key_value_list = string_to_hashmap(parts[1]);
+                }
+                "last_move_time" => {
+                    last_move_time = parts[1].parse().unwrap();
+                }
+                "player_white" => {
+                    player_white = parts[1].parse().unwrap();
+                }
+                "game_move_number" => {
+                    game_move_number = parts[1].parse().unwrap();
+                }
                 _ => {}
             }
         }
-
+    
         Ok(TimedProject {
             game_name: game_name.to_string(),
             project_start_time_timestamp,
             white_time_remaining_sec,
             black_time_remaining_sec,
-            increments_sec_sec_tuple_list,
-            timecontrol_move_min_tuple_list,
+            increments_sec_sec_key_value_list,
+            timecontrol_move_min_key_value_list,
             last_move_time,
             player_white,
             game_move_number,
         })
     }
+    
+
+
+    // use std::collections::HashMap;
+    // use std::fs::File;
+    // use std::io::{self, BufRead, BufReader};
+    
+    // fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+        
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut last_move_time: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: usize = 0;
+    
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+            
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid project_start_time_timestamp"))?,
+    //             "white_time_remaining_sec" => white_time_remaining_sec = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "black_time_remaining_sec" => black_time_remaining_sec = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid black_time_remaining_sec"))?,
+    //             "increments_sec_sec_key_value_list" => {
+    //                 let increments_map: HashMap<u32, u32> = string_to_hashmap(parts[1]);
+    //                 increments_sec_sec_key_value_list = convert_to_named_tuple_map(increments_map);
+    //             },
+    //             "timecontrol_move_min_key_value_list" => {
+    //                 let timecontrol_map: HashMap<u32, u32> = string_to_hashmap(parts[1]);
+    //                 timecontrol_move_min_key_value_list = convert_to_named_tuple_map(timecontrol_map);
+    //             },
+    //             "last_move_time" => last_move_time = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid last_move_time"))?,
+    //             "player_white" => player_white = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid player_white"))?,
+    //             "game_move_number" => game_move_number = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid game_move_number"))?,
+    //             _ => {}
+    //         }
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+    
+
+    // fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     println!("Starting load_from_txt()");
+
+    //     // Define the path to read from
+    //     let path = format!("games/{}/time_data.txt", game_name);
+        
+    //     // Initialize variables to hold data read from the file
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut last_move_time: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: usize = 0;
+
+    //     // Open and read the file line by line
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+
+
+    //         // let increments_str = "0,30-300,10-30,5";
+    //         let increments_map: HashMap<u32, u32> = string_to_hashmap(&increments_str);
+            
+    //         // let timecontrol_str = "40,60-100,15";
+    //         let timecontrol_map: HashMap<u32, u32> = string_to_hashmap(&timecontrol_str);
+            
+    //         // let increments_str_converted = hashmap_to_string(&increments_map);
+    //         // let timecontrol_str_converted = hashmap_to_string(&timecontrol_map);
+            
+
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "white_time_remaining_sec" => white_time_remaining_sec= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "black_time_remaining_sec" => black_time_remaining_sec= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+
+    //             "increments_sec_sec_key_value_list" => increments_sec_sec_key_value_list = increments_map,
+    //             "timecontrol_move_min_key_value_list" => timecontrol_move_min_key_value_list = timecontrol_map,
+    
+
+    //             // "increments_sec_sec_key_value_list" => increments_sec_sec_key_value_list= parts[4].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             // "timecontrol_move_min_key_value_list" => timecontrol_move_min_key_value_list= parts[5].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "last_move_time" => last_move_time= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "player_white" => player_white= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "game_move_number" => game_move_number= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             _ => {}
+    //         }
+    //     }
+
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
 
 
     // fn process_chess_time_file(game_name: &str) -> String {
@@ -6258,8 +6463,8 @@ first question: how do you recommend storing the tuple data?
     //         project_start_time_timestamp: 0,
     //         white_time_remaining_sec:
     //         black_time_remaining_sec:
-    //         increments_sec_sec_tuple_list: vec![],
-    //         timecontrol_move_min_tuple_list: vec![],
+    //         increments_sec_sec_key_value_list: vec![],
+    //         timecontrol_move_min_key_value_list: vec![],
     //         last_move_time: 0,
     //         player_white: true,
     //         game_move_number: 0,
@@ -6303,7 +6508,7 @@ let increments_str = "0,30-300,10-30,5";
 let increments_map: HashMap<u32, u32> = string_to_specialized_map(&increments_str);
 
 let timecontrol_str = "40,60-100,15";
-let timecontrol_map: HashMap<u16, u16> = string_to_specialized_map(&timecontrol_str);
+let timecontrol_map: HashMap<u32, u32> = string_to_specialized_map(&timecontrol_str);
 
 let increments_str_converted = specialized_map_to_string(&increments_map);
 let timecontrol_str_converted = specialized_map_to_string(&timecontrol_map);
@@ -6406,90 +6611,6 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
 }
 
 
-
-
-
-
-
-// use std::collections::HashMap;
-use std::fmt::Display;
-
-// /// Converts a file-string to a HashMap
-// pub fn string_to_hashmap<K, V1, V2>(file_str: &str) -> HashMap<K, (V1, V2)> 
-// where
-//     K: std::str::FromStr + std::hash::Hash + Eq,
-//     V1: std::str::FromStr,
-//     V2: std::str::FromStr,
-//     <K as std::str::FromStr>::Err: std::fmt::Debug,
-//     <V1 as std::str::FromStr>::Err: std::fmt::Debug,
-//     <V2 as std::str::FromStr>::Err: std::fmt::Debug,
-// {
-//     let mut map = HashMap::new();
-//     for entry in file_str.split(';') {
-//         let parts: Vec<&str> = entry.split(':').collect();
-//         if parts.len() == 2 {
-//             if let (Ok(key), Ok(val1), Ok(val2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
-//                 map.insert(key, (val1, val2));
-//             }
-//         }
-//     }
-//     map
-// }
-
-// /// Converts a HashMap to a file-string
-// pub fn hashmap_to_string<K, V1, V2>(map: &HashMap<K, (V1, V2)>) -> String
-// where
-//     K: Display,
-//     V1: Display,
-//     V2: Display,
-// {
-//     map.iter()
-//         .map(|(key, (val1, val2))| format!("{}:{}-{}", key, val1, val2))
-//         .collect::<Vec<String>>()
-//         .join(";")
-// }
-
-
-// use std::collections::HashMap;
-
-
-// use std::collections::HashMap;
-// use std::hash::Hash;
-// use std::cmp::Eq;
-
-// /// Converts a specialized file-string to a HashMap
-// pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
-// where
-//     V1: std::str::FromStr,
-//     V2: std::str::FromStr,
-//     <V1 as std::str::FromStr>::Err: std::fmt::Debug,
-//     <V2 as std::str::FromStr>::Err: std::fmt::Debug,
-// {
-//     let mut map = HashMap::new();
-//     let pairs = file_str.split('-').collect::<Vec<&str>>();
-//     for pair in pairs.chunks(2) {
-//         if pair.len() == 2 {
-//             if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
-//                 map.insert(key, value);
-//             }
-//         }
-//     }
-//     map
-// }
-
-// /// Converts a HashMap to a specialized file-string
-// pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
-// where
-//     V1: std::fmt::Display,
-//     V2: std::fmt::Display,
-// {
-//     let entries: Vec<String> = map
-//         .iter()
-//         .map(|(key, value)| format!("{},{}", key, value))
-//         .collect();
-//     entries.join("-")
-// }
-
 use core::hash::Hash;
 // use std::hash::Hash;
 
@@ -6512,6 +6633,7 @@ where
     }
     map
 }
+
 
 /// Converts a HashMap to a specialized file-string
 pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String

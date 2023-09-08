@@ -1,7 +1,133 @@
 
 Rust project: 
 
+for this struct:
+struct TimedProject {
+    game_name: String, // The name of the game
+    project_start_time_timestamp: u64, // Timestamp when the project started
+    white_time_remaining_sec: u32, // Remaining time for white player in seconds
+    black_time_remaining_sec: u32, // Remaining time for black player in seconds
+    // HashMap containing increment settings
+    increments_sec_sec_key_value_list: HashMap<String, (u32, u32)>,
+    // HashMap containing time control settings
+    timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)>,
+    last_move_time: u64, // Timestamp of the last move
+    player_white: bool, // Indicates if the player is white
+    game_move_number: usize, // Current move number in the game
+}
 
+
+especially for these hash tables:
+    // HashMap containing increment settings
+    increments_sec_sec_key_value_list: HashMap<String, (u32, u32)>,
+    // HashMap containing time control settings
+    timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)>,
+
+
+for this string input format:
+incrimentsecsec-0,30-300,10-30,5
+timecontrolmovemin-0,240-40,30-60,15
+
+please help with functions to extract the key-value pairs
+(pairs is - delimited)
+(key-value are , delimited)
+note, a second value for timecontrolmovemin-0,240-40,30-60,15
+e.g.
+timecontrolmovemin-0,240,5-40,30,30-60,15,10
+would set the time-incriment at that move
+
+the not-working function is here:
+
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
+
+        println!("starting from_increment_and_time_control() input: {}", input);
+        println!("starting from_increment_and_time_control() game_name: {}", game_name);
+
+
+        // Determine the current POSIX timestamp in seconds
+        let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs(),
+            Err(_) => {
+                println!("An error occurred while obtaining system time");
+                return None; // Return None to align with function's return type
+            }
+        };
+
+        // Split the input into segments by underscores
+        let segments: Vec<&str> = input.split('_').collect();
+        
+        if segments.len() < 2 {
+            return None;
+        }
+
+        let project_start_time_timestamp: u64 = current_timestamp;
+        let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut white_time_remaining_sec: u32 = 0;
+        let mut black_time_remaining_sec: u32 = 0;
+
+        // Parse the remaining segments
+        for segment in &segments[1..] {
+            println!("in from_increment_and_time_control() this segment: {}", segment);
+
+            if *segment == "norway120" || *segment == "norwayarmageddon" {
+                return TimedProject::from_preset_time_modes_chess(segment, &game_name);
+            }
+
+            let mut iter = segment.split('(');
+            let control_type = iter.next()?;
+            
+            // Gather all tuples
+            let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
+            let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
+    
+            for tuple_str in tuple_strs {
+                if tuple_str.is_empty() {
+                    continue;
+                }
+                
+                let elements: Vec<u32> = tuple_str.split(',')
+                    .filter_map(|x| x.parse().ok())
+                    .collect();
+                
+                if elements.len() != 2 {
+                    return None;
+                }
+
+                // Match the control type and process accordingly
+                match control_type {
+                    "incrementseconds" => {
+                        increments_sec_sec_key_value_list.push((elements[0], elements[1]));
+                    },
+                    "timecontrolmin" => {
+                        if elements[0] == 0 {
+                            white_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+                            black_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+                        }
+                        timecontrol_move_min_key_value_list.push((elements[0] as u32, elements[1] as u32));
+                    },
+                    _ => return None,
+                }
+            }
+        }
+
+        // Create and return the TimedProject struct
+        Some(TimedProject {
+            game_name: game_name.to_string(),
+            project_start_time_timestamp,
+            white_time_remaining_sec,
+            black_time_remaining_sec,
+            increments_sec_sec_key_value_list,
+            timecontrol_move_min_key_value_list,
+            last_move_time: 0,
+            player_white: true,
+            game_move_number: 0,
+        })
+    }
+
+note: please do not talk about other sujects such as the whole impl, I am NOT asking about that.
+
+//////////
 
 Three functionst that work together related to time based around a struct:
 
@@ -39,6 +165,9 @@ game_move_number: 0
 
 
 Tasks:
+
+1. maybe need to change input format...basically dropping the parenthesis...
+
 
 1. update the struct so that it uses a hashmap and not a list of tuples
 Let's use a hashmap (~dictionary) use std::collections::HashMap;
