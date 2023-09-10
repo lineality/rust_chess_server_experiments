@@ -1,5 +1,81 @@
 
 Rust project: 
+manual specificaiton string input examples:
+(for timecontrolmovemin, the first number is move-number,
+the second number in min, but data in system is posix seconds)
+
+timecontrolmovemin-61,30
+
+incrimentsecsec-wb,0,7200-wb,40,3600-wb,60,900
+or (for a setting like norway armegeddon)
+timecontrolmoveminsecinc-w,0,5-b,0,4-wb,60,0,3
+
+preset formats string input examples:
+norway120 
+norwayarmageddon 
+fideworldchampmatch 
+
+
+update struct fields...
+
+/////
+
+
+sorry I may have confused this with my last question:
+there are four hash tables of key value pairs,
+which are ~clearly named in the names of the four tables:
+
+white_increments_sec_sec_key_value_list,
+black_increments_sec_sec_key_value_list,
+=
+key: seconds in time-time when incriment starts; value1: seconds added at each turn
+
+
+white_timecontrol_move_min_incrsec_key_value_list,
+black_timecontrol_move_min_incrsec_key_value_list,
+=
+key: move_number when time_control (and or incriment) starts; value1: minutes added to clock; value2: new incriment in seconds
+
+
+
+////////////
+
+of course! Thank you for the clear question. How about this: manual specificaiton string input examples:
+(for timecontrolmovemin, the first number is move-number,
+the second number in min, but data in system is posix seconds)
+
+timecontrolmovemin-61,30
+
+incrimentsecsec-wb,0,7200-wb,40,3600-wb,60,900
+or (for a setting like norway armegeddon)
+timecontrolmovemin-w,0,5-b,0,4-wb,60,0,3
+
+preset formats string input examples:
+norway120 
+norwayarmageddon 
+fideworldchampmatch  
+
+
+note: there can/will be seperate sub-functions where needed. there are many functions in this whole struct and pipelie, but we are just starting at the beginning here.  
+e.g. 
+impl TimedProject {
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
+    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
+    pub fn to_html(&self) -> String {
+    fn save_time_data_to_txt(&self) -> std::io::Result<()> {
+    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+}
+fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
+fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
+fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
+pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
+pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
+
+
+////////////////
+
+please check and fix this function for this struct
+without removing the comment explanations (clarity is required)
 
 for this struct:
 struct TimedProject {
