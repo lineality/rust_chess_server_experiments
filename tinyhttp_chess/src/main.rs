@@ -6562,24 +6562,26 @@ impl TimedProject {
 
     */
 
-    pub fn to_html(&self) -> String {
+    pub fn get_html_and_update_struct(&self) -> String {
         /*
+        probably the input needs to be game_name,
+        it pulls up the struct,
+        then saves it back.
+
         TODO
         unless there is another wrapper layer (or should be)
-        this should read the file, generate html, save the file, 
+        this should read the struct, update the data, generate html, 
+        maybe updata data more, then save the file, 
         done, no other state saved.
 
-        all processing logic should probaly be in one place,
-        probably the read_from_file
-        maybe read_from_file_and_update would be a better name:
-        
+
         */
 
         // Logging for debugging purposes; will not appear in the final HTML
-        println!("Starting to_html() function");
+        println!("Starting get_html_and_update_struct() function");
         
         // Determine the current POSIX timestamp in seconds
-        let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+        let current_timestamp_64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
             Ok(duration) => duration.as_secs(),
             Err(_) => {
                 println!("An error occurred while obtaining system time");
@@ -6589,9 +6591,9 @@ impl TimedProject {
 
         // Calculate the remaining time for the current player
         let current_player_time_remaining = if self.player_white {
-            self.white_time_remaining_sec.saturating_sub((current_timestamp - self.last_move_time) as u32)
+            self.white_time_remaining_sec.saturating_sub((current_timestamp_64 - self.last_move_time) as u32)
         } else {
-            self.black_time_remaining_sec.saturating_sub((current_timestamp - self.last_move_time) as u32)
+            self.black_time_remaining_sec.saturating_sub((current_timestamp_64 - self.last_move_time) as u32)
         };
 
         // Determine whose turn it is based on the game_move_number
@@ -6604,7 +6606,7 @@ impl TimedProject {
         // Placeholder calculations for time controls and increments
         // These should be replaced with the actual logic
 
-        // this line makes no sense...no. 
+        // this line makes no sense...TODO fix this
         let next_time_control_at_move = self.game_move_number + 10;
         let next_time_control_adds_min = 5;
         let current_increment_sec = 30;
