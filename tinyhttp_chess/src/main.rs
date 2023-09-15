@@ -1,6 +1,7 @@
 /*
-http://0.0.0.0:8000/game/Pc2c4
 RUST_BACKTRACE=full cargo run
+
+http://0.0.0.0:8000/game/Pc2c4
 
 http://0.0.0.0:8000/setup/chess/katsu/katsudan
 http://0.0.0.0:8000/game/Pc2c4
@@ -246,6 +247,15 @@ Goals & Rules:
 - resource efficiency and robustness are important
 
 Process outline: (draft):
+1 make struct from inputs
+2 save struct as file 
+3 read file to make struct 
+4. update struct
+5. make html (before or after various updates)
+make html
+6. re-write file from struct (same as first step-ish?)
+
+
 - get game-state from saved file
 - load game state
 - get move data in a get-request
@@ -2035,7 +2045,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // make a game_data json
 
         // Posix Timestamp for game_timestamp and activity_timestamp
-        let this_timestamp: u128 = timestamp();
+        let this_timestamp: u128 = timestamp_128();
 
 
         // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
@@ -2150,7 +2160,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // make a game_data json
 
         // Posix Timestamp for game_timestamp and activity_timestamp
-        let this_timestamp: u128 = timestamp();
+        let this_timestamp: u128 = timestamp_128();
 
 
         // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
@@ -2274,7 +2284,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
         // make a game_data json
 
         // Posix Timestamp for game_timestamp and activity_timestamp
-        let this_timestamp: u128 = timestamp();
+        let this_timestamp: u128 = timestamp_128();
 
 
         // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
@@ -2639,7 +2649,17 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     }
 
 
-    fn timestamp() -> u128 {
+    fn timestamp_64() -> u64 {
+        match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs() as u64,
+            Err(error) => {
+                eprintln!("Error: {}", error);
+                0
+            }
+        }
+    }
+
+    fn timestamp_128() -> u128 {
         match SystemTime::now().duration_since(UNIX_EPOCH) {
             Ok(duration) => duration.as_secs() as u128,
             Err(error) => {
@@ -2648,7 +2668,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             }
         }
     }
-
 
 
     fn remove_duplicates(input_string: &str) -> String {
@@ -5905,7 +5924,7 @@ Time Modes
 
 struct TimedProject {
     game_name: String, // The name of the game
-    project_start_time_timestamp: u128, // Timestamp when the project started
+    project_start_time_timestamp: u64, // Timestamp when the project started
     white_time_remaining_sec: u32, // Remaining time for white player in seconds
     black_time_remaining_sec: u32, // Remaining time for black player in seconds
 
@@ -5927,7 +5946,7 @@ impl TimedProject {
 
     fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
         // Get the current timestamp
-        let current_timestamp = timestamp();
+        let current_timestamp = timestamp_64();
         // Split the input string by '-'
         let segments: Vec<&str> = input.split('-').collect();
         if segments.len() < 2 {
@@ -6171,7 +6190,7 @@ impl TimedProject {
                 
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
                     white_time_remaining_sec: 7200,
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
@@ -6191,7 +6210,7 @@ impl TimedProject {
 
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
                     white_time_remaining_sec: 300,  // 5 min for white
                     black_time_remaining_sec: 240,  // four mins for black
                     white_increments_sec_sec_key_value_list,
@@ -6224,7 +6243,7 @@ impl TimedProject {
 
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
                     white_time_remaining_sec: 7200,
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
@@ -6585,7 +6604,8 @@ impl TimedProject {
         // Placeholder calculations for time controls and increments
         // These should be replaced with the actual logic
 
-        // this line makes no sense...no. let next_time_control_at_move = self.game_move_number + 10;
+        // this line makes no sense...no. 
+        let next_time_control_at_move = self.game_move_number + 10;
         let next_time_control_adds_min = 5;
         let current_increment_sec = 30;
         let next_increment_time = "05:00";
@@ -6633,8 +6653,10 @@ impl TimedProject {
                 writeln!(file, "project_start_time_timstamp: {}", self.project_start_time_timestamp)?;
                 writeln!(file, "white_time_remaining_sec: {}", self.white_time_remaining_sec)?;
                 writeln!(file, "black_time_remaining_sec: {}", self.black_time_remaining_sec)?;
-                writeln!(file, "increments_sec_sec_key_value_list: {:?}", self.increments_sec_sec_key_value_list)?;
-                writeln!(file, "timecontrol_move_min_key_value_list: {:?}", self.timecontrol_move_min_key_value_list)?;
+                writeln!(file, "white_increments_sec_sec_key_value_list: {:?}", self.white_increments_sec_sec_key_value_list)?;
+                writeln!(file, "black_increments_sec_sec_key_value_list: {:?}", self.black_increments_sec_sec_key_value_list)?;
+                writeln!(file, "white_timecontrol_move_min_incrsec_key_value_list: {:?}", self.white_timecontrol_move_min_incrsec_key_value_list)?;
+                writeln!(file, "black_timecontrol_move_min_incrsec_key_value_list: {:?}", self.black_timecontrol_move_min_incrsec_key_value_list)?;
                 writeln!(file, "last_move_time: {}", self.last_move_time)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
@@ -6659,12 +6681,15 @@ impl TimedProject {
         let mut project_start_time_timestamp: u64 = 0;
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
-        let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
-        let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+        let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+        let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+        let mut white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
         let mut last_move_time: u64 = 0;
         let mut player_white: bool = true;
         let mut game_move_number: u16 = 0;
-    
+
+
         for line in reader.lines() {
             let line = line?;
             let parts: Vec<&str> = line.split(": ").collect();
@@ -6679,11 +6704,17 @@ impl TimedProject {
                 "black_time_remaining_sec" => {
                     black_time_remaining_sec = parts[1].parse().unwrap();
                 }
-                "increments_sec_sec_key_value_list" => {
-                    increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
+                "white_increments_sec_sec_key_value_list" => {
+                    white_increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
                 }
-                "timecontrol_move_min_key_value_list" => {
-                    timecontrol_move_min_key_value_list = string_to_hashmap(parts[1]);
+                "black_increments_sec_sec_key_value_list" => {
+                    black_increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
+                }
+                "white_timecontrol_move_min_incrsec_key_value_list" => {
+                    white_timecontrol_move_min_incrsec_key_value_list = string_to_tuple_hashmap(parts[1]);
+                }
+                "black_timecontrol_move_min_incrsec_key_value_list" => {
+                    black_timecontrol_move_min_incrsec_key_value_list = string_to_tuple_hashmap(parts[1]);
                 }
                 "last_move_time" => {
                     last_move_time = parts[1].parse().unwrap();
@@ -6703,15 +6734,19 @@ impl TimedProject {
             project_start_time_timestamp,
             white_time_remaining_sec,
             black_time_remaining_sec,
-            increments_sec_sec_key_value_list,
-            timecontrol_move_min_key_value_list,
+            white_increments_sec_sec_key_value_list,
+            black_increments_sec_sec_key_value_list,
+            white_timecontrol_move_min_incrsec_key_value_list,
+            black_timecontrol_move_min_incrsec_key_value_list,
             last_move_time,
             player_white,
             game_move_number,
         })
     }
     
-
+    // use std::collections::HashMap;
+    // use std::io::{self, BufReader, Lines};
+    // use std::fs::File;
 
     // use std::collections::HashMap;
     // use std::fs::File;
@@ -7004,29 +7039,46 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
 }
 
 
-use core::hash::Hash;
-// use std::hash::Hash;
+// use core::hash::Hash;
+// // use std::hash::Hash;
 
-/// Converts a specialized file-string to a HashMap
-pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
-    where
-        V1: std::str::FromStr + Hash + Eq,
-        V2: std::str::FromStr,
-        <V1 as std::str::FromStr>::Err: std::fmt::Debug,
-        <V2 as std::str::FromStr>::Err: std::fmt::Debug,
-    {
-        let mut map = HashMap::new();
-        let pairs = file_str.split('-').collect::<Vec<&str>>();
-        for pair in pairs.chunks(2) {
-            if pair.len() == 2 {
-                if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
-                    map.insert(key, value);
-                }
+// /// Converts a specialized file-string to a HashMap
+// pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
+//     where
+//         V1: std::str::FromStr + Hash + Eq,
+//         V2: std::str::FromStr,
+//         <V1 as std::str::FromStr>::Err: std::fmt::Debug,
+//         <V2 as std::str::FromStr>::Err: std::fmt::Debug,
+//     {
+//         let mut map = HashMap::new();
+//         let pairs = file_str.split('-').collect::<Vec<&str>>();
+//         for pair in pairs.chunks(2) {
+//             if pair.len() == 2 {
+//                 if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
+//                     map.insert(key, value);
+//                 }
+//             }
+//         }
+//         map
+//     }
+
+
+// use std::collections::HashMap;
+
+/// Converts a specialized file-string to a HashMap<u32, u32>
+pub fn string_to_hashmap(file_str: &str) -> HashMap<u32, u32> {
+    let mut map = HashMap::new();
+    let pairs = file_str.split('-').collect::<Vec<&str>>();
+    
+    for pair in pairs.chunks(2) {
+        if pair.len() == 2 {
+            if let (Ok(key), Ok(value)) = (pair[0].parse::<u32>(), pair[1].parse::<u32>()) {
+                map.insert(key, value);
             }
         }
-        map
     }
-
+    map
+}
 
 /// Converts a HashMap to a specialized file-string
 pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
@@ -7040,3 +7092,18 @@ pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
             .collect();
         entries.join("-")
     }
+
+
+
+pub fn string_to_tuple_hashmap(input: &str) -> HashMap<u32, (u32, u32)> {
+    let mut map = HashMap::new();
+    for item in input.split(',') {
+        let parts: Vec<&str> = item.split(' ').collect();
+        if parts.len() == 3 {
+            if let (Ok(key), Ok(value1), Ok(value2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
+                map.insert(key, (value1, value2));
+            }
+        }
+    }
+    map
+}
