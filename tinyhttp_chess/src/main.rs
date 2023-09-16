@@ -1014,7 +1014,15 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 //     eprintln!("Failed to respond to request: {}", e);
                 // }
 
+                /*
+                can the html call a function to get updated time data...or display
+                updated time data now?
 
+
+                
+                e.g. by refresh?
+
+                */
                 let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                     Ok(_) => { // Changed svg_content to _
                         let html_content = format!(r#"
