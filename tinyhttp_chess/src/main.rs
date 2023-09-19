@@ -6029,6 +6029,39 @@ impl TimedProject {
     }
 
 
+    // Updates fields related to the last move
+    fn update_after_move(&mut self, move_data: &str) {
+        /* 
+        update timestamp
+        if letter in move data is capital that's white
+        if white moves, player_white: false
+        if black moves, player_white: true
+        if player_white changes, THEN game_move_number += 1
+        */
+
+        // Update last move time
+        self.last_move_time = timestamp_64();
+        
+        // Store the old player color
+        let old_is_white = self.player_white;
+
+        // Check if the move is by white or black based on the case of the first two letters
+        let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+        // Logic to toggle player_white and update game_move_number
+        if is_white_move {
+            self.player_white = false;
+        } else {
+            self.player_white = true;
+        }
+
+        // Last, increment game move number only if player color changed
+        if old_is_white != self.player_white {
+            self.game_move_number += 1;
+        }
+    }
+
+    
     // fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
     //     let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
     //         Ok(duration) => duration.as_secs(),
