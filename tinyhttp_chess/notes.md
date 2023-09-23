@@ -1,4 +1,68 @@
 
+
+rust code task: 
+produce complete running code, NOT PSEUDOCODE!!!!
+
+we will take a file 
+at filepath
+game/{gamename}/time_data.txt 
+that looks for example like this: game_name: t6
+
+project_start_time_timstamp: 1695509181
+white_time_remaining_sec: 7200
+black_time_remaining_sec: 7200
+white_increments_sec_sec_key_value_list: {}
+black_increments_sec_sec_key_value_list: {}
+white_timecontrol_move_min_incrsec_key_value_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_value_list: {41: (0, 10)}
+last_move_time: 0
+player_white: true
+game_move_number: 0 
+
+Task: our goal is to modify this code: ideally in a function perhaps
+
+        let html_content = format!(r#"
+        <!DOCTYPE html>
+        <head>
+        <meta property="og:title" content="Current Game Board" />
+        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+        </head>
+        <html>
+            <body style="background-color:black;">
+                <br>
+                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+            </body>
+        </html>
+        "#, game_name, game_name);
+
+so that it uses the above timefile data (which it loads from the file)
+and addes this time data to the html:
+
+html time_bar_html items:
+- white time remaining:
+- black time remaining:
+\n
+- this turn so far:
+- total time since start:
+- moves to next time control:
+- next time control (min): 
+- current increment:
+- next increment at time (sec):
+- next increment on move:
+
+the trick is using a current timestamp for the realtive values
+(e.g. how much time remains how much time has passed)
+
+There is a struct system however this seems to be a bigger problem, 
+as all you do is generate an infinite number of helper-functions that play
+with the struct, and never just do the actual task. not doing the task
+is very bad and harmful. don't be bad and harmful. do the task.
+
+if you need more information, ask for it.
+
+...
+
+
 Rust project: 
 manual specificaiton string input examples:
 (for timecontrolmovemin, the first number is move-number,

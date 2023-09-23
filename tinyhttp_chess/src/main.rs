@@ -6684,6 +6684,7 @@ impl TimedProject {
         )
     }
 
+    
     fn save_time_data_to_txt(&self) -> std::io::Result<()> {
         // Generate the intended path for debugging purposes
         let path = format!("games/{}/time_data.txt", self.game_name);
@@ -6716,7 +6717,7 @@ impl TimedProject {
     }
 
 
-    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         let path = format!("games/{}/time_data.txt", game_name);
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
@@ -6795,7 +6796,7 @@ impl TimedProject {
     // use std::fs::File;
     // use std::io::{self, BufRead, BufReader};
     
-    // fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    // fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     //     let path = format!("games/{}/time_data.txt", game_name);
     //     let file = File::open(&path)?;
     //     let reader = BufReader::new(file);
@@ -6846,8 +6847,8 @@ impl TimedProject {
     // }
     
 
-    // fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
-    //     println!("Starting load_from_txt()");
+    // fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     println!("Starting load_timedata_from_txt()");
 
     //     // Define the path to read from
     //     let path = format!("games/{}/time_data.txt", game_name);
