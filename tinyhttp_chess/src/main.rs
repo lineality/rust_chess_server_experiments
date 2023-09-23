@@ -588,7 +588,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
-                    println!("ip_string: {}", ip_string);
+                    // println!("ip_string: {}", ip_string);
                     let alternating_stamp = str_filter_alternating(&ip_string);
                     let reduced_ip_stamp = remove_duplicates(&alternating_stamp);
 
