@@ -1026,22 +1026,13 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 e.g. by refresh?
 
                 */
+
                 let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                     Ok(_) => { // Changed svg_content to _
-                        let html_content = format!(r#"
-                        <!DOCTYPE html>
-                        <head>
-                        <meta property="og:title" content="Current Game Board" />
-                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-                        </head>
-                        <html>
-                            <body style="background-color:black;">
-                                <br>
-                                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-                            </body>
-                        </html>
-                        "#, game_name, game_name);
-                
+                        // let html_content = wrapper_move_update_and_make_html(game_name: &str, move_data: &str );
+
+                        let html_content = wrapper_move_update_and_make_html(&game_name, &move_data);
+
                         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
                             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
                             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
@@ -1056,6 +1047,39 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+
+
+                // works
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(_) => { // Changed svg_content to _
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <head>
+                //         <meta property="og:title" content="Current Game Board" />
+                //         <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                //         </head>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+                //             </body>
+                //         </html>
+                //         "#, game_name, game_name);
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
                 
 
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
@@ -6411,10 +6435,80 @@ impl TimedProject {
     }
 
 
+    // // Wrapper for use-case 1: Create or update struct and make HTML
+    // pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
+    //     let mut project = Self::load_timedata_from_txt(game_name)?;
+
+    //     // Update the struct using the update_timedata_after_move function
+    //     project.update_timedata_after_move(move_data);
+        
+    //     // Generate the HTML content using the updated struct
+    //     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
+    // }
+
+
+    // // Wrapper for use-case 2: Load text file and make HTML
+    // pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
+    //     let current_timestamp = timestamp_64();
+
+    //     // Load the TimedProject struct from the text file
+    //     let project = Self::load_timedata_from_txt(game_name)?;
+
+    //     // Generate the HTML content using the loaded struct
+    //     Ok(Self::generate_html_with_time_data(&project, current_timestamp))
+    // }
+
 
     // End of struct implimentation: TimedProject
 }
 
+
+
+// // Wrapper for use-case 1: Create or update struct and make HTML
+// pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
+//     let mut project = Self::load_timedata_from_txt(game_name)?;
+
+//     // Update the struct using the update_timedata_after_move function
+//     project.update_timedata_after_move(move_data);
+    
+//     // Generate the HTML content using the updated struct
+//     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
+// }
+
+
+// // Wrapper for use-case 2: Load text file and make HTML
+// pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
+//     let current_timestamp = timestamp_64();
+
+//     // Load the TimedProject struct from the text file
+//     let project = Self::load_timedata_from_txt(game_name)?;
+
+//     // Generate the HTML content using the loaded struct
+//     Ok(Self::generate_html_with_time_data(&project, current_timestamp))
+// }
+
+
+// Wrapper for use-case 1: Create or update struct and make HTML
+pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
+    let mut project = TimedProject::load_timedata_from_txt(game_name)?;
+    
+    // Update the struct using the update_timedata_after_move function
+    project.update_timedata_after_move(move_data);
+    
+    // Generate the HTML content using the updated struct
+    Ok(TimedProject::generate_html_with_time_data(&project, timestamp_64()))
+}
+
+// Wrapper for use-case 2: Load text file and make HTML
+pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
+    let current_timestamp = timestamp_64();
+    
+    // Load the TimedProject struct from the text file
+    let project = TimedProject::load_timedata_from_txt(game_name)?;
+    
+    // Generate the HTML content using the loaded struct
+    Ok(TimedProject::generate_html_with_time_data(&project, current_timestamp))
+}
 
 // Helper function to parse Vec of tuples from a string
 fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
