@@ -6596,13 +6596,13 @@ fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
 fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
     let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
         .iter()
-        .find(|&&(&k, _)| k > project.game_move_number as u32)  // Explicitly specify types
+        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
         .map(|(&k, &v)| (k, v.0))
         .unwrap_or((0, 0));
 
     let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
         .iter()
-        .find(|&&(&k, _)| k > project.game_move_number as u32) // Explicitly specify types
+        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
         .map(|(&k, &v)| (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v))
         .unwrap_or((0, 0, 0));
     
