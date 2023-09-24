@@ -377,6 +377,9 @@ To accurately identify an IP address, you need to consider all four sets of numb
 
 */
 
+
+#[warn(dead_code)]
+
 // Import Packages / Dependencies
 extern crate tiny_http;
 extern crate csv;
@@ -6329,118 +6332,13 @@ impl TimedProject {
     }
     
 
+    //v5
+    /// Generates the HTML time bar.
+    ///
+    /// This function uses the provided TimedProject instance and current timestamp
+    /// to generate an HTML time bar
     pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
-
-
-        // Calculate the time since the start of the game.
-        let time_since_start = current_timestamp - project.project_start_time_timestamp;
-    
-        // Calculate the time used so far in this turn.
-        let time_this_turn = current_timestamp - project.last_move_time;
-    
-
-
-        // Note: These are placeholder variables. You will need to calculate them based on your game logic.
-        let moves_to_next_time_control = 0;
-        let next_time_control_min = 0;
-        let current_increment = 0;
-        let next_increment_time = 0;
-        let next_increment_move = 0;
-    
-        // Generate the HTML content.
-        let html_content = format!(r#"
-        <!DOCTYPE html>
-        <head>
-        <meta property="og:title" content="Current Game Board" />
-        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-        </head>
-        <html>
-            <body style="background-color:black;">
-                <br>
-                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-                <div>
-                    <p>White time remaining: {}</p>
-                    <p>Black time remaining: {}</p>
-                    <p>This turn so far: {}</p>
-                    <p>Total time since start: {}</p>
-                    <p>Moves to next time control: {}</p>
-                    <p>Next time control (min): {}</p>
-                    <p>Current increment: {}</p>
-                    <p>Next increment at time (sec): {}</p>
-                    <p>Next increment on move: {}</p>
-                </div>
-            </body>
-        </html>
-        "#,
-        project.game_name,
-        project.game_name,
-        project.white_time_remaining_sec,
-        project.black_time_remaining_sec,
-        time_this_turn,
-        time_since_start,
-        moves_to_next_time_control,
-        next_time_control_min,
-        current_increment,
-        next_increment_time,
-        next_increment_move
-        );
-    
-        html_content
-    }
-    
-
-    pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
-
-
-        let mut html_output = String::new();
-    
-        // Calculate the time since the start of the game.
-        let time_since_start = current_timestamp - project.project_start_time_timestamp;
-    
-        // Calculate the time used so far in this turn.
-        let time_this_turn = current_timestamp - project.last_move_time;
-    
-        // Here, you can set the placeholder variables according to your game's specific logic.
-        // For example:
-        let moves_to_next_time_control = 0;
-        let next_time_control_min = 0;
-        let current_increment = 0;
-        let next_increment_time = 0;
-        let next_increment_move = 0;
-    
-        // Generate HTML based on conditions
-        html_output.push_str("<div>\n");
-        
-        // Always show remaining time for both players
-        html_output.push_str(&format!("- White Time Remaining: {} sec\n", project.white_time_remaining_sec));
-        html_output.push_str(&format!("- Black Time Remaining: {} sec\n", project.black_time_remaining_sec));
-        
-        // Always show these
-        html_output.push_str(&format!("- Time Spent This Turn So Far: {} sec\n", time_this_turn));
-        html_output.push_str(&format!("- Total Time Since Start of Game: {} sec\n", time_since_start));
-        html_output.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
-    
-        // Conditional HTML generation for time controls and increments
-        if !project.white_timecontrol_move_min_incrsec_key_value_list.is_empty() || !project.black_timecontrol_move_min_incrsec_key_value_list.is_empty() {
-            html_output.push_str(&format!("- Next Time-Control at Move: {}\n", moves_to_next_time_control));
-            html_output.push_str(&format!("- Next Time-Control (in minutes): {}\n", next_time_control_min));
-        }
-        
-        if !project.white_increments_sec_sec_key_value_list.is_empty() || !project.black_increments_sec_sec_key_value_list.is_empty() {
-            html_output.push_str(&format!("- Current Increment: {}\n", current_increment));
-            html_output.push_str(&format!("- Next Increment at time (sec): {}\n", next_increment_time));
-            html_output.push_str(&format!("- Next Increment on Move: {}\n", next_increment_move));
-        }
-    
-        html_output.push_str("</div>\n");
-        
-        html_output
-    }
-
-
-    // v3
-    pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
-        /* 
+          /* 
         html time_bar_html items:
         - White Time Remaining:
         - Black Time Remaining:
@@ -6464,150 +6362,32 @@ impl TimedProject {
         If they are different, print separately.
         3. 
         */
+
+
+        // Initialize the HTML string
+        let mut html_timedata_string = String::new();
+        
         // Calculate the time since the start of the game.
         let time_since_start = current_timestamp - project.project_start_time_timestamp;
-
+        
         // Calculate the time used so far in this turn.
         let time_this_turn = current_timestamp - project.last_move_time;
 
-        // Calculate moves to the next time control and time at the next time control
-        let (moves_to_next_time_control, next_time_control_seconds) = if project.player_white {
-            find_next_time_control(&project.white_timecontrol_move_min_incrsec_key_value_list, project.game_move_number)
-        } else {
-            find_next_time_control(&project.black_timecontrol_move_min_incrsec_key_value_list, project.game_move_number)
-        };
+        // Add time information to the HTML string
+        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
 
-        let next_time_control_min = next_time_control_seconds / 60;
-
-        // Initialize other variables as placeholders for now.
-        let current_increment = 0;  // TODO: Calculate current increment
-        let next_increment_time = 0;  // TODO: Calculate next increment time
-        let next_increment_move = 0;  // TODO: Calculate next increment move
-
-        // Existing HTML generation logic here
-
-        // Generate HTML based on conditions
-        html_output.push_str("<div>\n");
+        // Add move number
+        html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
         
-        // Always show remaining time for both players
-        html_output.push_str(&format!("- White Time Remaining: {} sec\n", project.white_time_remaining_sec));
-        html_output.push_str(&format!("- Black Time Remaining: {} sec\n", project.black_time_remaining_sec));
+        // Calculate and add next time control and increment details
+        // Logic to determine moves to next time control, next time control in minutes, and increments.
+        let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
-        // Always show these
-        html_output.push_str(&format!("- Time Spent This Turn So Far: {} sec\n", time_this_turn));
-        html_output.push_str(&format!("- Total Time Since Start of Game: {} sec\n", time_since_start));
-        html_output.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
-    
-        // Conditional HTML generation for time controls and increments
-        if !project.white_timecontrol_move_min_incrsec_key_value_list.is_empty() || !project.black_timecontrol_move_min_incrsec_key_value_list.is_empty() {
-            html_output.push_str(&format!("- Next Time-Control at Move: {}\n", moves_to_next_time_control));
-            html_output.push_str(&format!("- Next Time-Control (in minutes): {}\n", next_time_control_min));
-        }
-        
-        if !project.white_increments_sec_sec_key_value_list.is_empty() || !project.black_increments_sec_sec_key_value_list.is_empty() {
-            html_output.push_str(&format!("- Current Increment: {}\n", current_increment));
-            html_output.push_str(&format!("- Next Increment at time (sec): {}\n", next_increment_time));
-            html_output.push_str(&format!("- Next Increment on Move: {}\n", next_increment_move));
-        }
-    
-        html_output.push_str("</div>\n");
-        
-        html_output
+        // Add to HTML string
+        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
-        // Existing HTML generation logic here
-        // Existing HTML generation logic here
-
-        // Generate the HTML content.
-        let html_content = format!(r#"
-        <!DOCTYPE html>
-        <head>
-        <meta property="og:title" content="Current Game Board" />
-        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-        </head>
-        <html>
-            <body style="background-color:black;">
-                <br>
-                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-                <div>
-                    <p>White time remaining: {}</p>
-                    <p>Black time remaining: {}</p>
-                    <p>This turn so far: {}</p>
-                    <p>Total time since start: {}</p>
-                    <p>Moves to next time control: {}</p>
-                    <p>Next time control (min): {}</p>
-                    <p>Current increment: {}</p>
-                    <p>Next increment at time (sec): {}</p>
-                    <p>Next increment on move: {}</p>
-                </div>
-            </body>
-        </html>
-        "#,
-        project.game_name,
-        project.game_name,
-        project.white_time_remaining_sec,
-        project.black_time_remaining_sec,
-        time_this_turn,
-        time_since_start,
-        moves_to_next_time_control,
-        next_time_control_min,
-        current_increment,
-        next_increment_time,
-        next_increment_move
-        );
-    
-
-        String::from(html_content, html_output)  
-    }
-
-
-
-    // v4
-    pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
-        let mut html_output = String::new();
-    
-        // Calculate the time since the start of the game.
-        let time_since_start = current_timestamp - project.project_start_time_timestamp;
-    
-        // Calculate the time used so far in this turn.
-        let time_this_turn = current_timestamp - project.last_move_time;
-    
-        // Find the next time control based on the player's color
-        let (moves_to_next_time_control, next_time_control_seconds) = if project.player_white {
-            find_next_time_control(&project.white_timecontrol_move_min_incrsec_key_value_list, project.game_move_number)
-        } else {
-            find_next_time_control(&project.black_timecontrol_move_min_incrsec_key_value_list, project.game_move_number)
-        };
-    
-        let next_time_control_min = next_time_control_seconds / 60;
-    
-        // TODO: Calculate current_increment, next_increment_time, next_increment_move based on your game logic
-        let current_increment = 0;
-        let next_increment_time = 0;
-        let next_increment_move = 0;
-    
-        // Start generating HTML content
-        html_output.push_str("<div>\n");
-        html_output.push_str(&format!("<p>White Time Remaining: {} sec</p>\n", project.white_time_remaining_sec));
-        html_output.push_str(&format!("<p>Black Time Remaining: {} sec</p>\n", project.black_time_remaining_sec));
-        html_output.push_str(&format!("<p>Time Spent This Turn So Far: {} sec</p>\n", time_this_turn));
-        html_output.push_str(&format!("<p>Total Time Since Start of Game: {} sec</p>\n", time_since_start));
-        html_output.push_str(&format!("<p>This Game Move: {}</p>\n", project.game_move_number));
-    
-        // Conditional generation for time control
-        if !project.white_timecontrol_move_min_incrsec_key_value_list.is_empty() || !project.black_timecontrol_move_min_incrsec_key_value_list.is_empty() {
-            html_output.push_str(&format!("<p>Next Time-Control at Move: {}</p>\n", moves_to_next_time_control));
-            html_output.push_str(&format!("<p>Next Time-Control (in minutes): {}</p>\n", next_time_control_min));
-        }
-    
-        // Conditional generation for increments
-        if !project.white_increments_sec_sec_key_value_list.is_empty() || !project.black_increments_sec_sec_key_value_list.is_empty() {
-            html_output.push_str(&format!("<p>Current Increment: {}</p>\n", current_increment));
-            html_output.push_str(&format!("<p>Next Increment at Time (sec): {}</p>\n", next_increment_time));
-            html_output.push_str(&format!("<p>Next Increment on Move: {}</p>\n", next_increment_move));
-        }
-    
-        html_output.push_str("</div>\n");
-    
         // Final HTML content
         let html_content = format!(r#"
         <!DOCTYPE html>
@@ -6624,36 +6404,12 @@ impl TimedProject {
         "#,
         project.game_name,
         project.game_name,
-        html_output
+        html_timedata_string,
         );
-    
+
         html_content
     }
 
-
-    // Wrapper for use-case 1: Create or update struct and make HTML
-    pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
-        let mut project = Self::load_timedata_from_txt(game_name)?;
-
-        // Update the struct using the update_timedata_after_move function
-        project.update_timedata_after_move(move_data);
-        
-        // Generate the HTML content using the updated struct
-        Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
-    }
-    
-
-    // Wrapper for use-case 2: Load text file and make HTML
-    pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
-        let current_timestamp = timestamp_64();
-
-        // Load the TimedProject struct from the text file
-        let project = Self::load_timedata_from_txt(game_name)?;
-
-        // Generate the HTML content using the loaded struct
-        Ok(Self::generate_html_with_time_data(&project, current_timestamp))
-
-    }
 
 
     // End of struct implimentation: TimedProject
@@ -6826,103 +6582,29 @@ fn find_next_time_control(map: &HashMap<u64, (u64, u64)>, current_move: u64) -> 
 }
 
 
-    /*
-    Rust project: 
-    Three functionst that work together related to time based around a struct:
-
-    tasks:
-    A. improve system to find a good minimal format for recording a dynamic number of tuple or dictionary settings in two areas (incriments and time controls)
-    perhaps as a dictionary in a struct text file, or perhaps separate files, perhaps tuples, perhaps dictionaries. NO SERD!
-    B. impliment that for how tuple data is saves, loaded, and used to generate html
-
-    3 functions:
-    1. load data from file into a struct
-    2. update data and turn data from struct into html
-    3. save data back to file. 
-    there is no system-state memory other than that file.
-
-    first question: how do you recommend storing the tuple data?
-
-    */
-
-    // pub fn get_html_and_update_struct(&self) -> String {
-    //     /*
-    //     probably the input needs to be game_name,
-    //     it pulls up the struct,
-    //     then saves it back.
-
-    //     TODO
-    //     unless there is another wrapper layer (or should be)
-    //     this should read the struct, update the data, generate html, 
-    //     maybe updata data more, then save the file, 
-    //     done, no other state saved.
+// A helper function to add a formatted string into the html_string
+fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
+    html_string.push_str(&format!("<p>{}: {} sec</p>\n", label, value));
+}
 
 
-    //     */
+/// calculate time control and increment details.
+/// This function takes a reference to a TimedProject instance and returns a tuple
+/// containing moves to the next time control, next time control in minutes, current increment,
+/// next increment time in seconds, and next increment move.
+// Helper function
+fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
+    let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+        .iter()
+        .find(|&&(&k, _)| k > project.game_move_number as u32)  // Explicitly specify types
+        .map(|(&k, &v)| (k, v.0))
+        .unwrap_or((0, 0));
 
-    //     // Logging for debugging purposes; will not appear in the final HTML
-    //     println!("Starting get_html_and_update_struct() function");
-        
-    //     // Determine the current POSIX timestamp in seconds
-    //     let current_timestamp_64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
-    //         Ok(duration) => duration.as_secs(),
-    //         Err(_) => {
-    //             println!("An error occurred while obtaining system time");
-    //             return String::from("Error");
-    //         }
-    //     };
-
-    //     // Calculate the remaining time for the current player
-    //     let current_player_time_remaining = if self.player_white {
-    //         self.white_time_remaining_sec.saturating_sub((current_timestamp_64 - self.last_move_time) as u32)
-    //     } else {
-    //         self.black_time_remaining_sec.saturating_sub((current_timestamp_64 - self.last_move_time) as u32)
-    //     };
-
-    //     // Determine whose turn it is based on the game_move_number
-    //     let current_turn = if self.game_move_number % 2 == 0 {
-    //         "White"
-    //     } else {
-    //         "Black"
-    //     };
-
-    //     // Placeholder calculations for time controls and increments
-    //     // These should be replaced with the actual logic
-
-    //     // this line makes no sense...TODO fix this
-    //     let next_time_control_at_move = self.game_move_number + 10;
-    //     let next_time_control_adds_min = 5;
-    //     let current_increment_sec = 30;
-    //     let next_increment_time = "05:00";
-    //     let next_increment_sec = 40;
-
-    //     // Formatting the struct information into an HTML string
-    //     format!(
-    //         "<p>White Remaining: {} seconds</p>
-    //         <p>Black Remaining: {} seconds</p>
-    //         <p>Move Number: {}</p>
-    //         <p>Current Player Time Remaining: {} seconds</p>
-    //         <p>Current Turn: {}</p>
-            
-    //         <p>Time Control:</p>
-    //         <p>Next Time Control at Move: {}</p>
-    //         <p>Next Time Control Adds: {} minutes</p>
-            
-    //         <p>Increment:</p>
-    //         <p>Current Increment: {} seconds</p>
-    //         <p>Next Increment Starts at Time: {}</p>
-    //         <p>Next Increment: {} seconds</p>
-    //         ", 
-    //         self.white_time_remaining_sec,
-    //         self.black_time_remaining_sec,
-    //         self.game_move_number, 
-    //         current_player_time_remaining,  // Time remaining for the current player
-    //         current_turn, // Current turn ("White" or "Black")
-    //         next_time_control_at_move,
-    //         next_time_control_adds_min,
-    //         current_increment_sec,
-    //         next_increment_time,
-    //         next_increment_sec
-    //     )
-    // }
-
+    let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+        .iter()
+        .find(|&&(&k, _)| k > project.game_move_number as u32) // Explicitly specify types
+        .map(|(&k, &v)| (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v))
+        .unwrap_or((0, 0, 0));
+    
+    (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+}
