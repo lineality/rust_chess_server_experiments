@@ -1849,3 +1849,665 @@ if let Err(e) = request.respond(response) {
         // game_name
         let game_name = segments[0].to_string();
         println!("game_name:{}", game_name);
+        
+        
+        
+
+
+    // fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
+    //     let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+    //         Ok(duration) => duration.as_secs(),
+    //         Err(_) => return None,
+    //     };
+
+    //     let segments: Vec<&str> = input.split('-').collect();
+
+    //     if segments.len() < 2 {
+    //         return None;
+    //     }
+
+    //     let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+
+    //     let mut white_temp_timecontrol: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut black_temp_timecontrol: HashMap<u32, (u32, u32)> = HashMap::new();
+
+
+    //     let mut white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+
+    //     for segment in segments.iter().skip(1) {
+    //         let elements: Vec<&str> = segment.split(',').collect();
+
+    //         if *segment == "norway120" || *segment == "norwayarmageddon" {
+    //             return TimedProject::from_preset_time_modes_chess(segment, &game_name);
+    //         }
+
+    //         if elements.len() < 2 {
+    //             return None;
+    //         }
+
+    //         let key = elements[0].parse::<u32>().ok()?;
+    //         let value1 = elements[1].parse::<u32>().ok()?;
+    //         let value2 = elements.get(2).and_then(|x| x.parse().ok());
+
+    //         match segments[0] {
+    //             "incrimentsecsec" => {
+    //                 white_increments_sec_sec_key_value_list.insert(value1, (value2));
+    //                 black_increments_sec_sec_key_value_list.insert(value1, (value2));
+
+    //             }
+    //             "timecontrolmovemin" => {
+    //                 if key == 0 {
+    //                     white_time_remaining_sec = value1 * 60;
+    //                     black_time_remaining_sec = value1 * 60;
+    //                 }
+    //                 white_temp_timecontrol.insert(value1, (value1, value2, value3));
+    //                 black_temp_timecontrol.insert(value1, (value1, value2, value3));
+
+    //             }
+    //             _ => return None,
+    //         }
+    //     }
+
+    //     // Convert the temporary HashMap to match the struct's type
+    //     for (k, (v1, v2, v3, _)) in white_temp_timecontrol.iter() {
+    //         white_timecontrol_move_min_incrsec_key_value_list.insert(k.clone(), (*v1, *v2, *v3));
+    //     }
+
+
+    //     // Convert the temporary HashMap to match the struct's type
+    //     for (k, (v1, v2, v3, _)) in black_temp_timecontrol.iter() {
+    //         black_timecontrol_move_min_incrsec_key_value_list.insert(k.clone(), (*v1, *v2, *v3));
+    //     }
+
+    //     Some(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp: current_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         white_increments_sec_sec_key_value_list,
+    //         black_increments_sec_sec_key_value_list,
+    //         white_timecontrol_move_min_incrsec_key_value_list,
+    //         black_timecontrol_move_min_incrsec_key_value_list,
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     })
+    // }
+    
+    
+
+//     /// Create a TimedProject with preset time modes for chess games
+// pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
+//     // Key: move_number when increment starts
+//     // Value: (seconds added at each turn)
+//     let mut white_increments_map: HashMap<u32, u32> = HashMap::new();
+//     let mut black_increments_map: HashMap<u32, u32> = HashMap::new();
+
+//     // Key: move_number when time_control starts
+//     // Value: (seconds added to clock, new increment in seconds)
+//     let mut white_time_control_map: HashMap<u32, u32> = HashMap::new();
+//     let mut black_time_control_map: HashMap<u32, u32> = HashMap::new();
+
+//     // Match on provided preset string to initialize the settings
+//     match preset {
+//         // For "Norway 120" Classical Game
+//         "norway120" => {
+
+
+//             // Here we use 7200 seconds (120 minutes) as the initial time for both players.
+//             Some(Self::new(game_name, 7200, white_increments_map, black_increments_map, white_time_control_map, black_time_control_map))
+//         },
+
+//         // For "Norway Chess Armageddon"
+//         "norwayarmageddon" => {
+//             white_increments_map.insert(61, 3);  // 3-sec increment starting from 61st move
+//             black_increments_map.insert(61, 3);  // 3-sec increment starting from 61st move
+
+//             // 300 seconds (5 mins) for White, 240 seconds (4 mins) for Black
+//             Some(Self::new(game_name, 300, white_increments_map, black_increments_map, white_time_control_map, black_time_control_map))
+//         },
+
+//         // For "FIDE World Championship match"
+//         "fideworldchampmatch" => {
+//             white_increments_map.insert(61, 30);  // 30-sec increment starting from 61st move
+//             black_increments_map.insert(61, 30);  // 30-sec increment starting from 61st move
+            
+//             // Add time control after 40th move: 60 minutes
+//             white_time_control_map.insert(40, (3600, 0));
+//             black_time_control_map.insert(40, (3600, 0));
+            
+//             // Add time control after 60th move: 15 minutes
+//             white_time_control_map.insert(60, (900, 30));
+//             black_time_control_map.insert(60, (900, 30));
+
+//             // Here we use 7200 seconds (120 minutes) as the initial time for both players.
+//             Some(Self::new(game_name, 7200, white_increments_map, black_increments_map, white_time_control_map, black_time_control_map))
+//         },
+
+//         // For any other presets, we return None
+//         _ => None
+//     }
+// }
+
+
+    // fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<TimedProject> {
+
+    //     println!("starting from_increment_and_time_control() input: {}", input);
+    //     println!("starting from_increment_and_time_control() game_name: {}", game_name);
+
+
+    //     // Determine the current POSIX timestamp in seconds
+    //     let current_timestamp = match SystemTime::now().duration_since(UNIX_EPOCH) {
+    //         Ok(duration) => duration.as_secs(),
+    //         Err(_) => {
+    //             println!("An error occurred while obtaining system time");
+    //             return None; // Return None to align with function's return type
+    //         }
+    //     };
+
+    //     // Split the input into segments by underscores
+    //     let segments: Vec<&str> = input.split('_').collect();
+        
+    //     if segments.len() < 2 {
+    //         return None;
+    //     }
+
+    //     let project_start_time_timestamp: u64 = current_timestamp;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+
+    //     // Parse the remaining segments
+    //     for segment in &segments[1..] {
+    //         println!("in from_increment_and_time_control() this segment: {}", segment);
+
+    //         if *segment == "norway120" || *segment == "norwayarmageddon" {
+    //             return TimedProject::from_preset_time_modes_chess(segment, &game_name);
+    //         }
+
+    //         let mut iter = segment.split('(');
+    //         let control_type = iter.next()?;
+            
+    //         // Gather all tuples
+    //         let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
+    //         let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
+    
+    //         for tuple_str in tuple_strs {
+    //             if tuple_str.is_empty() {
+    //                 continue;
+    //             }
+                
+    //             let elements: Vec<u32> = tuple_str.split(',')
+    //                 .filter_map(|x| x.parse().ok())
+    //                 .collect();
+                
+    //             if elements.len() != 2 {
+    //                 return None;
+    //             }
+
+    //             // Match the control type and process accordingly
+    //             match control_type {
+    //                 "incrementseconds" => {
+    //                     increments_sec_sec_key_value_list.push((elements[0], elements[1]));
+    //                 },
+    //                 "timecontrolmin" => {
+    //                     if elements[0] == 0 {
+    //                         white_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+    //                         black_time_remaining_sec = elements[1] * 60;  // Convert minutes to seconds
+    //                     }
+    //                     timecontrol_move_min_key_value_list.push((elements[0] as u32, elements[1] as u32));
+    //                 },
+    //                 _ => return None,
+    //             }
+    //         }
+    //     }
+
+    //     // Create and return the TimedProject struct
+    //     Some(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     })
+    // }
+
+    
+
+    // /// Create a TimedProject from a known preset
+    // pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<TimedProject> {
+        
+      
+
+    //     println!("starting from_preset_time_modes_chess()");
+
+
+    //     match preset {
+    //         "norway120" => Some(TimedProject {
+    //             game_name: game_name.to_string(),
+    //             project_start_time_timestamp: 7200, // 120 minutes in seconds
+    //             white_time_remaining_sec: 7200, // 120 minutes in seconds
+    //             black_time_remaining_sec: 7200, // 120 minutes in seconds
+    //             increments_sec_sec_key_value_list: vec![(40, 1800)], // Add 30 minutes after move 40
+    //             timecontrol_move_min_key_value_list: vec![],
+    //             last_move_time: 0,  // Initialize missing field
+    //             player_white: true, // Initialize missing field
+    //             game_move_number: 0, // Initialize missing field
+    //         }),
+    //         "norwayarmageddon" => Some(TimedProject {
+    //             game_name: game_name.to_string(),
+    //             project_start_time_timestamp: 300, // 5 minutes in seconds
+    //             white_time_remaining_sec: 300, // 5 minutes in seconds
+    //             black_time_remaining_sec: 300, // 5 minutes in seconds
+    //             increments_sec_sec_key_value_list: vec![], // No increment
+    //             timecontrol_move_min_key_value_list: vec![],
+    //             last_move_time: 0,  // Initialize missing field
+    //             player_white: true, // Initialize missing field
+    //             game_move_number: 0, // Initialize missing field
+    //         }),
+    //         _ => None, // Unknown preset
+    //     }
+    //     }
+
+
+    // /// Create a TimedProject with preset time modes for chess games
+    // pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
+    //             /*
+    //     TODO: 
+    //     update datastructures to be hashmaps not vec
+        
+    //     add other presets: fidewcmatch
+
+    //     fideworldchampmatch
+    //     QUote: FIDE 4. 2. Time control
+    //     The time control for each game is 120 minutes for the first 40 moves, followed by 60 minutes for the next 20 moves and then 15
+    //     minutes for the rest of the game with an increment of 30 seconds per move starting from move 61.
+    //      */
+    //     println!("starting from_preset_time_modes_chess()");
+    //     // Initialize HashMaps for storing time control and increment settings
+    //     let mut increments_map: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut time_control_map: HashMap<String, (u32, u32)> = HashMap::new();
+
+    //     // Match on provided preset string
+    //     match preset {
+    //         // string notation of key values: timecontrolmovemin-wb,0,120,30-40,30
+
+    //         /*
+    //         Players start with 120 minutes on their clocks, and after each move, 
+    //         they gain additional time, usually around 30 seconds per move. 
+    //         This time increment continues until the end of the game.  
+    //         */
+    //         "norway120" => {
+    //             increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
+    //             Some(Self {
+    //                 game_name: game_name.to_string(),
+    //                 project_start_time_timestamp: 7200,  // 120 minutes in seconds
+    //                 white_time_remaining_sec: 7200,  // 120 minutes in seconds
+    //                 black_time_remaining_sec: 7200,  // 120 minutes in seconds
+    //                 increments_sec_sec_key_value_list: increments_map,
+    //                 timecontrol_move_min_key_value_list: time_control_map,
+    //                 last_move_time: 0,
+    //                 player_white: true,
+    //                 game_move_number: 0,
+    //             })
+    //         },
+    //         "norwayarmageddon" => {
+    //             /*
+    //             For Norway Chess Armageddon, there is indeed a time increment, 
+    //             but it's a bit different from traditional chess time controls. 
+    //             In Armageddon, White gets 5 minutes on the clock, 
+    //             and Black gets 4 minutes. However, there's a crucial difference:
+
+    //             White must win to claim victory, while Black only needs a draw to win the game.
+    //             To compensate for this advantage, there is a time increment after move 60. 
+    //             Starting from move 61, both players receive an additional 3 seconds per move. 
+    //             This increment helps ensure that the game doesn't go on indefinitely 
+    //             and adds a level of fairness to the Armageddon format.
+
+    //             So, to summarize, there is a time increment in Norway Chess Armageddon, 
+    //             but it starts after move 60, with both players receiving an extra 3 seconds per move.
+    //              */
+
+    //             // string notation of key values: timecontrolmovemin-w,0,5-b,0,4-wb,60,0,3
+    //             Some(Self {
+    //                 game_name: game_name.to_string(),
+    //                 project_start_time_timestamp: 300,  // 5 minutes in seconds
+    //                 white_time_remaining_sec: 300,  // 5 minutes in seconds
+    //                 black_time_remaining_sec: 240,  // 4 minutes in seconds
+    //                 increments_sec_sec_key_value_list: increments_map,
+    //                 timecontrol_move_min_key_value_list: time_control_map,
+    //                 last_move_time: 0,
+    //                 player_white: true,
+    //                 game_move_number: 0,
+    //             })
+    //         },
+    //         "fideworldchampmatch" => {
+    //             /*
+    //             TODO: 
+    //             fideworldchampmatch
+    //             QUote: FIDE 4. 2. Time control
+    //             The time control for each game is 120 minutes for the first 40 moves, 
+    //             followed by 60 minutes for the next 20 moves and then 
+    //             15 minutes for the rest of the game 
+    //             with an increment of 30 seconds per move starting from move 61.
+
+    //             string input format:
+    //             timecontrolmovemin-61,30
+    //             incrimentsecsec-wb,0,7200-wb,40,3600-wb,60,900
+    //             */
+    //             increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
+    //             Some(Self {
+    //                 game_name: game_name.to_string(),
+    //                 project_start_time_timestamp: 7200,  // 120 minutes in seconds
+    //                 white_time_remaining_sec: 7200,  // 120 minutes in seconds
+    //                 black_time_remaining_sec: 7200,  // 120 minutes in seconds
+    //                 increments_sec_sec_key_value_list: increments_map,
+    //                 timecontrol_move_min_key_value_list: time_control_map,
+    //                 last_move_time: 0,
+    //                 player_white: true,
+    //                 game_move_number: 0,
+    //             })
+    //         },
+    //         _ => None // Unknown preset returns None
+    //     }
+    // }
+
+    
+        
+    // use std::collections::HashMap;
+    // use std::io::{self, BufReader, Lines};
+    // use std::fs::File;
+
+    // use std::collections::HashMap;
+    // use std::fs::File;
+    // use std::io::{self, BufRead, BufReader};
+    
+    // fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+        
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut last_move_time: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: usize = 0;
+    
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+            
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid project_start_time_timestamp"))?,
+    //             "white_time_remaining_sec" => white_time_remaining_sec = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "black_time_remaining_sec" => black_time_remaining_sec = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid black_time_remaining_sec"))?,
+    //             "increments_sec_sec_key_value_list" => {
+    //                 let increments_map: HashMap<u32, u32> = string_to_hashmap(parts[1]);
+    //                 increments_sec_sec_key_value_list = convert_to_named_tuple_map(increments_map);
+    //             },
+    //             "timecontrol_move_min_key_value_list" => {
+    //                 let timecontrol_map: HashMap<u32, u32> = string_to_hashmap(parts[1]);
+    //                 timecontrol_move_min_key_value_list = convert_to_named_tuple_map(timecontrol_map);
+    //             },
+    //             "last_move_time" => last_move_time = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid last_move_time"))?,
+    //             "player_white" => player_white = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid player_white"))?,
+    //             "game_move_number" => game_move_number = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid game_move_number"))?,
+    //             _ => {}
+    //         }
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+    
+
+    // fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     println!("Starting load_timedata_from_txt()");
+
+    //     // Define the path to read from
+    //     let path = format!("games/{}/time_data.txt", game_name);
+        
+    //     // Initialize variables to hold data read from the file
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut increments_sec_sec_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut timecontrol_move_min_key_value_list: HashMap<String, (u32, u32)> = HashMap::new();
+    //     let mut last_move_time: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: usize = 0;
+
+    //     // Open and read the file line by line
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+
+
+    //         // let increments_str = "0,30-300,10-30,5";
+    //         let increments_map: HashMap<u32, u32> = string_to_hashmap(&increments_str);
+            
+    //         // let timecontrol_str = "40,60-100,15";
+    //         let timecontrol_map: HashMap<u32, u32> = string_to_hashmap(&timecontrol_str);
+            
+    //         // let increments_str_converted = hashmap_to_string(&increments_map);
+    //         // let timecontrol_str_converted = hashmap_to_string(&timecontrol_map);
+            
+
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => project_start_time_timestamp = parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "white_time_remaining_sec" => white_time_remaining_sec= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "black_time_remaining_sec" => black_time_remaining_sec= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+
+    //             "increments_sec_sec_key_value_list" => increments_sec_sec_key_value_list = increments_map,
+    //             "timecontrol_move_min_key_value_list" => timecontrol_move_min_key_value_list = timecontrol_map,
+    
+
+    //             // "increments_sec_sec_key_value_list" => increments_sec_sec_key_value_list= parts[4].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             // "timecontrol_move_min_key_value_list" => timecontrol_move_min_key_value_list= parts[5].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "last_move_time" => last_move_time= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "player_white" => player_white= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             "game_move_number" => game_move_number= parts[1].parse().map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid white_time_remaining_sec"))?,
+    //             _ => {}
+    //         }
+    //     }
+
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         increments_sec_sec_key_value_list,
+    //         timecontrol_move_min_key_value_list,
+    //         last_move_time,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+
+
+    // fn process_chess_time_file(game_name: &str) -> String {
+    //     println!("starting process_chess_time_file()");
+
+
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    
+    //     if !Path::new(&path).exists() {
+    //         return "".to_string();
+    //     }
+    
+    //     let file = match File::open(&path) {
+    //         Ok(f) => f,
+    //         Err(_) => return "".to_string(),
+    //     };
+    
+    //     let mut reader = BufReader::new(file);
+    //     let mut time_struct = TimedProject {
+    //         game_name: "".to_string(),
+    //         project_start_time_timestamp: 0,
+    //         white_time_remaining_sec:
+    //         black_time_remaining_sec:
+    //         increments_sec_sec_key_value_list: vec![],
+    //         timecontrol_move_min_key_value_list: vec![],
+    //         last_move_time: 0,
+    //         player_white: true,
+    //         game_move_number: 0,
+    //     };
+    
+    //     // Initialize `new_posix` and `current_increment` to remove "cannot find value" errors
+    //     let new_posix: u64 = 0; // Initialize properly
+    //     let current_increment: u64 = 0; // Initialize properly
+    
+    //     let mut this_player_time_spent = new_posix.saturating_sub(time_struct.last_move_time);
+    
+    //     // ... (rest of your code, make sure to handle errors without unwrap)
+    
+    //     "Some HTML or response".to_string() // Return value
+    // }    
+    
+    
+// use core::hash::Hash;
+// // use std::hash::Hash;
+
+// /// Converts a specialized file-string to a HashMap
+// pub fn string_to_hashmap<V1, V2>(file_str: &str) -> HashMap<V1, V2>
+//     where
+//         V1: std::str::FromStr + Hash + Eq,
+//         V2: std::str::FromStr,
+//         <V1 as std::str::FromStr>::Err: std::fmt::Debug,
+//         <V2 as std::str::FromStr>::Err: std::fmt::Debug,
+//     {
+//         let mut map = HashMap::new();
+//         let pairs = file_str.split('-').collect::<Vec<&str>>();
+//         for pair in pairs.chunks(2) {
+//             if pair.len() == 2 {
+//                 if let (Ok(key), Ok(value)) = (pair[0].parse(), pair[1].parse()) {
+//                     map.insert(key, value);
+//                 }
+//             }
+//         }
+//         map
+//     }
+
+
+// use std::collections::HashMap;
+
+    
+use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+struct TimedProject {
+    game_name: String,
+    project_start_time_timestamp: u64,
+    white_time_remaining_sec: u32,
+    black_time_remaining_sec: u32,
+    white_increments_sec_sec_key_value_list: HashMap<u32, u32>,
+    black_increments_sec_sec_key_value_list: HashMap<u32, u32>,
+    white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)>,
+    black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)>,
+    last_move_time: u64,
+    player_white: bool,
+    game_move_number: u16,
+}
+
+fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
+    // Calculate the time since the start of the game.
+    let time_since_start = current_timestamp - project.project_start_time_timestamp;
+
+    // Calculate the time used so far in this turn.
+    let time_this_turn = current_timestamp - project.last_move_time;
+
+    // Note: These are placeholder variables. You will need to calculate them based on your game logic.
+    let moves_to_next_time_control = 0;
+    let next_time_control_min = 0;
+    let current_increment = 0;
+    let next_increment_time = 0;
+    let next_increment_move = 0;
+
+    // Generate the HTML content.
+    let html_content = format!(r#"
+    <!DOCTYPE html>
+    <head>
+    <meta property="og:title" content="Current Game Board" />
+    <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+    </head>
+    <html>
+        <body style="background-color:black;">
+            <br>
+            <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+            <div>
+                <p>White time remaining: {}</p>
+                <p>Black time remaining: {}</p>
+                <p>This turn so far: {}</p>
+                <p>Total time since start: {}</p>
+                <p>Moves to next time control: {}</p>
+                <p>Next time control (min): {}</p>
+                <p>Current increment: {}</p>
+                <p>Next increment at time (sec): {}</p>
+                <p>Next increment on move: {}</p>
+            </div>
+        </body>
+    </html>
+    "#,
+    project.game_name,
+    project.game_name,
+    project.white_time_remaining_sec,
+    project.black_time_remaining_sec,
+    time_this_turn,
+    time_since_start,
+    moves_to_next_time_control,
+    next_time_control_min,
+    current_increment,
+    next_increment_time,
+    next_increment_move
+    );
+
+    html_content
+}
+
+fn main() {
+    // Example of how to get the current timestamp
+    let current_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+
+    // Dummy TimedProject for demonstration purposes
+    let project = TimedProject {
+        game_name: "t6".to_string(),
+        project_start_time_timestamp: 1695509181,
+        white_time_remaining_sec: 7200,
+        black_time_remaining_sec: 7200,
+        white_increments_sec_sec_key_value_list: HashMap::new(),
+        black_increments_sec_sec_key_value_list: HashMap::new(),
+        white_timecontrol_move_min_incrsec_key_value_list: HashMap::new(),
+        black_timecontrol_move_min_incrsec_key_value_list: HashMap::new(),
+        last_move_time: 1695509181,
+        player_white: true,
+        game_move_number: 0,
+    };
+
+    let html_content = generate_html_with_time_data(&project, current_timestamp);
+    println!("{}", html_content);
+}
