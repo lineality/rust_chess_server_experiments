@@ -1361,7 +1361,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                     // time_setup
                     // check for game-modes
-                    time_data_parse_setup_string(&raw_game_name_section);
+                    timedata_parse_setup_string(&raw_game_name_section);
 
                 }
 
@@ -5952,8 +5952,8 @@ struct TimedProject {
     black_increments_sec_sec_key_value_list: HashMap<u32, u32>,
 
     // HashMap containing time control settings
-    white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)>,
-    black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)>,
+    white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
+    black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
 
     last_move_time: u64, // Timestamp of the last move
     player_white: bool, // Indicates if the player is white
@@ -5975,8 +5975,8 @@ impl TimedProject {
         // Initialize empty HashMaps for storing increment and time control settings
         let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
         let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
-        let mut white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
-        let mut black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
         
         // Initialize remaining time variables
         let mut white_time_remaining_sec: u32 = 0;
@@ -6016,8 +6016,8 @@ impl TimedProject {
                         black_time_remaining_sec = value1 * 60;
                     }
                     // Insert time controls for white and black
-                    white_timecontrol_move_min_incrsec_key_value_list.insert(key, (value1, value2));
-                    black_timecontrol_move_min_incrsec_key_value_list.insert(key, (value1, value2));
+                    white_timecontrol_move_min_incrsec_key_values_list.insert(key, (value1, value2));
+                    black_timecontrol_move_min_incrsec_key_values_list.insert(key, (value1, value2));
                 }
                 _ => return None,
             }
@@ -6031,8 +6031,8 @@ impl TimedProject {
             black_time_remaining_sec,
             white_increments_sec_sec_key_value_list,
             black_increments_sec_sec_key_value_list,
-            white_timecontrol_move_min_incrsec_key_value_list,
-            black_timecontrol_move_min_incrsec_key_value_list,
+            white_timecontrol_move_min_incrsec_key_values_list,
+            black_timecontrol_move_min_incrsec_key_values_list,
             last_move_time: 0,
             player_white: true,
             game_move_number: 0,
@@ -6041,7 +6041,7 @@ impl TimedProject {
 
 
     // Updates fields related to the last move
-    fn update_after_move(&mut self, move_data: &str) {
+    fn update_timedata_after_move(&mut self, move_data: &str) {
         /* 
         update timestamp
         if letter in move data is capital that's white
@@ -6133,13 +6133,13 @@ impl TimedProject {
         // Key: move_number when time_control starts (total time on clock) / new incriment starts (time added with each move)
         // Value_1: (minutes added to clock, new increment in seconds)
         // Value_2: (seconds incriment started at that move-number)
-        let mut white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
 
         // Black Incriments
         // Key: move_number when time_control starts (total time on clock) / new incriment starts (time added with each move)
         // Value_1: (minutes added to clock, new increment in seconds)
         // Value_2: (seconds incriment started at that move-number)
-        let mut black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
 
 
 
@@ -6148,8 +6148,8 @@ impl TimedProject {
             "norway120" => {
                 // there is no time-based incriment rule
                 // 10-second increment per move starting on move 41.
-                white_timecontrol_move_min_incrsec_key_value_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41.
-                black_timecontrol_move_min_incrsec_key_value_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41. 
+                white_timecontrol_move_min_incrsec_key_values_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41.
+                black_timecontrol_move_min_incrsec_key_values_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41. 
 
                 
                 
@@ -6160,8 +6160,8 @@ impl TimedProject {
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
                     black_increments_sec_sec_key_value_list,
-                    white_timecontrol_move_min_incrsec_key_value_list,
-                    black_timecontrol_move_min_incrsec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
                     last_move_time: 0,
                     player_white: true,
                     game_move_number: 0,
@@ -6170,8 +6170,8 @@ impl TimedProject {
             "norwayarmageddon" => {
                 // there is no time-based incriment rule
                 // 3 secs increment after 61st move
-                white_timecontrol_move_min_incrsec_key_value_list.insert(61, (0, 3)); // 3 secs increment after 61st move
-                black_timecontrol_move_min_incrsec_key_value_list.insert(61, (0, 3)); // 3 secs increment after 61st move
+                white_timecontrol_move_min_incrsec_key_values_list.insert(61, (0, 3)); // 3 secs increment after 61st move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(61, (0, 3)); // 3 secs increment after 61st move
 
                 Some(Self {
                     game_name: game_name.to_string(),
@@ -6180,8 +6180,8 @@ impl TimedProject {
                     black_time_remaining_sec: 240,  // four mins for black
                     white_increments_sec_sec_key_value_list,
                     black_increments_sec_sec_key_value_list,
-                    white_timecontrol_move_min_incrsec_key_value_list,
-                    black_timecontrol_move_min_incrsec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
                     last_move_time: 0,
                     player_white: true,
                     game_move_number: 0,
@@ -6195,14 +6195,14 @@ impl TimedProject {
                 // Rule 1
                 // move_41 + 60 min
                 // 60 min = 3600 sec
-                white_timecontrol_move_min_incrsec_key_value_list.insert(41, (3600, 0)); // 30 mins increment after 40th move
-                black_timecontrol_move_min_incrsec_key_value_list.insert(41, (3600, 0)); // 30 mins increment after 40th move                
+                white_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 30 mins increment after 40th move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 30 mins increment after 40th move                
 
                 // Rule 2
                 // move_61 + 15 min + 30sec incriment
                 // 15 min = 900 sec
-                white_timecontrol_move_min_incrsec_key_value_list.insert(61, (900, 30)); // 30 mins increment after 40th move
-                black_timecontrol_move_min_incrsec_key_value_list.insert(61, (900, 30)); // 30 mins increment after 40th move                
+                white_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 30 mins increment after 40th move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 30 mins increment after 40th move                
 
         
 
@@ -6213,8 +6213,8 @@ impl TimedProject {
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
                     black_increments_sec_sec_key_value_list,
-                    white_timecontrol_move_min_incrsec_key_value_list,
-                    black_timecontrol_move_min_incrsec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
                     last_move_time: 0,
                     player_white: true,
                     game_move_number: 0,
@@ -6225,9 +6225,7 @@ impl TimedProject {
     }
 
 
-            
-    
-    fn save_time_data_to_txt(&self) -> std::io::Result<()> {
+    fn save_timedata_to_txt(&self) -> std::io::Result<()> {
         // Generate the intended path for debugging purposes
         let path = format!("games/{}/time_data.txt", self.game_name);
         println!("Attempting to save at path: {}", path);
@@ -6241,8 +6239,8 @@ impl TimedProject {
                 writeln!(file, "black_time_remaining_sec: {}", self.black_time_remaining_sec)?;
                 writeln!(file, "white_increments_sec_sec_key_value_list: {:?}", self.white_increments_sec_sec_key_value_list)?;
                 writeln!(file, "black_increments_sec_sec_key_value_list: {:?}", self.black_increments_sec_sec_key_value_list)?;
-                writeln!(file, "white_timecontrol_move_min_incrsec_key_value_list: {:?}", self.white_timecontrol_move_min_incrsec_key_value_list)?;
-                writeln!(file, "black_timecontrol_move_min_incrsec_key_value_list: {:?}", self.black_timecontrol_move_min_incrsec_key_value_list)?;
+                writeln!(file, "white_timecontrol_move_min_incrsec_key_values_list: {:?}", self.white_timecontrol_move_min_incrsec_key_values_list)?;
+                writeln!(file, "black_timecontrol_move_min_incrsec_key_values_list: {:?}", self.black_timecontrol_move_min_incrsec_key_values_list)?;
                 writeln!(file, "last_move_time: {}", self.last_move_time)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
@@ -6269,8 +6267,8 @@ impl TimedProject {
         let mut black_time_remaining_sec: u32 = 0;
         let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
         let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
-        let mut white_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
-        let mut black_timecontrol_move_min_incrsec_key_value_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
         let mut last_move_time: u64 = 0;
         let mut player_white: bool = true;
         let mut game_move_number: u16 = 0;
@@ -6291,16 +6289,16 @@ impl TimedProject {
                     black_time_remaining_sec = parts[1].parse().unwrap();
                 }
                 "white_increments_sec_sec_key_value_list" => {
-                    white_increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
+                    white_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
                 }
                 "black_increments_sec_sec_key_value_list" => {
-                    black_increments_sec_sec_key_value_list = string_to_hashmap(parts[1]);
+                    black_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
                 }
-                "white_timecontrol_move_min_incrsec_key_value_list" => {
-                    white_timecontrol_move_min_incrsec_key_value_list = string_to_tuple_hashmap(parts[1]);
+                "white_timecontrol_move_min_incrsec_key_values_list" => {
+                    white_timecontrol_move_min_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
                 }
-                "black_timecontrol_move_min_incrsec_key_value_list" => {
-                    black_timecontrol_move_min_incrsec_key_value_list = string_to_tuple_hashmap(parts[1]);
+                "black_timecontrol_move_min_incrsec_key_values_list" => {
+                    black_timecontrol_move_min_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
                 }
                 "last_move_time" => {
                     last_move_time = parts[1].parse().unwrap();
@@ -6322,8 +6320,8 @@ impl TimedProject {
             black_time_remaining_sec,
             white_increments_sec_sec_key_value_list,
             black_increments_sec_sec_key_value_list,
-            white_timecontrol_move_min_incrsec_key_value_list,
-            black_timecontrol_move_min_incrsec_key_value_list,
+            white_timecontrol_move_min_incrsec_key_values_list,
+            black_timecontrol_move_min_incrsec_key_values_list,
             last_move_time,
             player_white,
             game_move_number,
@@ -6331,37 +6329,96 @@ impl TimedProject {
     }
     
 
-
-
-    // Wrapper for use-case 1: Create or update struct and make HTML
-    pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
-        let mut project = load_timedata_from_txt(game_name)?;
-
-        // Update the struct using the update_after_move function
-        project.update_after_move(move_data);
+    pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
+        /* 
         
-        // Generate the HTML content using the updated struct
-        Ok(generate_html_with_time_data(&project, timestamp_64()))
-    }
+        
+        */
+
+        // Calculate the time since the start of the game.
+        let time_since_start = current_timestamp - project.project_start_time_timestamp;
+    
+        // Calculate the time used so far in this turn.
+        let time_this_turn = current_timestamp - project.last_move_time;
     
 
 
+        // Note: These are placeholder variables. You will need to calculate them based on your game logic.
+        let moves_to_next_time_control = 0;
+        let next_time_control_min = 0;
+        let current_increment = 0;
+        let next_increment_time = 0;
+        let next_increment_move = 0;
+    
+        // Generate the HTML content.
+        let html_content = format!(r#"
+        <!DOCTYPE html>
+        <head>
+        <meta property="og:title" content="Current Game Board" />
+        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+        </head>
+        <html>
+            <body style="background-color:black;">
+                <br>
+                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+                <div>
+                    <p>White time remaining: {}</p>
+                    <p>Black time remaining: {}</p>
+                    <p>This turn so far: {}</p>
+                    <p>Total time since start: {}</p>
+                    <p>Moves to next time control: {}</p>
+                    <p>Next time control (min): {}</p>
+                    <p>Current increment: {}</p>
+                    <p>Next increment at time (sec): {}</p>
+                    <p>Next increment on move: {}</p>
+                </div>
+            </body>
+        </html>
+        "#,
+        project.game_name,
+        project.game_name,
+        project.white_time_remaining_sec,
+        project.black_time_remaining_sec,
+        time_this_turn,
+        time_since_start,
+        moves_to_next_time_control,
+        next_time_control_min,
+        current_increment,
+        next_increment_time,
+        next_increment_move
+        );
+    
+        html_content
+    }
+    
 
-// End of struct implimentation: TimedProject
+    // Wrapper for use-case 1: Create or update struct and make HTML
+    pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
+        let mut project = Self::load_timedata_from_txt(game_name)?;
+
+        // Update the struct using the update_timedata_after_move function
+        project.update_timedata_after_move(move_data);
+        
+        // Generate the HTML content using the updated struct
+        Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
+    }
+    
+
+    // Wrapper for use-case 2: Load text file and make HTML
+    pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
+        let current_timestamp = timestamp_64();
+
+        // Load the TimedProject struct from the text file
+        let project = Self::load_timedata_from_txt(game_name)?;
+
+        // Generate the HTML content using the loaded struct
+        Ok(Self::generate_html_with_time_data(&project, current_timestamp))
+
+    }
+
+
+    // End of struct implimentation: TimedProject
 }
-
-
-// Wrapper for use-case 2: Load text file and make HTML
-pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
-    let current_timestamp = timestamp_64();
-
-    // Load the TimedProject struct from the text file
-    let project = load_timedata_from_txt(game_name)?;
-
-    // Generate the HTML content using the loaded struct
-    Ok(generate_html_with_time_data(&project, current_timestamp))
-}
-
 
 
 // Helper function to parse Vec of tuples from a string
@@ -6380,24 +6437,10 @@ fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
 }
 
 
-/*
-// to use, e.g.:
-
-let increments_str = "0,30-300,10-30,5";
-let increments_map: HashMap<u32, u32> = string_to_specialized_map(&increments_str);
-
-let timecontrol_str = "40,60-100,15";
-let timecontrol_map: HashMap<u32, u32> = string_to_specialized_map(&timecontrol_str);
-
-let increments_str_converted = specialized_map_to_string(&increments_map);
-let timecontrol_str_converted = specialized_map_to_string(&timecontrol_map);
-
-*/
-
 // Function to parse the time_section_string
-fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
+fn timedata_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
     /*
-    uses: fn handle_segment(segment: &str) -> Option<TimedProject> {
+    uses: fn handle_timedata_segment(segment: &str) -> Option<TimedProject> {
 
     This function should look at a string such as this
     thisgamename_incrimentseconds-(start,30)-(300,10)-(30,5)_timecontrolmin-(40,30)-(60,15)
@@ -6439,13 +6482,13 @@ fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedPr
     for segment in segments.iter().skip(1) {
         println!("segment: {}", segment);
 
-        projects.push(handle_segment(&game_name, segment, ));
+        projects.push(handle_timedata_segment(&game_name, segment, ));
     }
 
     // Save the parsed projects to a file at the end of the setup.
     for project in &projects {
         if let Some(valid_project) = project {
-            if let Err(e) = valid_project.save_time_data_to_txt() {
+            if let Err(e) = valid_project.save_timedata_to_txt() {
                 println!("Failed to save project: {}", e);
             }
         }
@@ -6456,7 +6499,7 @@ fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedPr
 
 
 // Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
-fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
+fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
     println!("segment: {}", segment);
     let keyword: Vec<&str> = segment.split('-').collect();
 
@@ -6491,7 +6534,7 @@ fn handle_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
 
 
 /// Converts a specialized file-string to a HashMap<u32, u32>
-pub fn string_to_hashmap(file_str: &str) -> HashMap<u32, u32> {
+pub fn string_to_hashmap_timedata(file_str: &str) -> HashMap<u32, u32> {
     let mut map = HashMap::new();
     let pairs = file_str.split('-').collect::<Vec<&str>>();
     
@@ -6505,22 +6548,22 @@ pub fn string_to_hashmap(file_str: &str) -> HashMap<u32, u32> {
     map
 }
 
-/// Converts a HashMap to a specialized file-string
-pub fn hashmap_to_string<V1, V2>(map: &HashMap<V1, V2>) -> String
-    where
-        V1: std::fmt::Display,
-        V2: std::fmt::Display,
-    {
-        let entries: Vec<String> = map
-            .iter()
-            .map(|(key, value)| format!("{},{}", key, value))
-            .collect();
-        entries.join("-")
-    }
+// /// Converts a HashMap to a specialized file-string
+// pub fn hashmap_to_string_timedata<V1, V2>(map: &HashMap<V1, V2>) -> String
+//     where
+//         V1: std::fmt::Display,
+//         V2: std::fmt::Display,
+//     {
+//         let entries: Vec<String> = map
+//             .iter()
+//             .map(|(key, value)| format!("{},{}", key, value))
+//             .collect();
+//         entries.join("-")
+//     }
 
 
 
-pub fn string_to_tuple_hashmap(input: &str) -> HashMap<u32, (u32, u32)> {
+pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
     let mut map = HashMap::new();
     for item in input.split(',') {
         let parts: Vec<&str> = item.split(' ').collect();
@@ -6551,7 +6594,6 @@ pub fn string_to_tuple_hashmap(input: &str) -> HashMap<u32, (u32, u32)> {
     there is no system-state memory other than that file.
 
     first question: how do you recommend storing the tuple data?
-
 
     */
 
