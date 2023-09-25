@@ -3397,3 +3397,183 @@ pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String>
 
 }
 
+let response = match handle_chess_move(game_name.clone(), move_data) {
+    Ok(_) => {
+        // Handle the Result returned by the function and propagate any errors using the ? operator
+        let html_content = wrapper_move_update_and_make_html(&game_name, &move_data)?;
+        
+        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+        }
+    },
+    Err(e) => {
+        eprintln!("Failed to handle move: {}", e);
+        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+    }
+};
+
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn posix_to_readable_datetime(posix_time: u64) -> String {
+    let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(posix_time);
+    match time.duration_since(UNIX_EPOCH) {
+        Ok(system_time) => {
+            let since_the_epoch = system_time.as_secs();
+            let secs = since_the_epoch % 60;
+            let minutes = (since_the_epoch / 60) % 60;
+            let hours = (since_the_epoch / 3600) % 24;
+            let days_since_epoch = since_the_epoch / 86400;
+            // 1970-01-01 was a Thursday
+            let day_of_week = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"][(days_since_epoch % 7) as usize];
+            format!("{} {:02}:{:02}:{:02}", day_of_week, hours, minutes, secs)
+        },
+        Err(e) => {
+            eprintln!("Error calculating time: {}", e);
+            String::from("Invalid time")
+        }
+    }
+}
+
+fn seconds_to_hms(seconds: u64) -> String {
+    let hours = seconds / 3600;
+    let remainder = seconds % 3600;
+    let minutes = remainder / 60;
+    let seconds = remainder % 60;
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+}
+
+
+/// Generates the HTML time bar.
+///
+/// This function uses the provided TimedProject instance and current timestamp
+/// to generate an HTML time bar as described.
+pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
+    // Initialize the HTML string
+    let mut html_string = String::new();
+    
+    // Calculate the time since the start of the game.
+    let time_since_start = current_timestamp - project.project_start_time_timestamp;
+    
+    // Calculate the time used so far in this turn.
+    let time_this_turn = current_timestamp - project.last_move_time;
+
+    // Add time information to the HTML string
+    html_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+    html_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+
+    // Add move number
+    html_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
+    
+    // Calculate and add next time control and increment details
+    // Logic to determine moves to next time control, next time control in minutes, and increments.
+    let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+    
+    // Add to HTML string
+    html_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+    html_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+
+    // Final HTML content
+    let html_content = format!(r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta property="og:title" content="Current Game Board" />
+        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+    </head>
+    <body style="background-color:black;">
+        <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+        {}
+    </body>
+    </html>
+    "#,
+    project.game_name,
+    project.game_name,
+    html_string,
+    );
+
+    html_content
+}
+
+/// Helper function to calculate time control and increment details.
+///
+/// This function takes a reference to a TimedProject instance and returns a tuple
+/// containing moves to the next time control, next time control in minutes, current increment,
+/// next increment time in seconds, and next increment move.
+fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
+    let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+        .iter()
+        .find(|&&(k, _)| k > project.game_move_number as u32)
+        .map(|(&k, &v)| (k, v.0))
+        .unwrap_or((0, 0));
+    
+    let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+        .iter()
+        .find(|&&(k, _)| k > project.game_move_number as u32)
+        .map(|(&k, &v)| (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v))
+        .unwrap_or((0, 0, 0));
+    
+    (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta property="og:title" content="Current Game Board" />
+    <meta property="og:image" content="/metatag_timetest1.png" />
+    <!-- Styling for text inputs -->
+    <style>
+        input[type=text] {
+            color: gray;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body style="background-color:black;">
+    <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+    <div style="color: gray; font-size: 42px;">
+        <br> White Time Remaining: <span id="white_time_remaining">7200</span></br>
+        <br> Black Time Remaining: <span id="black_time_remaining">7200</span></br>
+        <br> Time Spent This Turn So Far: <span id="time_spent_this_turn">0</span></br>
+        <br> Total Time Since Start of Game: <span id="total_time_since_start">1695595577</span></br>
+        <br> This Game Move: <span id="this_game_move">0</span></br>
+        <br> Next Time-Control at Move: <span id="next_time_control_move">0</span></br>
+        <br> Next Time-Control (in minutes): <span id="next_time_control_min">0</span></br>
+        <br> Current Increment: <span id="current_increment">0</span></br>
+        <br> Next Increment at time (sec): <span id="next_increment_time">0</span></br>
+        <br> Next Increment on Move: <span id="next_increment_move">0</span></br>
+    </div>
+</body>
+</html>
+
+
+// use std::time::{SystemTime, UNIX_EPOCH};
+fn posix_to_readable_datetime(posix_time: u64) -> String {
+    let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(posix_time);
+    match time.duration_since(UNIX_EPOCH) {
+        Ok(system_time) => {
+            let since_the_epoch = system_time.as_secs();
+            let secs = since_the_epoch % 60;
+            let minutes = (since_the_epoch / 60) % 60;
+            let hours = (since_the_epoch / 3600) % 24;
+            let days_since_epoch = since_the_epoch / 86400;
+            // 1970-01-01 was a Thursday
+            let day_of_week = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"][(days_since_epoch % 7) as usize];
+            format!("{} {:02}:{:02}:{:02}", day_of_week, hours, minutes, secs)
+        },
+        Err(e) => {
+            eprintln!("Error calculating time: {}", e);
+            String::from("Invalid time")
+        }
+    }
+}
+
+fn seconds_to_hms(seconds: u64) -> String {
+    let hours = seconds / 3600;
+    let remainder = seconds % 3600;
+    let minutes = remainder / 60;
+    let seconds = remainder % 60;
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+}
+

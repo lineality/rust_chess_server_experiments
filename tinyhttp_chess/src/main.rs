@@ -1027,15 +1027,23 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                 */
 
-                let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
-                    Ok(_) => { // Changed svg_content to _
-                        // let html_content = wrapper_move_update_and_make_html(game_name: &str, move_data: &str );
 
-                        let html_content = wrapper_move_update_and_make_html(&game_name, &move_data);
-
-                        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                // time but not working
+                let response = match handle_chess_move(game_name.clone(), move_data.clone()) {
+                    Ok(_) => {
+                        let html_content_result = wrapper_move_update_and_make_html(&game_name, &move_data);
+                        
+                        match html_content_result {
+                            Ok(html_content) => {
+                                match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                                    Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                                    Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                                }
+                            },
+                            Err(e) => {
+                                eprintln!("Error generating HTML: {}", e);
+                                Response::from_string(format!("Error generating HTML: {}", e)).with_status_code(500)
+                            }
                         }
                     },
                     Err(e) => {
@@ -1043,13 +1051,57 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
                     }
                 };
-                
+
+
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
 
 
-                // works
+
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(_) => { // Changed svg_content to _
+                //         // let html_content = wrapper_move_update_and_make_html(game_name: &str, move_data: &str );
+
+                //         let html_content = wrapper_move_update_and_make_html(&game_name, &move_data);
+
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) {
+                //     Ok(_) => {
+                //         // Handle the Result returned by the function and propagate any errors using the ? operator
+                //         let html_content = wrapper_move_update_and_make_html(&game_name, &move_data)?;
+                        
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+
+
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+
+
+                // // // works
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                 //     Ok(_) => { // Changed svg_content to _
                 //         let html_content = format!(r#"
@@ -1081,6 +1133,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 //     eprintln!("Failed to respond to request: {}", e);
                 // }
                 
+
 
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                 //     Ok(svg_content) => { // Change back to svg_content
@@ -6397,20 +6450,52 @@ impl TimedProject {
         // Calculate the time used so far in this turn.
         let time_this_turn = current_timestamp - project.last_move_time;
 
-        // Add time information to the HTML string
-        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
-        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+        // // Add time information to the HTML string
+        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
 
-        // Add move number
-        html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
+        // // Add move number
+        // html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
         
-        // Calculate and add next time control and increment details
-        // Logic to determine moves to next time control, next time control in minutes, and increments.
+        // // Calculate and add next time control and increment details
+        // // Logic to determine moves to next time control, next time control in minutes, and increments.
+        // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+        
+        // // Add to HTML string
+        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+
+
+        // Format time using helper functions
+        let time_since_start_str = posix_to_readable_datetime(time_since_start);
+        let time_this_turn_str = seconds_to_hms(time_this_turn);
+        let white_time_str = seconds_to_hms(project.white_time_remaining_sec.into());  // <-- Modification here
+        let black_time_str = seconds_to_hms(project.black_time_remaining_sec.into());  // <-- And here, if black_time_remaining_sec is also u32
+        
+        
+        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
+        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
+
+        // html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
+
+        // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+
+        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+
+        html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
+        html_timedata_string.push_str(&format!("<li>Time Spent This Turn so Far: {}</li><li>Total Time Since Start of Game: {}</li>", time_this_turn_str, time_since_start_str));
+        html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
+        
         let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
-        // Add to HTML string
-        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+        // Conditionally append time control and increment details
+        if moves_to_next_time_control > 0 || next_time_control_min > 0 {
+            html_timedata_string.push_str(&format!("<li>Next Time-Control at Move: {}</li><li>Next Time-Control (in minutes): {}</li>", moves_to_next_time_control, next_time_control_min));
+        }
+        if current_increment > 0 {
+            html_timedata_string.push_str(&format!("<li>Current Increment: {}</li><li>Next Increment at time (sec): {}</li><li>Next Increment on Move: {}</li>", current_increment, next_increment_time, next_increment_move));
+        }    
 
         // Final HTML content
         let html_content = format!(r#"
@@ -6419,10 +6504,14 @@ impl TimedProject {
         <head>
             <meta property="og:title" content="Current Game Board" />
             <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+
         </head>
         <body style="background-color:black;">
             <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+            <div style="color: gray; font-size: 42px;"> 
+            <ul style="list-style-type: none;">
             {}
+            </ul>
         </body>
         </html>
         "#,
@@ -6701,4 +6790,34 @@ fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32,
         .unwrap_or((0, 0, 0));
     
     (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+}
+
+
+// use std::time::{SystemTime, UNIX_EPOCH};
+fn posix_to_readable_datetime(posix_time: u64) -> String {
+    let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(posix_time);
+    match time.duration_since(UNIX_EPOCH) {
+        Ok(system_time) => {
+            let since_the_epoch = system_time.as_secs();
+            let secs = since_the_epoch % 60;
+            let minutes = (since_the_epoch / 60) % 60;
+            let hours = (since_the_epoch / 3600) % 24;
+            let days_since_epoch = since_the_epoch / 86400;
+            // 1970-01-01 was a Thursday
+            let day_of_week = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"][(days_since_epoch % 7) as usize];
+            format!("{} {:02}:{:02}:{:02}", day_of_week, hours, minutes, secs)
+        },
+        Err(e) => {
+            eprintln!("Error calculating time: {}", e);
+            String::from("Invalid time")
+        }
+    }
+}
+
+fn seconds_to_hms(seconds: u64) -> String {
+    let hours = seconds / 3600;
+    let remainder = seconds % 3600;
+    let minutes = remainder / 60;
+    let seconds = remainder % 60;
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
