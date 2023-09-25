@@ -3577,3 +3577,43 @@ fn seconds_to_hms(seconds: u64) -> String {
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
+/// calculate time control and increment details.
+/// This function takes a reference to a TimedProject instance and returns a tuple
+/// containing moves to the next time control, next time control in minutes, current increment,
+/// next increment time in seconds, and next increment move.
+fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
+    // Print for debugging: display current game move number
+    println!("Current game move number: {}", project.game_move_number);
+    
+    let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+        .iter()
+        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+        .map(|(&k, &v)| {
+            println!("Found next time control move: {} min: {}", k, v.0);  // Print for debugging
+            (k, v.0)
+        })
+        .unwrap_or_else(|| {
+            println!("No next time control move found.");  // Print for debugging
+            (0, 0)
+        });
+
+    let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+        .iter()
+        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+        .map(|(&k, &v)| {
+            println!("Found next increment: {} time: {} move: {}", project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v);  // Print for debugging
+            (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v)
+        })
+        .unwrap_or_else(|| {
+            println!("No next increment found.");  // Print for debugging
+            (0, 0, 0)
+        });
+    
+    // Print for debugging: display all calculated values
+    println!(
+        "Calculated details: moves_to_next_time_control: {}, next_time_control_min: {}, current_increment: {}, next_increment_time: {}, next_increment_move: {}",
+        moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move
+    );
+
+    (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+}

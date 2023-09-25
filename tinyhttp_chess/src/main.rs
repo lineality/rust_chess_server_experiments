@@ -6450,6 +6450,36 @@ impl TimedProject {
         // Calculate the time used so far in this turn.
         let time_this_turn = current_timestamp - project.last_move_time;
 
+
+        // Print statements for debugging
+        println!("Current timestamp: {}", current_timestamp);
+        println!("Time since start: {}", time_since_start);
+        println!("Time this turn: {}", time_this_turn);
+        println!("White time remaining: {}", project.white_time_remaining_sec);
+        println!("Black time remaining: {}", project.black_time_remaining_sec);
+        println!("player_white: {}", project.player_white);
+        println!("player_white: {}", project.player_white);
+        println!("project_start_time_timestamp: {}", project.project_start_time_timestamp);
+        println!("white_increments_sec_sec_key_value_list: {:#?}", project.white_increments_sec_sec_key_value_list);
+        println!("black_increments_sec_sec_key_value_list: {:#?}", project.black_increments_sec_sec_key_value_list);
+        println!("white_timecontrol_move_min_incrsec_key_values_list: {:#?}", project.white_timecontrol_move_min_incrsec_key_values_list);
+        println!("black_timecontrol_move_min_incrsec_key_values_list: {:#?}", project.black_timecontrol_move_min_incrsec_key_values_list);
+        println!("last_move_time: {}", project.last_move_time);       
+        println!("player_white: {}", project.player_white);
+        println!("Current game move number: {}", project.game_move_number);
+
+
+        // Include time increments for White and Black if available.
+        // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("- White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        }
+        
+        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("- Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        }
+
         // // Add time information to the HTML string
         // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
         // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
@@ -6776,19 +6806,59 @@ fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
 /// containing moves to the next time control, next time control in minutes, current increment,
 /// next increment time in seconds, and next increment move.
 // Helper function
+// fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
+//     let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+//         .iter()
+//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+//         .map(|(&k, &v)| (k, v.0))
+//         .unwrap_or((0, 0));
+
+//     let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+//         .iter()
+//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+//         .map(|(&k, &v)| (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v))
+//         .unwrap_or((0, 0, 0));
+    
+//     (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+// }
+/// calculate time control and increment details.
+/// This function takes a reference to a TimedProject instance and returns a tuple
+/// containing moves to the next time control, next time control in minutes, current increment,
+/// next increment time in seconds, and next increment move.
 fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
+    // Print for debugging: display current game move number
+    println!("Current game move number: {}", project.game_move_number);
+    
     let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
         .iter()
         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-        .map(|(&k, &v)| (k, v.0))
-        .unwrap_or((0, 0));
+        .map(|(&k, &v)| {
+            println!("Found next time control move: {} min: {}", k, v.0);  // Print for debugging
+            (k, v.0)
+        })
+        .unwrap_or_else(|| {
+            println!("No next time control move found.");  // Print for debugging
+            (0, 0)
+        });
 
     let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
         .iter()
         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-        .map(|(&k, &v)| (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v))
-        .unwrap_or((0, 0, 0));
+        .map(|(&k, &v)| {
+            println!("Found next increment: {} time: {} move: {}", project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v);  // Print for debugging
+            (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v)
+        })
+        .unwrap_or_else(|| {
+            println!("No next increment found.");  // Print for debugging
+            (0, 0, 0)
+        });
     
+    // Print for debugging: display all calculated values
+    println!(
+        "Calculated details: moves_to_next_time_control: {}, next_time_control_min: {}, current_increment: {}, next_increment_time: {}, next_increment_move: {}",
+        moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move
+    );
+
     (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
 }
 
