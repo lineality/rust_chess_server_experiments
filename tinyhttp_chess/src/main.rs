@@ -6314,7 +6314,7 @@ impl TimedProject {
         match fs::File::create(&path) {
             Ok(mut file) => {
                 writeln!(file, "game_name: {}", self.game_name)?;
-                writeln!(file, "project_start_time_timstamp: {}", self.project_start_time_timestamp)?;
+                writeln!(file, "project_start_time_timestamp: {}", self.project_start_time_timestamp)?;
                 writeln!(file, "white_time_remaining_sec: {}", self.white_time_remaining_sec)?;
                 writeln!(file, "black_time_remaining_sec: {}", self.black_time_remaining_sec)?;
                 writeln!(file, "white_increments_sec_sec_key_value_list: {:?}", self.white_increments_sec_sec_key_value_list)?;
@@ -6409,18 +6409,110 @@ impl TimedProject {
     // }
     
 
+    // pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+    
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
+    //     let white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut last_move_time: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: u16 = 0;
+    
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+            
+    //         if parts.len() != 2 {
+    //             println!("Skipping invalid line: {}", line);
+    //             continue;
+    //         }
+    
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => {
+    //                 if let Ok(value) = parts[1].parse::<u64>() {
+    //                     project_start_time_timestamp = value;
+    //                 } else {
+    //                     println!("Failed to parse project_start_time_timestamp: {}", parts[1]);
+    //                 }
+    //             },
+    //             "white_time_remaining_sec" => {
+    //                 if let Ok(value) = parts[1].parse::<u32>() {
+    //                     white_time_remaining_sec = value;
+    //                 } else {
+    //                     println!("Failed to parse white_time_remaining_sec: {}", parts[1]);
+    //                 }
+    //             },
+    //             "black_time_remaining_sec" => {
+    //                 if let Ok(value) = parts[1].parse::<u32>() {
+    //                     black_time_remaining_sec = value;
+    //                 } else {
+    //                     println!("Failed to parse black_time_remaining_sec: {}", parts[1]);
+    //                 }
+    //             },
+    //             "white_increments_sec_sec_key_value_list" => {
+    //                 white_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "black_increments_sec_sec_key_value_list" => {
+    //                 black_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "last_move_time" => {
+    //                 if let Ok(value) = parts[1].parse::<u64>() {
+    //                     last_move_time = value;
+    //                 } else {
+    //                     println!("Failed to parse last_move_time: {}", parts[1]);
+    //                 }
+    //             },
+    //             "player_white" => {
+    //                 if let Ok(value) = parts[1].parse::<bool>() {
+    //                     player_white = value;
+    //                 } else {
+    //                     println!("Failed to parse player_white: {}", parts[1]);
+    //                 }
+    //             },
+    //             _ => {
+    //                 println!("Unknown key encountered: {}", parts[0]);
+    //             }
+    //         }
+            
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         white_increments_sec_sec_key_value_list,
+    //         black_increments_sec_sec_key_value_list,
+    //         white_timecontrol_move_min_incrsec_key_values_list,
+    //         black_timecontrol_move_min_incrsec_key_values_list,
+    //         last_move_time,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+
+
+
     pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         let path = format!("games/{}/time_data.txt", game_name);
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
     
+        // Initialize variables here
         let mut project_start_time_timestamp: u64 = 0;
         let mut white_time_remaining_sec: u32 = 0;
         let mut black_time_remaining_sec: u32 = 0;
         let mut white_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
         let mut black_increments_sec_sec_key_value_list: HashMap<u32, u32> = HashMap::new();
-        let white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
-        let black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+        let mut black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
         let mut last_move_time: u64 = 0;
         let mut player_white: bool = true;
         let mut game_move_number: u16 = 0;
@@ -6428,33 +6520,17 @@ impl TimedProject {
         for line in reader.lines() {
             let line = line?;
             let parts: Vec<&str> = line.split(": ").collect();
-            
-            if parts.len() != 2 {
-                println!("Skipping invalid line: {}", line);
-                continue;
-            }
     
             match parts[0] {
                 "project_start_time_timestamp" => {
-                    if let Ok(value) = parts[1].parse::<u64>() {
-                        project_start_time_timestamp = value;
-                    } else {
-                        println!("Failed to parse project_start_time_timestamp: {}", parts[1]);
-                    }
+                    project_start_time_timestamp = parts[1].parse().unwrap_or(0);
                 },
+                "game_name" => {},
                 "white_time_remaining_sec" => {
-                    if let Ok(value) = parts[1].parse::<u32>() {
-                        white_time_remaining_sec = value;
-                    } else {
-                        println!("Failed to parse white_time_remaining_sec: {}", parts[1]);
-                    }
+                    white_time_remaining_sec = parts[1].parse().unwrap_or(0);
                 },
                 "black_time_remaining_sec" => {
-                    if let Ok(value) = parts[1].parse::<u32>() {
-                        black_time_remaining_sec = value;
-                    } else {
-                        println!("Failed to parse black_time_remaining_sec: {}", parts[1]);
-                    }
+                    black_time_remaining_sec = parts[1].parse().unwrap_or(0);
                 },
                 "white_increments_sec_sec_key_value_list" => {
                     white_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
@@ -6462,25 +6538,23 @@ impl TimedProject {
                 "black_increments_sec_sec_key_value_list" => {
                     black_increments_sec_sec_key_value_list = string_to_hashmap_timedata(parts[1]);
                 },
+                "white_timecontrol_move_min_incrsec_key_values_list" => {
+                    white_timecontrol_move_min_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+                },
+                "black_timecontrol_move_min_incrsec_key_values_list" => {
+                    black_timecontrol_move_min_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+                },
                 "last_move_time" => {
-                    if let Ok(value) = parts[1].parse::<u64>() {
-                        last_move_time = value;
-                    } else {
-                        println!("Failed to parse last_move_time: {}", parts[1]);
-                    }
+                    last_move_time = parts[1].parse().unwrap_or(0);
                 },
                 "player_white" => {
-                    if let Ok(value) = parts[1].parse::<bool>() {
-                        player_white = value;
-                    } else {
-                        println!("Failed to parse player_white: {}", parts[1]);
-                    }
+                    player_white = parts[1].parse().unwrap_or(true);
                 },
-                _ => {
-                    println!("Unknown key encountered: {}", parts[0]);
-                }
+                "game_move_number" => {
+                    game_move_number = parts[1].parse().unwrap_or(0);
+                },
+                _ => println!("Unknown key encountered: {}", parts[0]),
             }
-            
         }
     
         Ok(TimedProject {
@@ -6846,6 +6920,7 @@ pub fn string_to_hashmap_timedata(file_str: &str) -> HashMap<u32, u32> {
 }
 
 
+
 // /// Converts a HashMap to a specialized file-string
 // pub fn hashmap_to_string_timedata<V1, V2>(map: &HashMap<V1, V2>) -> String
 //     where
@@ -6860,6 +6935,20 @@ pub fn string_to_hashmap_timedata(file_str: &str) -> HashMap<u32, u32> {
 //     }
 
 
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     let mut map = HashMap::new();
+//     for item in input.split(',') {
+//         let parts: Vec<&str> = item.split(' ').collect();
+//         if parts.len() == 3 {
+//             if let (Ok(key), Ok(value1), Ok(value2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
+//                 map.insert(key, (value1, value2));
+//             }
+//         }
+//     }
+//     map
+// }
+
+
 pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
     let mut map = HashMap::new();
     for item in input.split(',') {
@@ -6872,6 +6961,7 @@ pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)>
     }
     map
 }
+
 
 
 // Function to find the next time control or increment for a given move
