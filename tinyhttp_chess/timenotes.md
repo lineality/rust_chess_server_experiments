@@ -1,3 +1,10 @@
+data is not being read
+data is not being updated
+new time_data_file is not being written
+
+
+
+
 
 rust code task: 
 produce complete running code, NOT PSEUDOCODE!!!!
