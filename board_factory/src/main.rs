@@ -1429,13 +1429,13 @@ fn clean_up_directory(formatted_dir_name: &str) -> Result<(), io::Error> {
 }
    
 /*
-    let board_orientation: bool = true; // 
-    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
-    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+let board_orientation: bool = true; // 
+// create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 
-    let board_orientation: bool = false; // 
-    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
-    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+let board_orientation: bool = false; // 
+// create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 */
 
 fn main() -> Result<(), std::io::Error> {
