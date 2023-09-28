@@ -1,3 +1,8 @@
+todo: fix these two functions
+string_to_hashmap_timedata and 
+string_to_tuple_hashmap_timedata 
+
+
 data is not being read
 data is not being updated
 new time_data_file is not being written
