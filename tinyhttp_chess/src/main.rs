@@ -6126,10 +6126,15 @@ impl TimedProject {
         /* 
         update timestamp
         if letter in move data is capital that's white
+
         if white moves, player_white: false
         if black moves, player_white: true
+
+        Note: either player may move a piece on the board
+        at any time, this is not nessesarily a game-move.
         player_white only changes if the old player move and new player
-        move...
+        move are NOT the same. (if player_white has changed)
+        
         if player_white changes, THEN game_move_number += 1
         */
         println!("===update_timedata_before_move===");
