@@ -6749,17 +6749,30 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("Current game move number: {}", project.game_move_number);
 
 
+        // // Include time increments for White and Black if available.
+        // // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        // for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+        //     html_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        // }
+        
+        // // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        // for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+        //     html_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        // }
+
+        
         // Include time increments for White and Black if available.
         // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
         for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
-            html_timedata_string.push_str(&format!("- White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-        }
-        
-        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
-        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
-            html_timedata_string.push_str(&format!("- Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+            html_timedata_string.push_str(&format!("<li>White Time Increment starts on move {}: {} min {} sec</li>", move_num, min, sec));
         }
 
+        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: {} min {} sec</li>", move_num, min, sec));
+        }
+                
+        
         // // Add time information to the HTML string
         // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
         // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
