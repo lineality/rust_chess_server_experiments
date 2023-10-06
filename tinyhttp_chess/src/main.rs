@@ -6594,11 +6594,20 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     let mut player_white: bool = true;
     let mut game_move_number: u16 = 0;
 
+    // remove whitespace
     for line in reader.lines() {
         let line = line?;
-        let parts: Vec<&str> = line.split(": ").collect();
+        let parts: Vec<&str> = line.splitn(2, ": ").collect();
 
-        match parts[0] {
+        if parts.len() != 2 {
+            println!("Skipping malformed line: {}", line);
+            continue;
+        }
+
+        let key = parts[0].trim();
+        let value = parts[1].trim();
+
+        match key {
             "project_start_time_timestamp" => {
                 project_start_time_timestamp = parts[1].parse().unwrap_or(0);
                 println!("project_start_time_timestamp: {}", project_start_time_timestamp);
@@ -7070,7 +7079,10 @@ fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProjec
 // }
 
 
-
+/*
+white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+*/
 
 // Converts a string in the form of "{key1: value1, key2: value2}" to a HashMap<u32, u32>
 fn string_to_hashmap_timedata(input: &str) -> HashMap<u32, u32> {
@@ -7093,45 +7105,242 @@ fn string_to_hashmap_timedata(input: &str) -> HashMap<u32, u32> {
 
 // use std::collections::HashMap;
 
-
+/*
+white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+*/
 pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
     println!("=== string_to_tuple_hashmap_timedata ===");
-    println!("Input to string_to_tuple_hashmap_timedata: {}", input);
+    println!("Raw Input: {}", input);
 
     let mut map = HashMap::new();
-    // Assuming that the input string format is {41: (0, 10)}, stripping '{' and '}'.
-    let clean_input = input.trim_start_matches('{').trim_end_matches('}');
-    for item in clean_input.split(',') {
-        println!("-- Processing item: {}", item);
+    let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
 
-        let key_value: Vec<&str> = item.split(":").collect();
-        if key_value.len() != 2 {
-            println!("   Skipping, key_value.len() != 2");
-            continue;
-        }
-
-        let key: u32 = match key_value[0].trim().parse() {
-            Ok(k) => k,
-            Err(_) => continue,
-        };
-
-        // Assuming that the tuple format is (0, 10), stripping '(' and ')'.
-        let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
-        let values: Vec<u32> = clean_tuple
-            .split(',')
-            .filter_map(|x| x.trim().parse().ok())
-            .collect();
-
-        if values.len() != 2 {
-            println!("   Skipping, values.len() != 2");
-            continue;
-        }
-
-        map.insert(key, (values[0], values[1]));
+    let parts: Vec<&str> = data_str.split(": ").collect();
+    if parts.len() != 2 {
+        println!("   Error: Malformed input.");
+        return map;
     }
+
+    let key: u32 = match parts[0].trim().parse() {
+        Ok(k) => k,
+        Err(_) => {
+            println!("   Error: Key parsing error");
+            return map;
+        },
+    };
+
+    let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
+    let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+
+    if values.len() != 2 {
+        println!("   Error: Malformed tuple");
+        return map;
+    }
+
+    map.insert(key, (values[0], values[1]));
+
     println!("=== End string_to_tuple_hashmap_timedata ===");
     map
 }
+
+
+
+// // use std::collections::HashMap;
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Raw Input: {}", input);
+
+//     // Extract the substring between `{}` brackets.
+//     let start_index = input.find('{');
+//     let end_index = input.rfind('}');
+    
+//     if start_index.is_none() || end_index.is_none() {
+//         println!("   Skipping, no valid input format found");
+//         return HashMap::new();
+//     }
+
+//     let substring = &input[start_index.unwrap() + 1..end_index.unwrap()];
+
+//     let mut map = HashMap::new();
+
+//     let items: Vec<&str> = substring.split(',').collect();
+//     for item in items {
+//         println!("-- Processing item: {}", item);
+
+//         let key_value: Vec<&str> = item.splitn(2, ":").collect();
+//         if key_value.len() != 2 {
+//             println!("   Skipping, key_value.len() != 2");
+//             continue;
+//         }
+
+//         let key: u32 = match key_value[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Skipping, key parsing error");
+//                 continue;
+//             },
+//         };
+
+//         // Clean the tuple and split by ','
+//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
+//         let values: Vec<u32> = clean_tuple
+//             .split(',')
+//             .filter_map(|x| x.trim().parse().ok())
+//             .collect();
+
+//         if values.len() != 2 {
+//             println!("   Skipping, values.len() != 2");
+//             continue;
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
+
+//     let mut map = HashMap::new();
+//     let clean_input = input.trim_start_matches('{').trim_end_matches('}');
+
+//     // Splitting by ',' but making sure it's outside of the tuple
+//     let items = clean_input.splitn(2, |c: char| c == ',' && !clean_input.chars().take_while(|&x| x != c).filter(|&x| x == '(').count() % 2 == 1);
+
+//     for item in items {
+//         println!("-- Processing item: {}", item);
+
+//         let key_value: Vec<&str> = item.splitn(2, ":").collect();
+//         if key_value.len() != 2 {
+//             println!("   Skipping, key_value.len() != 2");
+//             continue;
+//         }
+
+//         let key: u32 = match key_value[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Skipping, key parsing error");
+//                 continue;
+//             },
+//         };
+
+//         // Clean the tuple and split by ','
+//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
+//         let values: Vec<u32> = clean_tuple
+//             .split(',')
+//             .filter_map(|x| x.trim().parse().ok())
+//             .collect();
+
+//         if values.len() != 2 {
+//             println!("   Skipping, values.len() != 2");
+//             continue;
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
+
+//     let mut map = HashMap::new();
+
+//     // Split the input into lines and process each line
+//     for line in input.lines() {
+//         // Check for lines that are similar to: {41: (0, 10)}
+//         if line.contains("{") && line.contains("}") {
+//             // Extracting the content between '{' and '}'
+//             let clean_input = line.split('{').nth(1).unwrap_or_default().split('}').next().unwrap_or_default();
+
+//             for item in clean_input.split(',') {
+//                 println!("-- Processing item: {}", item);
+
+//                 let key_value: Vec<&str> = item.split(":").collect();
+//                 if key_value.len() != 2 {
+//                     println!("   Skipping, key_value.len() != 2");
+//                     continue;
+//                 }
+
+//                 let key: u32 = match key_value[0].trim().parse() {
+//                     Ok(k) => k,
+//                     Err(_) => {
+//                         println!("   Skipping, failed to parse key");
+//                         continue;
+//                     },
+//                 };
+
+//                 // Extracting the tuple values between '(' and ')'
+//                 let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
+//                 let values: Vec<u32> = clean_tuple
+//                     .split(',')
+//                     .filter_map(|x| x.trim().parse().ok())
+//                     .collect();
+
+//                 if values.len() != 2 {
+//                     println!("   Skipping, values.len() != 2");
+//                     continue;
+//                 }
+
+//                 map.insert(key, (values[0], values[1]));
+//             }
+//         }
+//     }
+
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
+
+//     let mut map = HashMap::new();
+//     // Assuming that the input string format is {41: (0, 10)}, stripping '{' and '}'.
+//     let clean_input = input.trim_start_matches('{').trim_end_matches('}');
+//     for item in clean_input.split(',') {
+//         println!("-- Processing item: {}", item);
+
+//         let key_value: Vec<&str> = item.split(":").collect();
+//         if key_value.len() != 2 {
+//             println!("   Skipping, key_value.len() != 2");
+//             continue;
+//         }
+
+//         let key: u32 = match key_value[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => continue,
+//         };
+
+//         // Assuming that the tuple format is (0, 10), stripping '(' and ')'.
+//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
+//         let values: Vec<u32> = clean_tuple
+//             .split(',')
+//             .filter_map(|x| x.trim().parse().ok())
+//             .collect();
+
+//         if values.len() != 2 {
+//             println!("   Skipping, values.len() != 2");
+//             continue;
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
 
 
 

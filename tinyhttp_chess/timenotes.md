@@ -3,7 +3,12 @@ string_to_hashmap_timedata and
 string_to_tuple_hashmap_timedata 
 
 
-data is not being read
+white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+
+
+
+data is not being read (better)
 data is not being updated
 new time_data_file is not being written
 
