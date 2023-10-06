@@ -1,4 +1,5 @@
 todo: 
+add: next turn black/white
 updating time etc not happening:
 update_timedata_after_move(
 wrapper_move_update_and_make_html(

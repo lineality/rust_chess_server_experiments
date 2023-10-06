@@ -6120,56 +6120,252 @@ impl TimedProject {
     }
 
 
+        
     // Updates fields related to the last move
-    fn update_timedata_after_move(&mut self, move_data: &str) {
+    fn update_timedata_before_move(&mut self, move_data: &str) {
         /* 
         update timestamp
         if letter in move data is capital that's white
         if white moves, player_white: false
         if black moves, player_white: true
+        player_white only changes if the old player move and new player
+        move...
         if player_white changes, THEN game_move_number += 1
         */
-        println!("===update_timedata_after_move===");
-        
+        println!("===update_timedata_before_move===");
+        println!("Starting player_white value: {}", self.player_white);
 
-        println!("Received move data: {}", move_data);
-        // println!("Detected as move by white player: {}", is_white_move);
-        // println!("Player color switched: {}", old_is_white != self.player_white);
-                
-        // Update last move time
-        self.last_move_time = timestamp_64();
-        
-        // Store the old player color
-        let old_is_white = self.player_white;
+        let current_timestamp = timestamp_64();
+        println!("Current timestamp: {}", current_timestamp);
 
-        // Check if the move is by white or black based on the case of the first two letters
+        let time_this_turn = current_timestamp - self.last_move_time;
+        println!("Time this turn: {}", time_this_turn);
+
         let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+        println!("Detected as move by white player: {}", is_white_move);
 
-        // Logic to toggle player_white and update game_move_number
+        // Deduct time for the appropriate player based on move color
         if is_white_move {
+            self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+            println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
             self.player_white = false;
         } else {
+            self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+            println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
             self.player_white = true;
         }
 
-        // Last, increment game move number only if player color changed
-        if old_is_white != self.player_white {
-            self.game_move_number += 1;
-        }
-        
-        
-        // Save the updated data to the file after making changes
-        if let Err(e) = self.save_timedata_to_txt() {
-            println!("Error saving updated data to file: {}", e);
-        }
-        
-        println!("Received move data: {}", move_data);
-        println!("Detected as move by white player: {}", is_white_move);
-        println!("Player color switched: {}", old_is_white != self.player_white);
-        println!("---end update_timedata_after_move---");
-                
-    }
+        // Update the last move time
+        self.last_move_time = current_timestamp;
+        println!("Updated last_move_time: {}", self.last_move_time);
 
+        // Increment game move number.
+        self.game_move_number += 1;
+        println!("Updated game_move_number: {}", self.game_move_number);
+
+        println!("---end update_timedata_before_move---");
+    }
+    
+    
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+    //     let current_timestamp = timestamp_64();
+    //     let time_this_turn = current_timestamp - self.last_move_time;
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // If the move is by white, decrement white's time. If by black, decrement black's time.
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     }
+
+    //     // Update the last move time
+    //     self.last_move_time = current_timestamp;
+
+    //     // Toggle player_white based on the current move.
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Increment game move number. In this logic, every time the function is called, it represents a new move.
+    //     self.game_move_number += 1;
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+
+
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+
+    //     println!("===update_timedata_before_move===");
+        
+
+    //     println!("Received move data: {}", move_data);
+    //     // println!("Detected as move by white player: {}", is_white_move);
+    //     // println!("Player color switched: {}", old_is_white != self.player_white);
+                
+    //     // Update last move time
+    //     self.last_move_time = timestamp_64();
+        
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+        
+        
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+        
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+                
+    // }
+
+        
+    // // Updates fields related to the last move    
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+    //     if letter in move data is capital that's white
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+        
+    //     // Update last move time
+    //     let current_timestamp = timestamp_64();
+    //     let time_spent_this_turn = current_timestamp - self.last_move_time;
+        
+    //     // Decrement the time remaining for the player who made the last move
+    //     if self.player_white {  // If the last move was by White
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_spent_this_turn as u32);
+    //     } else {  // If the last move was by Black
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_spent_this_turn as u32);
+    //     }
+        
+    //     // Update the last move time
+    //     self.last_move_time = current_timestamp;
+        
+    //     let current_time = timestamp_64();
+
+    //     // Calculate time spent on this turn
+    //     let time_this_turn = current_time - self.last_move_time;
+
+    //     // Update last move time
+    //     self.last_move_time = current_time;
+
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //         // Decrement white's time
+    //         self.white_time_remaining_sec -= time_this_turn as u32;  // Assuming timestamp_64() returns u64
+    //     } else {
+    //         self.player_white = true;
+    //         // Decrement black's time
+    //         self.black_time_remaining_sec -= time_this_turn as u32;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+        
+        
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+    //     if letter in move data is capital that's white
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+    //     // Calculate current timestamp
+    //     let current_timestamp = timestamp_64();
+
+    //     // Calculate time spent on this turn
+    //     let time_this_turn = current_timestamp - self.last_move_time;
+
+    //     // Decrement the time remaining for the player who made the last move
+    //     if self.player_white {  // If the last move was by White
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     } else {  // If the last move was by Black
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     }
+        
+    //     // Update the last move time
+    //     self.last_move_time = current_timestamp;
+
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+        
     
     /// Create a TimedProject with preset time modes for chess games
     pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
@@ -6778,7 +6974,15 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         //     html_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
         // }
 
-        
+        // y0ur m0ve
+        let next_move = if project.player_white {
+            "White"
+        } else {
+            "Black"
+        };
+        html_timedata_string.push_str(&format!("<li>Next Move: {}</li>", next_move));
+                
+                
         // Include time increments for White and Black if available.
         // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
         for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
@@ -6869,8 +7073,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     // pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
     //     let mut project = Self::load_timedata_from_txt(game_name)?;
 
-    //     // Update the struct using the update_timedata_after_move function
-    //     project.update_timedata_after_move(move_data);
+    //     // Update the struct using the update_timedata_before_move function
+    //     project.update_timedata_before_move(move_data);
         
     //     // Generate the HTML content using the updated struct
     //     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
@@ -6898,8 +7102,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
 // pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
 //     let mut project = Self::load_timedata_from_txt(game_name)?;
 
-//     // Update the struct using the update_timedata_after_move function
-//     project.update_timedata_after_move(move_data);
+//     // Update the struct using the update_timedata_before_move function
+//     project.update_timedata_before_move(move_data);
     
 //     // Generate the HTML content using the updated struct
 //     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
@@ -6922,8 +7126,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
 pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
     let mut project = TimedProject::load_timedata_from_txt(game_name)?;
     
-    // Update the struct using the update_timedata_after_move function
-    project.update_timedata_after_move(move_data);
+    // Update the struct using the update_timedata_before_move function
+    project.update_timedata_before_move(move_data);
     
     // Generate the HTML content using the updated struct
     Ok(TimedProject::generate_html_with_time_data(&project, timestamp_64()))
