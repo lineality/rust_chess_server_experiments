@@ -1,4 +1,14 @@
-todo: fix these two functions
+todo: 
+updating time etc not happening:
+update_timedata_after_move(
+wrapper_move_update_and_make_html(
+
+
+
+
+
+
+ok?
 string_to_hashmap_timedata and 
 string_to_tuple_hashmap_timedata 
 

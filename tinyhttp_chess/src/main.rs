@@ -6129,7 +6129,13 @@ impl TimedProject {
         if black moves, player_white: true
         if player_white changes, THEN game_move_number += 1
         */
+        println!("===update_timedata_after_move===");
+        
 
+        println!("Received move data: {}", move_data);
+        // println!("Detected as move by white player: {}", is_white_move);
+        // println!("Player color switched: {}", old_is_white != self.player_white);
+                
         // Update last move time
         self.last_move_time = timestamp_64();
         
@@ -6150,6 +6156,18 @@ impl TimedProject {
         if old_is_white != self.player_white {
             self.game_move_number += 1;
         }
+        
+        
+        // Save the updated data to the file after making changes
+        if let Err(e) = self.save_timedata_to_txt() {
+            println!("Error saving updated data to file: {}", e);
+        }
+        
+        println!("Received move data: {}", move_data);
+        println!("Detected as move by white player: {}", is_white_move);
+        println!("Player color switched: {}", old_is_white != self.player_white);
+        println!("---end update_timedata_after_move---");
+                
     }
 
     
