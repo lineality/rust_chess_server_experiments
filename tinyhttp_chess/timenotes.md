@@ -1,4 +1,67 @@
-todo: 
+Todo: 
+
+check custom many rules
+(any rules)
+
+simplify print...
+or...for api mode...keep all print?
+
+
+The next step is refining how these data are printed to HTML:
+
+These printed lines could be made more clear (and less buggy):
+White Time Increment starts on move 41: adding 0 sec per move.
+White Time Control starts on move 41: adding 3600 min.
+White Time Increment starts on move 61: adding 30 sec per move.
+White Time Control starts on move 61: adding 900 min.
+Black Time Increment starts on move 41: adding 0 sec per move.
+White Time Control starts on move 41: adding 3600 min.
+Black Time Increment starts on move 61: adding 30 sec per move.
+White Time Control starts on move 61: adding 900 min.
+
+
+Eight rows can be reduced to three (in this case):
+    Time Control on move 41, adds 60 min.
+    Time Control on move 61, adds 15 min.
+    Increment starts on move 61, adding 30 sec per move.
+
+e.g. if a value is zero, print nothing.
+If white and black share the same rule, print one line.
+(if separate, print separate.)
+
+
+
+
+        // Conditionally append time control and increment details
+        if white_moves_to_next_time_control > 0 || white_next_time_control_min > 0 {
+            html_timedata_string.push_str(&format!("<li>White Next Time-Control at Move: {}</li><li>White Next Time-Control (in minutes): {}</li>", white_moves_to_next_time_control, white_next_time_control_min));
+        }
+        if black_moves_to_next_time_control > 0 || black_next_time_control_min > 0 {
+            html_timedata_string.push_str(&format!("<li>Black Next Time-Control at Move: {}</li><li>Black Next Time-Control (in minutes): {}</li>", black_moves_to_next_time_control, black_next_time_control_min));
+        }
+
+        if white_current_increment > 0 {
+            html_timedata_string.push_str(&format!("<li>White Current Increment: {}</li><li>White Next Increment at time (sec): {}</li><li>White Next Increment on Move: {}</li>", white_current_increment, white_next_increment_time, white_next_increment_move));
+        }    
+        if black_current_increment > 0 {
+            html_timedata_string.push_str(&format!("<li>Black Current Increment: {}</li><li>Black Next Increment at time (sec): {}</li><li>Black Next Increment on Move: {}</li>", black_current_increment, black_next_increment_time, black_next_increment_move));
+        }    
+
+
+        // Include time increments for White and Black if available.
+        // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("<li>White Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
+            html_timedata_string.push_str(&format!("<li>White Time Control starts on move {}: adding {} min.</li>", move_num, min));
+        }
+
+        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
+            html_timedata_string.push_str(&format!("<li>Black Time Control starts on move {}: adding {} min.</li>", move_num, min));
+        }
+
+
 
 
 struct TimedProject {
