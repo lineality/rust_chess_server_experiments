@@ -1,6 +1,26 @@
 todo: 
 
 
+struct TimedProject {
+    game_name: String, // The name of the game
+    project_start_time_timestamp: u64, // Timestamp when the project started
+    white_time_remaining_sec: u32, // Remaining time for white player in seconds
+    black_time_remaining_sec: u32, // Remaining time for black player in seconds
+
+    // HashMap containing increment settings
+    white_increments_sec_sec_key_value_list: HashMap<u32, u32>,
+    black_increments_sec_sec_key_value_list: HashMap<u32, u32>,
+
+    // HashMap containing time control settings
+    white_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
+    black_timecontrol_move_min_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
+
+    current_move_timestamp: u64, // Timestamp of this move
+    previous_move_timestamp: u64, // Timestamp of the last move
+    player_white: bool, // Indicates if the player is white
+    game_move_number: u32, // Current move number in the game
+}
+
 
 in pub fn generate_html_with_time_data()
 you need to update the displays for incriment and time control...because

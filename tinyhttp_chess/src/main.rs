@@ -7786,16 +7786,40 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
         
         // TODO this needs to be updated for black and white separate settings
-        let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+        let (
+            white_moves_to_next_time_control, 
+            black_moves_to_next_time_control,
+    
+            white_next_time_control_min, 
+            black_next_time_control_min, 
+    
+            white_current_increment, 
+            black_current_increment, 
+    
+            white_next_increment_time, 
+            black_next_increment_time, 
+            
+            white_next_increment_move,
+            black_next_increment_move,
+
+        ) = calculate_time_control_and_increment_details(project);
         
 
         // Conditionally append time control and increment details
-        if moves_to_next_time_control > 0 || next_time_control_min > 0 {
-            html_timedata_string.push_str(&format!("<li>Next Time-Control at Move: {}</li><li>Next Time-Control (in minutes): {}</li>", moves_to_next_time_control, next_time_control_min));
+        if white_moves_to_next_time_control > 0 || white_next_time_control_min > 0 {
+            html_timedata_string.push_str(&format!("<li>White Next Time-Control at Move: {}</li><li>White Next Time-Control (in minutes): {}</li>", white_moves_to_next_time_control, white_next_time_control_min));
         }
-        if current_increment > 0 {
-            html_timedata_string.push_str(&format!("<li>Current Increment: {}</li><li>Next Increment at time (sec): {}</li><li>Next Increment on Move: {}</li>", current_increment, next_increment_time, next_increment_move));
+        if black_moves_to_next_time_control > 0 || black_next_time_control_min > 0 {
+            html_timedata_string.push_str(&format!("<li>Black Next Time-Control at Move: {}</li><li>Black Next Time-Control (in minutes): {}</li>", black_moves_to_next_time_control, black_next_time_control_min));
+        }
+
+        if white_current_increment > 0 {
+            html_timedata_string.push_str(&format!("<li>White Current Increment: {}</li><li>White Next Increment at time (sec): {}</li><li>White Next Increment on Move: {}</li>", white_current_increment, white_next_increment_time, white_next_increment_move));
         }    
+        if black_current_increment > 0 {
+            html_timedata_string.push_str(&format!("<li>Black Current Increment: {}</li><li>Black Next Increment at time (sec): {}</li><li>Black Next Increment on Move: {}</li>", black_current_increment, black_next_increment_time, black_next_increment_move));
+        }    
+
 
         // Include time increments for White and Black if available.
         // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
@@ -8708,42 +8732,159 @@ fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
 /// This function takes a reference to a TimedProject instance and returns a tuple
 /// containing moves to the next time control, next time control in minutes, current increment,
 /// next increment time in seconds, and next increment move.
-fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
-    // Print for debugging: display current game move number
-    println!("Current game move number: {}", project.game_move_number);
-    
-    let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+
+
+
+/// Helper function to calculate time control and increment details for a single player.
+///
+/// - game_move_number: Current move number in the game.
+/// - timecontrol_data: HashMap containing time control settings for the player.
+/// - increment_data: HashMap containing increment settings for the player.
+///
+/// Returns a tuple with details: (moves to next time control, next time control in minutes,
+/// current increment, next increment time, next increment move).
+fn calculate_details_for_player(
+    game_move_number: u32,
+    timecontrol_data: &HashMap<u32, (u32, u32)>,
+    increment_data: &HashMap<u32, u32>
+) -> (u32, u32, u32, u32, u32) {
+
+    // Calculating moves to the next time control and its duration
+    let (moves_to_next_time_control, next_time_control_min) = timecontrol_data
         .iter()
-        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+        .find(|&(&k, _)| k > game_move_number)
         .map(|(&k, &v)| {
             println!("Found next time control move: {} min: {}", k, v.0);  // Print for debugging
             (k, v.0)
         })
         .unwrap_or_else(|| {
-            println!("No next time control move found.");  // Print for debugging
+            println!("No next time control move found for this player.");  // Print for debugging
             (0, 0)
         });
 
-    let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+    // Calculating current increment and details about the next increment
+    let (current_increment, next_increment_time, next_increment_move) = increment_data
         .iter()
-        .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+        .find(|&(&k, _)| k > game_move_number)
         .map(|(&k, &v)| {
-            println!("Found next increment: {} time: {} move: {}", project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v);  // Print for debugging
-            (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v)
+            println!("Found next increment for this player: move: {}, time: {}", k, v);  // Print for debugging
+            (increment_data.get(&game_move_number).cloned().unwrap_or(0), k, v)
         })
         .unwrap_or_else(|| {
-            println!("No next increment found.");  // Print for debugging
+            println!("No next increment found for this player.");  // Print for debugging
             (0, 0, 0)
         });
-    
-    // Print for debugging: display all calculated values
-    println!(
-        "Calculated details: moves_to_next_time_control: {}, next_time_control_min: {}, current_increment: {}, next_increment_time: {}, next_increment_move: {}",
-        moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move
-    );
 
-    (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
+    (
+        moves_to_next_time_control,
+        next_time_control_min,
+        current_increment,
+        next_increment_time,
+        next_increment_move
+    )
 }
+
+/// Function to calculate time control and increment details for both players.
+///
+/// Returns a tuple with details for both white and black players.
+fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32,u32, u32, u32, u32, u32) {
+
+    // Calculating details for the white player
+    println!("Calculating details for white player.");
+    let (white_moves_to_next_time_control, 
+        white_next_time_control_min, 
+        white_current_increment, 
+        white_next_increment_time, 
+        white_next_increment_move) = calculate_details_for_player(
+            project.game_move_number,
+            &project.white_timecontrol_move_min_incrsec_key_values_list,
+            &project.white_increments_sec_sec_key_value_list
+        );
+
+    // Calculating details for the black player
+    println!("Calculating details for black player.");
+    let (black_moves_to_next_time_control, 
+        black_next_time_control_min, 
+        black_current_increment, 
+        black_next_increment_time, 
+        black_next_increment_move) = calculate_details_for_player(
+            project.game_move_number,
+            &project.black_timecontrol_move_min_incrsec_key_values_list,
+            &project.black_increments_sec_sec_key_value_list
+        );
+
+    // Returning the combined results
+    (
+        white_moves_to_next_time_control, 
+        black_moves_to_next_time_control,
+
+        white_next_time_control_min, 
+        black_next_time_control_min, 
+
+        white_current_increment, 
+        black_current_increment, 
+
+        white_next_increment_time, 
+        black_next_increment_time, 
+
+        white_next_increment_move,
+        black_next_increment_move,        
+    )
+}
+
+
+// fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32,u32, u32, u32, u32, u32) {
+//     // Print for debugging: display current game move number
+//     println!("Current game move number: {}", project.game_move_number);
+    
+//     let (moves_to_next_time_control, next_time_control_min) = project.white_timecontrol_move_min_incrsec_key_values_list
+//         .iter()
+//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+//         .map(|(&k, &v)| {
+//             println!("Found next time control move: {} min: {}", k, v.0);  // Print for debugging
+//             (k, v.0)
+//         })
+//         .unwrap_or_else(|| {
+//             println!("No next time control move found.");  // Print for debugging
+//             (0, 0)
+//         });
+
+//     let (current_increment, next_increment_time, next_increment_move) = project.white_increments_sec_sec_key_value_list
+//         .iter()
+//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
+//         .map(|(&k, &v)| {
+//             println!("Found next increment: {} time: {} move: {}", project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v);  // Print for debugging
+//             (project.white_increments_sec_sec_key_value_list[&(project.game_move_number as u32)], k, v)
+//         })
+//         .unwrap_or_else(|| {
+//             println!("No next increment found.");  // Print for debugging
+//             (0, 0, 0)
+//         });
+    
+//     // Print for debugging: display all calculated values
+//     println!(
+//         "Calculated details: moves_to_next_time_control: {}, next_time_control_min: {}, current_increment: {}, next_increment_time: {}, next_increment_move: {}",
+//         moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move
+//     );
+
+//     (
+//         white_moves_to_next_time_control, 
+//         black_moves_to_next_time_control,
+
+//         white_next_time_control_min, 
+//         black_next_time_control_min, 
+
+//         white_current_increment, 
+//         black_current_increment, 
+
+//         white_next_increment_time, 
+//         black_next_increment_time, 
+
+//         white_next_increment_move,
+//         black_next_increment_move,        
+//     )
+
+// }
 
 
 // use std::time::{SystemTime, UNIX_EPOCH};
