@@ -1,5 +1,12 @@
 todo: 
 
+
+
+
+
+
+
+
 adding time incriment
 
 also: maybe set buffer overflow guard
