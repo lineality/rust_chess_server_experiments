@@ -1,0 +1,12 @@
+game_name: nor
+project_start_time_timestamp: 1696686060
+white_time_remaining_sec: 7200
+black_time_remaining_sec: 7200
+white_increments_sec_sec_key_value_list: {}
+black_increments_sec_sec_key_value_list: {}
+white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+current_move_timestamp: 1696686060
+previous_move_timestamp: 1696686060
+player_white: false
+game_move_number: 1

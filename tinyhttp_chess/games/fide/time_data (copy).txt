@@ -1,0 +1,12 @@
+game_name: fide
+project_start_time_timestamp: 1696686805
+white_time_remaining_sec: 7200
+black_time_remaining_sec: 7200
+white_increments_sec_sec_key_value_list: {}
+black_increments_sec_sec_key_value_list: {}
+white_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (3600, 0), 61: (900, 30)}
+current_move_timestamp: 0
+previous_move_timestamp: 0
+player_white: true
+game_move_number: 0

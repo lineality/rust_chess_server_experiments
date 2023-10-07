@@ -6014,17 +6014,18 @@ Timed Projects
 
 e.g. string 
 thisgamename_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)
-
 thisgamename_incrimentseconds-0,30-300,10-30,5_timecontrolmin-0,240-40,30-60,15
 
 or just strip
 
+        Make sure you sync pre-sets in: 
+            handle_timedata_segment()
+            from_increment_and_time_control()
+            from_increment_and_time_control()
+
 */
 
 #[derive(Debug)]
-/*
-Time Modes 
-*/
 
 struct TimedProject {
     game_name: String, // The name of the game
@@ -6074,7 +6075,14 @@ impl TimedProject {
             let elements: Vec<&str> = segment.split(',').collect();
 
             // Check for preset formats
-            if ["norway120", "norwayarmageddon"].contains(segment) {
+            if ["norway120", 
+                "norwayarmageddon",
+                "fideworldchampmatch",
+                "bypost",
+                "bullet1",
+                "bullet2",
+                "bliiz5",                                                                                                                                                                                                                           
+                ].contains(segment) {
                 return TimedProject::from_preset_time_modes_chess(segment, game_name);
             }
 
@@ -6636,7 +6644,10 @@ impl TimedProject {
     pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
 
         /*
-        Make sure you add pre-sets to: handle_timedata_segment()
+        Make sure you sync pre-sets in: 
+            handle_timedata_segment()
+            from_increment_and_time_control()
+            from_increment_and_time_control()
         
         Fide World Championship Match 
 
@@ -7375,7 +7386,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
         html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
-        html_timedata_string.push_str(&format!("<li>Time Spent This Turn so Far: {}</li><li>Total Time Since Start of Game: {}</li>", time_this_turn_str, time_since_start_str));
         html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
         
         // TODO this needs to be updated for black and white separate settings
@@ -7401,6 +7411,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
             html_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
             html_timedata_string.push_str(&format!("<li>White Time Control starts on move {}: adding {} min.</li>", move_num, min));
         }
+        
+        html_timedata_string.push_str(&format!("<li>Time Spent This Turn so Far: {}</li><li>Total Time Since Start of Game: {}</li>", time_this_turn_str, time_since_start_str));
         
         // Final HTML content
         let html_content = format!(r#"
@@ -7606,6 +7618,7 @@ fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProjec
     keyword[0] == "norway120" ||
     keyword[0] == "norwayarmageddon" ||
     keyword[0] == "fideworldchampmatch" ||
+    keyword[0] == "bypost" ||
     keyword[0] == "bullet1" ||
     keyword[0] == "bullet2" ||
     keyword[0] == "bliiz5"
