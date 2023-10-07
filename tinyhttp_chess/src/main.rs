@@ -1542,19 +1542,23 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             円
 
             y0urm0ve.com/
-             setup/
-              chess/
-               GAME_NAME/
-                GAME_PHRASE 
+             setup/chess/
+              GAMENAME/
+               GAMEPHRASE 
+                
+            y0urm0ve.com/
+             setup/chess/
+              GAMENAME_norway120/
+               GAMEPHRASE
 
-            y0ur
-             m0ve.com/
-              GAME_NAME/
+            y0urm0ve.com/
+              GAMENAME/
                Pc2c4
 
             y0ur
-               m0ve.
-                   com/docs
+              m0ve.
+                com/
+                  docs
                
 
             "#.to_string();
@@ -6631,6 +6635,8 @@ impl TimedProject {
     pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
 
         /*
+        Make sure you add pre-sets to: handle_timedata_segment()
+        
         Fide World Championship Match 
 
         fidewcmatch
@@ -6705,11 +6711,9 @@ impl TimedProject {
                 white_timecontrol_move_min_incrsec_key_values_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41.
                 black_timecontrol_move_min_incrsec_key_values_list.insert(41, (0, 10)); // 10-second increment per move starting on move 41. 
 
-                
-                
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(), 
                     white_time_remaining_sec: 7200,
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
@@ -6722,7 +6726,30 @@ impl TimedProject {
                     game_move_number: 0,
                 })
             },
-            "norwayarmageddon" => {
+            
+            "bypost" => {
+                // three days to start
+                // two days per move
+                white_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 86400)); // one day added each move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 86400)); // one day added each move
+
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: timestamp_64(), 
+                    white_time_remaining_sec: 172800,  // two days to start
+                    black_time_remaining_sec: 172800,  // two days to start
+                    white_increments_sec_sec_key_value_list,
+                    black_increments_sec_sec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
+                    current_move_timestamp: 0,
+                    previous_move_timestamp: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+
+            "bullet1noinc" => {
                 // there is no time-based incriment rule
                 // 3 secs increment after 61st move
                 white_timecontrol_move_min_incrsec_key_values_list.insert(61, (0, 3)); // 3 secs increment after 61st move
@@ -6730,7 +6757,7 @@ impl TimedProject {
 
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(),
                     white_time_remaining_sec: 300,  // 5 min for white
                     black_time_remaining_sec: 240,  // four mins for black
                     white_increments_sec_sec_key_value_list,
@@ -6743,6 +6770,70 @@ impl TimedProject {
                     game_move_number: 0,
                 })
             },
+
+                        "bullet1" => {
+                // no incriment!
+                // white_timecontrol_move_min_incrsec_key_values_list.insert(61, (0, 3)); // 3 secs increment after 61st move
+                // black_timecontrol_move_min_incrsec_key_values_list.insert(61, (0, 3)); // 3 secs increment after 61st move
+
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: timestamp_64(),
+                    white_time_remaining_sec: 60,  // 5 min for white
+                    black_time_remaining_sec: 60,  // four mins for black
+                    white_increments_sec_sec_key_value_list,
+                    black_increments_sec_sec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
+                    current_move_timestamp: 0,
+                    previous_move_timestamp: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+                
+            "bullet2" => {
+                // 2 min to play, 10 sec per move, flat
+                white_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 10)); // a day per move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 10)); // a day per move
+                
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: timestamp_64(),
+                    white_time_remaining_sec: 120,  // two days to start
+                    black_time_remaining_sec: 120,  // two days to start
+                    white_increments_sec_sec_key_value_list,
+                    black_increments_sec_sec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
+                    current_move_timestamp: 0,
+                    previous_move_timestamp: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+            
+            "bliiz5" => {
+                // 5 min to play, 5 sec per move, flat
+                white_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 5)); // a day per move
+                black_timecontrol_move_min_incrsec_key_values_list.insert(0, (0, 5)); // a day per move
+                
+                Some(Self {
+                    game_name: game_name.to_string(),
+                    project_start_time_timestamp: timestamp_64(),
+                    white_time_remaining_sec: 120,  // two days to start
+                    black_time_remaining_sec: 120,  // two days to start
+                    white_increments_sec_sec_key_value_list,
+                    black_increments_sec_sec_key_value_list,
+                    white_timecontrol_move_min_incrsec_key_values_list,
+                    black_timecontrol_move_min_incrsec_key_values_list,
+                    current_move_timestamp: 0,
+                    previous_move_timestamp: 0,
+                    player_white: true,
+                    game_move_number: 0,
+                })
+            },
+            
             "fideworldchampmatch" => {
                 // Initialize special rules for FIDE World Championship match
                 // increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
@@ -6762,7 +6853,7 @@ impl TimedProject {
 
                 Some(Self {
                     game_name: game_name.to_string(),
-                    project_start_time_timestamp: timestamp_64(), // TODO: This is a TIMESTAMP!!!! not a starting time amoount!!!!
+                    project_start_time_timestamp: timestamp_64(),
                     white_time_remaining_sec: 7200,
                     black_time_remaining_sec: 7200,
                     white_increments_sec_sec_key_value_list,
@@ -7497,8 +7588,6 @@ fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProjec
     if keyword[0] == "incrimentseconds" {
         println!("incrimentseconds => {}", keyword[0]);
         println!("segment => {}", segment);
-
-
         return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
@@ -7506,15 +7595,20 @@ fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProjec
     if keyword[0] == "timecontrolmin" {
         println!("timecontrolmin => {}", keyword[0]);
         println!("segment => {}", segment);
-
         return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
     // Step 2.3: Handle pre-set time modes
-    if keyword[0] == "norway120" || keyword[0] == "norwayarmageddon" {
+    if 
+    keyword[0] == "norway120" ||
+    keyword[0] == "norwayarmageddon" ||
+    keyword[0] == "fideworldchampmatch" ||
+    keyword[0] == "bullet1" ||
+    keyword[0] == "bullet2" ||
+    keyword[0] == "bliiz5"
+    {
         println!("pre-set time mode => {}", keyword[0]);
         println!("segment => {}", segment);
-
         return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name);
     }
 
