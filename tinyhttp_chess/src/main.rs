@@ -6160,9 +6160,9 @@ impl TimedProject {
             self.player_white = true;
         }
 
-        // Update the last move time
-        self.last_move_time = current_timestamp;
-        println!("Updated last_move_time: {}", self.last_move_time);
+        // // Update the last move time
+        // self.last_move_time = current_timestamp;
+        // println!("Updated last_move_time: {}", self.last_move_time);
 
         // Increment game move number.
         self.game_move_number += 1;
@@ -6939,6 +6939,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         player_white: true
         game_move_number: 0
         */
+        println!("=== Start generate_html_with_time_data ===");
 
         
         // Initialize the HTML string

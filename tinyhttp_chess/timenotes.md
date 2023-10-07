@@ -1,4 +1,10 @@
 todo: 
+
+how to deal with change to 'last time' needed to be done
+after move...
+
+
+
 add: next turn black/white
 updating time etc not happening:
 update_timedata_after_move(
