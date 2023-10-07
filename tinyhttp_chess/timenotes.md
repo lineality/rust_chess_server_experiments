@@ -1,9 +1,20 @@
 todo: 
 
-current time still needs to be written
+note: how do time incriments get calculated...from the tuples?
+current inciment stat needed?
 
-how to deal with change to 'last time' needed to be done
-after move...
+game_name: t2
+project_start_time_timestamp: 1696645932
+white_time_remaining_sec: 6937
+black_time_remaining_sec: 7044
+white_increments_sec_sec_key_value_list: {}
+black_increments_sec_sec_key_value_list: {}
+white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+current_move_timestamp: 1696646281
+previous_move_timestamp: 1696646154
+player_white: false
+game_move_number: 41
 
 
 
