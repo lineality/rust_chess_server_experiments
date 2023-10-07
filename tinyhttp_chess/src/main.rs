@@ -6135,7 +6135,7 @@ impl TimedProject {
     }
 
 
-        
+
     // Updates fields related to the last move
     fn update_timedata_before_move(&mut self, move_data: &str) {
         /* 
@@ -6161,9 +6161,9 @@ impl TimedProject {
         
         and check time-controls to add time to a clock either ON a move# (not after)
         
-        
         if player_white changes, THEN game_move_number += 1
         */
+
         println!("===update_timedata_before_move===");
         println!("Starting player_white value: {}", self.player_white);
 
@@ -6251,56 +6251,7 @@ impl TimedProject {
             self.player_white = true;
         }
                 
-                
-                
-        // // check for time incriment based on move number or a time-remaining defined incriment
-        // if is_white_move {
 
-        //     // Check for move-based increment for white
-        //     if let Some(&(min, sec)) = self.white_timecontrol_move_min_incrsec_key_values_list.get(&self.game_move_number) {
-        //         println!("Found move-based increment for white on move {}: {} minutes {} seconds", self.game_move_number, min, sec);        
-        //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
-        //         println!("Added move-based increment to white: {}", sec);
-        //     }
-            
-        //     // Check for time-defined increment for white
-        //     for (game_duration, increment) in &self.white_increments_sec_sec_key_value_list {
-        //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
-        //             self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
-        //             println!("Added time-defined increment to white: {}", increment);
-        //         }
-        //     }
-            
-        // } else {
-        //     // Check for move-based increment for black
-        //     if let Some(&(min, sec)) = self.black_timecontrol_move_min_incrsec_key_values_list.get(&self.game_move_number) {
-        //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
-        //         println!("Added move-based increment to black: {}", sec);
-        //     }
-            
-        //     // Check for time-defined increment for black
-        //     for (game_duration, increment) in &self.black_increments_sec_sec_key_value_list {
-        //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
-        //             self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
-        //             println!("Added time-defined increment to black: {}", increment);
-        //         }
-        //     }
-
-        // }
-        
-
-        // // Deduct time for the appropriate player based on move color
-        // if is_white_move {
-        //     self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
-        //     println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
-        //     self.player_white = false;
-        // } else {
-        //     self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
-        //     println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
-        //     self.player_white = true;
-        // }
-
-        
         // Increment game move number.
         self.game_move_number += 1;
         println!("Updated game_move_number: {}", self.game_move_number);
@@ -6313,6 +6264,184 @@ impl TimedProject {
         println!("---end update_timedata_before_move---");
     }
     
+    
+    
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+        
+    //     first move the previous current-time to the current-past (last) time
+    //     the meaning of the time stats are relative:
+    //     from the perspective of a move being made.
+    //     'last' now means the last 'current_move'
+    //     and what was the previous move, is now the previous-previous move.
+        
+    //     if letter in move data is capital that's white
+
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+
+    //     Note: either player may move a piece on the board
+    //     at any time, this is not nessesarily a game-move.
+    //     player_white only changes if the old player move and new player
+    //     move are NOT the same. (if player_white has changed)
+        
+    //     Note: incriment time based on move-defined and time-defined time incriments
+        
+    //     and check time-controls to add time to a clock either ON a move# (not after)
+        
+        
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("Starting player_white value: {}", self.player_white);
+
+    //     // Starting Edge Case:  white move: "start time"
+    //     // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+    //     if self.game_move_number == 0 {
+    //         let this_timestamp = timestamp_64();
+    //         self.current_move_timestamp = this_timestamp;
+    //         self.project_start_time_timestamp = this_timestamp;
+    //     };
+        
+    //     // Update the last move time (previous 'current' time)
+    //     self.previous_move_timestamp = self.current_move_timestamp;
+    //     println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
+        
+    //     // Update current_move_timestamp
+    //     let current_timestamp = timestamp_64();
+    //     self.current_move_timestamp = current_timestamp;
+    //     println!("Current timestamp: {}", current_timestamp);
+
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+    //     println!("Time this turn: {}", time_this_turn);
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+    //     println!("Detected as move by white player: {}", is_white_move);
+
+        
+    //     // check for time increment based on move number or a time-remaining defined increment
+    //     if is_white_move {
+    //         // Check for move-based increment for white
+    //         for (move_num, &(min, sec)) in &self.white_timecontrol_move_min_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for white starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to white: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for white
+    //         for (game_duration, increment) in &self.white_increments_sec_sec_key_value_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for white: game duration {} exceeded", game_duration);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to white: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for white: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     } else {
+    //         // Check for move-based increment for black
+    //         for (move_num, &(min, sec)) in &self.black_timecontrol_move_min_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for black starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to black: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for black
+    //         for (game_duration, increment) in &self.black_increments_sec_sec_key_value_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for black: game duration {} exceeded", game_duration);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to black: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for black: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     }
+
+    //     // Deduct time for the appropriate player based on move color
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated white_time_remaining_sec after move: {}", self.white_time_remaining_sec);
+    //         self.player_white = false;
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated black_time_remaining_sec after move: {}", self.black_time_remaining_sec);
+    //         self.player_white = true;
+    //     }
+                
+                
+                
+    //     // // check for time incriment based on move number or a time-remaining defined incriment
+    //     // if is_white_move {
+
+    //     //     // Check for move-based increment for white
+    //     //     if let Some(&(min, sec)) = self.white_timecontrol_move_min_incrsec_key_values_list.get(&self.game_move_number) {
+    //     //         println!("Found move-based increment for white on move {}: {} minutes {} seconds", self.game_move_number, min, sec);        
+    //     //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //     //         println!("Added move-based increment to white: {}", sec);
+    //     //     }
+            
+    //     //     // Check for time-defined increment for white
+    //     //     for (game_duration, increment) in &self.white_increments_sec_sec_key_value_list {
+    //     //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //     //             self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //     //             println!("Added time-defined increment to white: {}", increment);
+    //     //         }
+    //     //     }
+            
+    //     // } else {
+    //     //     // Check for move-based increment for black
+    //     //     if let Some(&(min, sec)) = self.black_timecontrol_move_min_incrsec_key_values_list.get(&self.game_move_number) {
+    //     //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //     //         println!("Added move-based increment to black: {}", sec);
+    //     //     }
+            
+    //     //     // Check for time-defined increment for black
+    //     //     for (game_duration, increment) in &self.black_increments_sec_sec_key_value_list {
+    //     //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //     //             self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //     //             println!("Added time-defined increment to black: {}", increment);
+    //     //         }
+    //     //     }
+
+    //     // }
+        
+
+    //     // // Deduct time for the appropriate player based on move color
+    //     // if is_white_move {
+    //     //     self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     //     println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
+    //     //     self.player_white = false;
+    //     // } else {
+    //     //     self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     //     println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
+    //     //     self.player_white = true;
+    //     // }
+
+        
+    //     // Increment game move number.
+    //     self.game_move_number += 1;
+    //     println!("Updated game_move_number: {}", self.game_move_number);
+
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+
+    //     println!("---end update_timedata_before_move---");
+    // }
     
     
     
@@ -7155,7 +7284,7 @@ impl TimedProject {
 
 
 pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
-    println!("\nstart load_timedata_from_txt");
+    println!("\n=== start load_timedata_from_txt() ===");
     
     let path = format!("games/{}/time_data.txt", game_name);
     let file = File::open(&path)?;
@@ -7237,6 +7366,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
             },
             _ => println!("Unknown key encountered: {}\n\n", parts[0]),
         }
+        
+    println!("\n--- end load_timedata_from_txt() ---");
         
     }
 
@@ -7718,43 +7849,257 @@ fn string_to_hashmap_timedata(input: &str) -> HashMap<u32, u32> {
 // use std::collections::HashMap;
 
 /*
-white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
-black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 10)}
+e.g. input:
+white_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
+black_timecontrol_move_min_incrsec_key_values_list: {41: (3600, 0), 61: (900, 30)}
 */
 pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
     println!("=== string_to_tuple_hashmap_timedata ===");
     println!("Raw Input: {}", input);
 
     let mut map = HashMap::new();
-    let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
 
-    let parts: Vec<&str> = data_str.split(": ").collect();
-    if parts.len() != 2 {
-        println!("   Error: Malformed input.");
-        return map;
+    // Format the string for easier parsing
+    let formatted_input = input.replace(" ", "")
+                               .trim_matches(|c| c == '{' || c == '}')
+                               .replace("),", ")|");
+                               
+    for pair_str in formatted_input.split("|") {
+        let parts: Vec<&str> = pair_str.split(":").collect();
+
+        if parts.len() != 2 {
+            println!("   Error: Malformed input in pair.");
+            continue;
+        }
+
+        let key: u32 = match parts[0].trim().parse() {
+            Ok(k) => k,
+            Err(_) => {
+                println!("   Error: Key parsing error");
+                continue;
+            },
+        };
+
+        let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
+        let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+
+        if values.len() != 2 {
+            println!("   Error: Malformed tuple in pair.");
+            continue;
+        }
+
+        map.insert(key, (values[0], values[1]));
     }
 
-    let key: u32 = match parts[0].trim().parse() {
-        Ok(k) => k,
-        Err(_) => {
-            println!("   Error: Key parsing error");
-            return map;
-        },
-    };
-
-    let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
-    let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
-
-    if values.len() != 2 {
-        println!("   Error: Malformed tuple");
-        return map;
-    }
-
-    map.insert(key, (values[0], values[1]));
-
+    println!("Processed map: {:?}", map);
     println!("=== End string_to_tuple_hashmap_timedata ===");
     map
 }
+
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Raw Input: {}", input);
+
+//     let mut map = HashMap::new();
+
+//     // Remove spaces, curly braces, and parentheses
+//     let stripped_input = input.replace(" ", "").replace("{", "").replace("}", "");
+
+    
+//     // Split by `),` and then add `)` back to each segment (except the last one)
+//     let segments: Vec<String> = stripped_input.split("),").enumerate().map(|(i, seg)| {
+//         if i == stripped_input.split("),").count() - 1 {
+//             seg.to_string()
+//         } else {
+//             format!("{})", seg)
+//         }
+//     }).collect();
+
+//     for pair in &segments {
+//         let parts: Vec<&str> = pair.split(":").collect();
+//         if parts.len() != 2 {
+//             println!("   Error: Malformed input in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         let key: u32 = match parts[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Error: Key parsing error");
+//                 continue;  // Move to the next pair
+//             },
+//         };
+
+//         let values: Vec<u32> = parts[1].trim_start_matches("(").split(',').filter_map(|x| x.trim().parse().ok()).collect();
+//         if values.len() != 2 {
+//             println!("   Error: Malformed tuple in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+
+//     println!("Processed map: {:?}", map);
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Raw Input: {}", input);
+
+//     let mut map = HashMap::new();
+
+//     // Remove spaces, curly braces, and parentheses
+//     let stripped_input = input.replace(" ", "").replace("{", "").replace("}", "");
+
+//     // Split by `),` to get individual key-tuple-value pairs
+//     for pair in stripped_input.split("),") {
+//         let parts: Vec<&str> = pair.split(":").collect();
+//         if parts.len() != 2 {
+//             println!("   Error: Malformed input in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         let key: u32 = match parts[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Error: Key parsing error");
+//                 continue;  // Move to the next pair
+//             },
+//         };
+
+//         let values: Vec<u32> = parts[1].trim_start_matches("(").split(',').filter_map(|x| x.trim().parse().ok()).collect();
+//         if values.len() != 2 {
+//             println!("   Error: Malformed tuple in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+
+//     println!("Processed map: {:?}", map);
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata() ===");
+//     println!("Raw Input: {}", input);
+
+//     let mut map = HashMap::new();
+//     let stripped_input = input.replace("{", "").replace("}", "").replace("(", "").replace(")", "").replace(" ", "");
+    
+//     // Split by comma to separate each key-value pair
+//     for pair in stripped_input.split(",") {
+//         let parts: Vec<&str> = pair.split(":").collect();
+//         if parts.len() != 2 {
+//             println!("   Error: Malformed input in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         let key: u32 = match parts[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Error: Key parsing error");
+//                 continue;  // Move to the next pair
+//             },
+//         };
+
+//         let values: Vec<u32> = parts[1].splitn(2, ',').filter_map(|x| x.trim().parse().ok()).collect();
+//         if values.len() != 2 {
+//             println!("   Error: Malformed tuple in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+
+//     println!("Processed map: {:?}", map);
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
+
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata() ===");
+//     println!("Raw Input: {}", input);
+
+//     let mut map = HashMap::new();
+//     let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
+
+//     // Split by comma to separate each key-value pair
+//     for pair in data_str.split(",") {
+//         let parts: Vec<&str> = pair.split(": ").collect();
+//         if parts.len() != 2 {
+//             println!("   Error: Malformed input in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         let key: u32 = match parts[0].trim().parse() {
+//             Ok(k) => k,
+//             Err(_) => {
+//                 println!("   Error: Key parsing error in pair.");
+//                 continue;  // Move to the next pair
+//             },
+//         };
+
+//         let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
+//         let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+
+//         if values.len() != 2 {
+//             println!("   Error: Malformed tuple in pair.");
+//             continue;  // Move to the next pair
+//         }
+
+//         map.insert(key, (values[0], values[1]));
+//     }
+
+//     println!("Processed map: {:?}", map);
+//     println!("--- End string_to_tuple_hashmap_timedata() ---");
+//     map
+// }
+
+
+// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
+//     println!("=== string_to_tuple_hashmap_timedata ===");
+//     println!("Raw Input: {}", input);
+
+//     let mut map = HashMap::new();
+//     let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
+
+//     let parts: Vec<&str> = data_str.split(": ").collect();
+//     if parts.len() != 2 {
+//         println!("   Error: Malformed input.");
+//         return map;
+//     }
+
+//     let key: u32 = match parts[0].trim().parse() {
+//         Ok(k) => k,
+//         Err(_) => {
+//             println!("   Error: Key parsing error");
+//             return map;
+//         },
+//     };
+
+//     let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
+//     let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+
+//     if values.len() != 2 {
+//         println!("   Error: Malformed tuple");
+//         return map;
+//     }
+
+//     map.insert(key, (values[0], values[1]));
+
+//     println!("=== End string_to_tuple_hashmap_timedata ===");
+//     map
+// }
 
 
 
