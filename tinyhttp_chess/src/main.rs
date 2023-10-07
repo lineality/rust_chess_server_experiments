@@ -6168,6 +6168,11 @@ impl TimedProject {
         self.game_move_number += 1;
         println!("Updated game_move_number: {}", self.game_move_number);
 
+        // Save the updated data to the file after making changes
+        if let Err(e) = self.save_timedata_to_txt() {
+            println!("Error saving updated data to file: {}", e);
+        }
+
         println!("---end update_timedata_before_move---");
     }
     
@@ -6888,15 +6893,15 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         player_white,
         game_move_number,
     })
-    
+ 
+       
 }
-
-
-    //v5
-    /// Generates the HTML time bar.
-    ///
-    /// This function uses the provided TimedProject instance and current timestamp
-    /// to generate an HTML time bar
+    /*
+    v5
+    Generates the HTML time bar.
+    This function uses the provided TimedProject instance and current timestamp
+    to generate an HTML time bar
+    */
     pub fn generate_html_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
           /* 
         html time_bar_html items:
@@ -6911,7 +6916,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         - Current (White/Black) Increment:
         - Next (White/Black) Increment at time (sec):
         - Next (White/Black) Increment on Move: int
-
 
         making other helper function if needed is fine
 
@@ -6934,12 +6938,9 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         last_move_time: 0
         player_white: true
         game_move_number: 0
+        */
 
-
-                        */
-
-
-
+        
         // Initialize the HTML string
         let mut html_timedata_string = String::new();
         
@@ -7148,6 +7149,7 @@ pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String>
     // Generate the HTML content using the loaded struct
     Ok(TimedProject::generate_html_with_time_data(&project, current_timestamp))
 }
+
 
 // Helper function to parse Vec of tuples from a string
 fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
