@@ -1,12 +1,12 @@
 game_name: fide2
-project_start_time_timestamp: 1696690908
-white_time_remaining_sec: 7011
-black_time_remaining_sec: 7200
+project_start_time_timestamp: 1696703755
+white_time_remaining_sec: 10709
+black_time_remaining_sec: 7145
 white_increments_sec_sec_key_value_list: {}
 black_increments_sec_sec_key_value_list: {}
 white_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
-black_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
-current_move_timestamp: 1696691097
-previous_move_timestamp: 1696691062
+black_timecontrol_move_min_incrsec_key_values_list: {41: (3600, 0), 61: (900, 30)}
+current_move_timestamp: 1696703901
+previous_move_timestamp: 1696703895
 player_white: false
-game_move_number: 46
+game_move_number: 44

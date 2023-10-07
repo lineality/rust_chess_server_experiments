@@ -6003,6 +6003,8 @@ thisgamename_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,
 
 thisgamename_incrimentseconds-0,30-300,10-30,5_timecontrolmin-0,240-40,30-60,15
 
+
+
 or just strip
 
 */
@@ -6135,11 +6137,66 @@ impl TimedProject {
     }
 
 
+    /*
+    Functions involved:
 
-    // Updates fields related to the last move
-    fn update_timedata_before_move(&mut self, move_data: &str) {
-        /* 
-        update timestamp
+    wrapper_move_update_and_make_html() 
+        -> load_timedata_from_txt()
+            ->  string_to_hashmap_timedata() ->
+
+        update_timedata_before_move() ->
+            ->  save_timedata_to_txt() 
+
+        generate_html_with_time_data()
+
+
+    white_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
+    black_timecontrol_move_min_incrsec_key_values_list: {41: (3600, 0), 61: (900, 30)}
+    */
+     /* 
+        update time data:
+
+        chess time-incriments:
+        as is literally laid out in the name of the variable,
+        move-based "time incriment" data
+        and move-based "time control" data are stored in tuples.
+
+        These describe: The number of seconds added once (a time control) at that move,
+        and the number of seconds (time-incriment) added every-turn.
+
+        These are tuples because there may be several incriments and time controls
+        e.g. for the most standard of all games: Fide World Championship Classical Match:
+
+        white_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
+        black_timecontrol_move_min_incrsec_key_values_list: {61: (900, 30), 41: (3600, 0)}
+
+
+        // Initialize special rules for FIDE World Championship match
+
+        // Rule 1
+        // move_41 + 60 min
+        // 60 min = 3600 sec
+        white_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 60 minute time control after 40th move, no incriment
+        black_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 60 minute time control after 40th move, no incriment
+
+        // Rule 2
+        // move_61 + 15 min + 30sec incriment
+        // 15 min = 900 sec
+        white_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 15 mins (900 sec) increment after 40th move, and a 30 sec time incriment
+        black_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 15 mins (900 sec) increment after 40th move, and a 30 sec time incriment
+
+        Sometimes they are the same for both black and white, other times not.
+
+        In addition to this multi-tuple lookup table
+        there needs to be a "Where are we in time?" lookup table,
+        to see which tuple is relevant. Namely:
+        1. easy: if the move is AT any of the time control move-numbers, add seconds to players time
+        2. harder: if move is at or after an incriment move-number AND it is the highest such matching number, add seconds.
+        e.g. if an incriment is only valid from move 41-60, do NOT add it after move 60. Only apply the current incriment.
+        make a list of incriment-moves at or higher than the current move:
+        pick only the highest one:
+        apply that one only.
+
         
         first move the previous current-time to the current-past (last) time
         the meaning of the time stats are relative:
@@ -6163,7 +6220,10 @@ impl TimedProject {
         
         if player_white changes, THEN game_move_number += 1
         */
+    // Updates fields related to the last move
 
+    fn update_timedata_before_move(&mut self, move_data: &str) {
+       
         println!("===update_timedata_before_move===");
         println!("Starting player_white value: {}", self.player_white);
 
@@ -6183,78 +6243,110 @@ impl TimedProject {
         let current_timestamp = timestamp_64();
         self.current_move_timestamp = current_timestamp;
         println!("Current timestamp: {}", current_timestamp);
-
+ 
         let time_this_turn = current_timestamp - self.previous_move_timestamp;
         println!("Time this turn: {}", time_this_turn);
 
         let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
         println!("Detected as move by white player: {}", is_white_move);
 
-        
-        // check for time increment based on move number or a time-remaining defined increment
+
+        /////////
+
+            
+        // Check for move-based increment based on current move number.
+        let mut applicable_increment = 0;
+        let mut applicable_time_control = 0;
+
         if is_white_move {
-            // Check for move-based increment for white
-            for (move_num, &(min, sec)) in &self.white_timecontrol_move_min_incrsec_key_values_list {
-                if self.game_move_number >= *move_num {
-                    println!("Applying move-based increment for white starting from move {}: {} minutes {} seconds", move_num, min, sec);
-                    self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
-                    println!("Added move-based increment to white: {} seconds", sec);
-                    break; // break after finding the relevant increment
-                } else {
-                    println!("No move-based increment found for black on move {}", self.game_move_number);
+            // Sort keys to ensure higher move numbers are checked first
+            let mut sorted_keys: Vec<u32> = self.white_timecontrol_move_min_incrsec_key_values_list.keys().cloned().collect();
+            sorted_keys.sort_by(|a, b| b.cmp(a));  // Sort in descending order
+
+            for &move_num in &sorted_keys {
+                if self.game_move_number == move_num {
+                    println!("Move {} matches time control move number: {}", self.game_move_number, move_num);
+                    let (time_control, sec) = self.white_timecontrol_move_min_incrsec_key_values_list[&move_num];
+                    applicable_time_control = time_control;
+                    applicable_increment = sec;
+                    println!("Applying time control of {} seconds and increment of {} seconds for white.", applicable_time_control, applicable_increment);
+                    break;  // Found the relevant move number for time control
+                } else if self.game_move_number > move_num {
+                    println!("Move {} is after time control move number: {}", self.game_move_number, move_num);
+                    let (_, sec) = self.white_timecontrol_move_min_incrsec_key_values_list[&move_num];
+                    applicable_increment = sec;
+                    println!("Applying increment of {} seconds for white.", applicable_increment);
+                    break;  // Found the highest applicable increment
                 }
             }
-            
-            // Check for time-defined increment for white
-            for (game_duration, increment) in &self.white_increments_sec_sec_key_value_list {
-                if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
-                    println!("Time-defined increment condition met for white: game duration {} exceeded", game_duration);
-                    self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
-                    println!("Added time-defined increment to white: {} seconds", increment);
-                } else {
-                    println!("Time-defined increment condition not met for white: game duration {} not exceeded", game_duration);
-                }
-            }
+
+            self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(applicable_time_control + applicable_increment);
         } else {
-            // Check for move-based increment for black
-            for (move_num, &(min, sec)) in &self.black_timecontrol_move_min_incrsec_key_values_list {
-                if self.game_move_number >= *move_num {
-                    println!("Applying move-based increment for black starting from move {}: {} minutes {} seconds", move_num, min, sec);
-                    self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
-                    println!("Added move-based increment to black: {} seconds", sec);
-                    break; // break after finding the relevant increment
-                } else {
-                    println!("No move-based increment found for black on move {}", self.game_move_number);
+            // Similarly for black
+            let mut sorted_keys: Vec<u32> = self.black_timecontrol_move_min_incrsec_key_values_list.keys().cloned().collect();
+            sorted_keys.sort_by(|a, b| b.cmp(a));
+
+            for &move_num in &sorted_keys {
+                if self.game_move_number == move_num {
+                    println!("Move {} matches time control move number: {}", self.game_move_number, move_num);
+                    let (time_control, sec) = self.black_timecontrol_move_min_incrsec_key_values_list[&move_num];
+                    applicable_time_control = time_control;
+                    applicable_increment = sec;
+                    println!("Applying time control of {} seconds and increment of {} seconds for black.", applicable_time_control, applicable_increment);
+                    break;
+                } else if self.game_move_number > move_num {
+                    println!("Move {} is after time control move number: {}", self.game_move_number, move_num);
+                    let (_, sec) = self.black_timecontrol_move_min_incrsec_key_values_list[&move_num];
+                    applicable_increment = sec;
+                    println!("Applying increment of {} seconds for black.", applicable_increment);
+                    break;
                 }
             }
-            
-            // Check for time-defined increment for black
-            for (game_duration, increment) in &self.black_increments_sec_sec_key_value_list {
-                if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
-                    println!("Time-defined increment condition met for black: game duration {} exceeded", game_duration);
-                    self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
-                    println!("Added time-defined increment to black: {} seconds", increment);
-                } else {
-                    println!("Time-defined increment condition not met for black: game duration {} not exceeded", game_duration);
-                }
-            }
+
+            self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(applicable_time_control + applicable_increment);
         }
+
+
+        /////////
+
 
         // Deduct time for the appropriate player based on move color
         if is_white_move {
             self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
             println!("Updated white_time_remaining_sec after move: {}", self.white_time_remaining_sec);
-            self.player_white = false;
         } else {
             self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
             println!("Updated black_time_remaining_sec after move: {}", self.black_time_remaining_sec);
-            self.player_white = true;
         }
                 
 
-        // Increment game move number.
-        self.game_move_number += 1;
-        println!("Updated game_move_number: {}", self.game_move_number);
+        /*  
+        Increment game move number.
+        Note: either player may move a piece on the board
+        at any time, this is not nessesarily a game-move.
+        player_white only changes if the old player move and new player
+        move are NOT the same. (if player_white has changed)
+        */
+
+        // Store the old player color
+        let old_is_white = self.player_white;
+
+        // Check if the move is by white or black based on the case of the first two letters
+        let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+        // Logic to toggle player_white and update game_move_number
+        if is_white_move {
+            self.player_white = false;
+        } else {
+            self.player_white = true;
+        }
+
+        // Last, increment game move number only if player color changed
+        if old_is_white != self.player_white {
+            self.game_move_number += 1;
+            println!("Updated game_move_number");
+        }
+
 
         // Save the updated data to the file after making changes
         if let Err(e) = self.save_timedata_to_txt() {
@@ -6265,6 +6357,134 @@ impl TimedProject {
     }
     
     
+    
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+       
+    //     println!("===update_timedata_before_move===");
+    //     println!("Starting player_white value: {}", self.player_white);
+
+    //     // Starting Edge Case:  white move: "start time"
+    //     // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+    //     if self.game_move_number == 0 {
+    //         let this_timestamp = timestamp_64();
+    //         self.current_move_timestamp = this_timestamp;
+    //         self.project_start_time_timestamp = this_timestamp;
+    //     };
+        
+    //     // Update the last move time (previous 'current' time)
+    //     self.previous_move_timestamp = self.current_move_timestamp;
+    //     println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
+        
+    //     // Update current_move_timestamp
+    //     let current_timestamp = timestamp_64();
+    //     self.current_move_timestamp = current_timestamp;
+    //     println!("Current timestamp: {}", current_timestamp);
+ 
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+    //     println!("Time this turn: {}", time_this_turn);
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+    //     println!("Detected as move by white player: {}", is_white_move);
+
+    //     /*
+    //     THIS IS WRONG!!
+    //     THIS NEEDS TO BE FIXED!!
+    //     In addition to this multi-tuple lookup table
+    //     there needs to be a "Where are we in time?" lookup table,
+    //     to see which tuple is relevant. Namely:
+    //     1. easy: if the move is AT any of the time control move-numbers, add seconds to players time
+    //     2. harder: if move is at or after an incriment move-number AND it is the highest such matching number, add seconds.
+    //     e.g. if an incriment is only valid from move 41-60, do NOT add it after move 60. Only apply the current incriment.
+    //     make a list of incriment-moves at or higher than the current move:
+    //     pick only the highest one:
+    //     apply that one only.
+    //     */
+    //     // check for time increment based on move number or a time-remaining defined increment
+    //     if is_white_move {
+    //         // Check for move-based increment for white
+    //         for (move_num, &(min, sec)) in &self.white_timecontrol_move_min_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for white starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to white: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+    //         // Check for time-defined increment for white
+    //         for (game_duration, increment) in &self.white_increments_sec_sec_key_value_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for white: game duration {} exceeded", game_duration);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to white: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for white: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+
+    //     } else {  // If Black Move
+    //         /*
+    //         THIS IS WRONG!!
+    //         THIS NEEDS TO BE FIXED!!
+    //         - Add print inspection statement
+    //         In addition to this multi-tuple lookup table
+    //         there needs to be a "Where are we in time?" lookup table,
+    //         to see which tuple is relevant. Namely:
+    //         1. easy: if the move is AT any of the time control move-numbers, add seconds to players time
+    //         2. harder: if move is at or after an incriment move-number AND it is the highest such matching number, add seconds.
+    //         e.g. if an incriment is only valid from move 41-60, do NOT add it after move 60. Only apply the current incriment.
+    //         make a list of incriment-moves at or higher than the current move:
+    //         pick only the highest one:
+    //         apply that one only.
+    //         */
+    //         // Check for move-based increment for black
+    //         for (move_num, &(min, sec)) in &self.black_timecontrol_move_min_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for black starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to black: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for black
+    //         for (game_duration, increment) in &self.black_increments_sec_sec_key_value_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for black: game duration {} exceeded", game_duration);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to black: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for black: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     }
+
+    //     // Deduct time for the appropriate player based on move color
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated white_time_remaining_sec after move: {}", self.white_time_remaining_sec);
+    //         self.player_white = false;
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated black_time_remaining_sec after move: {}", self.black_time_remaining_sec);
+    //         self.player_white = true;
+    //     }
+                
+
+    //     // Increment game move number.
+    //     self.game_move_number += 1;
+    //     println!("Updated game_move_number: {}", self.game_move_number);
+
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+
+    //     println!("---end update_timedata_before_move---");
+    // }
     
     // // Updates fields related to the last move
     // fn update_timedata_before_move(&mut self, move_data: &str) {
@@ -6977,20 +7197,18 @@ impl TimedProject {
             
             "fideworldchampmatch" => {
                 // Initialize special rules for FIDE World Championship match
-                // increments_map.insert("move_40".to_string(), (40, 1800));  // 30 mins increment after 40th move
-                // increments_map.insert("move_61".to_string(), (61, 30));  // 30 secs increment after 61st move
 
                 // Rule 1
                 // move_41 + 60 min
                 // 60 min = 3600 sec
-                white_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 30 mins increment after 40th move
-                black_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 30 mins increment after 40th move                
+                white_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 60 minute time control after 40th move, no incriment
+                black_timecontrol_move_min_incrsec_key_values_list.insert(41, (3600, 0)); // 60 minute time control after 40th move, no incriment
 
                 // Rule 2
                 // move_61 + 15 min + 30sec incriment
                 // 15 min = 900 sec
-                white_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 30 mins increment after 40th move
-                black_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 30 mins increment after 40th move                
+                white_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 15 mins (900 sec) increment after 40th move, and a 30 sec time incriment
+                black_timecontrol_move_min_incrsec_key_values_list.insert(61, (900, 30)); // 15 mins (900 sec) increment after 40th move, and a 30 sec time incriment
 
                 Some(Self {
                     game_name: game_name.to_string(),
@@ -7522,6 +7740,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         // TODO this needs to be updated for black and white separate settings
         let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
+
         // Conditionally append time control and increment details
         if moves_to_next_time_control > 0 || next_time_control_min > 0 {
             html_timedata_string.push_str(&format!("<li>Next Time-Control at Move: {}</li><li>Next Time-Control (in minutes): {}</li>", moves_to_next_time_control, next_time_control_min));
@@ -8434,6 +8653,9 @@ fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
     
 //     (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
 // }
+
+
+
 /// calculate time control and increment details.
 /// This function takes a reference to a TimedProject instance and returns a tuple
 /// containing moves to the next time control, next time control in minutes, current increment,

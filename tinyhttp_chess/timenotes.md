@@ -6,7 +6,10 @@ in pub fn generate_html_with_time_data()
 you need to update the displays for incriment and time control...because
 they are now split into black and white...
 
-
+generate_html_with_time_data(
+        // TODO this needs to be updated for black and white separate settings
+        let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+        
 
 
 
