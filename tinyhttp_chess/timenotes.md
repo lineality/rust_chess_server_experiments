@@ -2,6 +2,9 @@ todo:
 
 
 
+in pub fn generate_html_with_time_data()
+you need to update the displays for incriment and time control...because
+they are now split into black and white...
 
 
 

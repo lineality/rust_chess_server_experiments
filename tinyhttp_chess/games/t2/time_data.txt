@@ -1,12 +1,12 @@
 game_name: t2
 project_start_time_timestamp: 1696675185
-white_time_remaining_sec: 12266
+white_time_remaining_sec: 12897
 black_time_remaining_sec: 9122
 white_increments_sec_sec_key_value_list: {}
 black_increments_sec_sec_key_value_list: {}
 white_timecontrol_move_min_incrsec_key_values_list: {41: (0, 6000)}
 black_timecontrol_move_min_incrsec_key_values_list: {41: (0, 6000)}
-current_move_timestamp: 1696679671
-previous_move_timestamp: 1696679496
+current_move_timestamp: 1696685040
+previous_move_timestamp: 1696679671
 player_white: false
-game_move_number: 49
+game_move_number: 50

@@ -386,6 +386,7 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
+// use std::intrinsics::min_align_of;
 use tiny_http::{Server, Request, Response, Method, Header, StatusCode}; 
 use std::path::Path;
 // use rand::prelude::*;
@@ -7340,18 +7341,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         html_timedata_string.push_str(&format!("<li>Next Move: {}</li>", next_move));
                 
                 
-        // Include time increments for White and Black if available.
-        // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
-        for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
-            html_timedata_string.push_str(&format!("<li>White Time Increment starts on move {}: {} min {} sec</li>", move_num, min, sec));
-        }
-
-        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
-        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
-            html_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: {} min {} sec</li>", move_num, min, sec));
-        }
-                
-        
         // // Add time information to the HTML string
         // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
         // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
@@ -7389,6 +7378,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         html_timedata_string.push_str(&format!("<li>Time Spent This Turn so Far: {}</li><li>Total Time Since Start of Game: {}</li>", time_this_turn_str, time_since_start_str));
         html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
         
+        // TODO this needs to be updated for black and white separate settings
         let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
         // Conditionally append time control and increment details
@@ -7399,6 +7389,19 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
             html_timedata_string.push_str(&format!("<li>Current Increment: {}</li><li>Next Increment at time (sec): {}</li><li>Next Increment on Move: {}</li>", current_increment, next_increment_time, next_increment_move));
         }    
 
+        // Include time increments for White and Black if available.
+        // Loop through white_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("<li>White Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
+            html_timedata_string.push_str(&format!("<li>White Time Control starts on move {}: adding {} min.</li>", move_num, min));
+        }
+
+        // Loop through black_timecontrol_move_min_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
+            html_timedata_string.push_str(&format!("<li>White Time Control starts on move {}: adding {} min.</li>", move_num, min));
+        }
+        
         // Final HTML content
         let html_content = format!(r#"
         <!DOCTYPE html>
