@@ -1,5 +1,7 @@
 todo: 
 
+current time still needs to be written
+
 how to deal with change to 'last time' needed to be done
 after move...
 
