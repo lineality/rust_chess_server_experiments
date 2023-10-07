@@ -1,5 +1,11 @@
 todo: 
 
+adding time incriment
+
+also: maybe set buffer overflow guard
+
+also check custom time-controls setup...
+
 note: how do time incriments get calculated...from the tuples?
 current inciment stat needed?
 

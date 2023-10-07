@@ -6149,6 +6149,14 @@ impl TimedProject {
         println!("===update_timedata_before_move===");
         println!("Starting player_white value: {}", self.player_white);
 
+        // Starting Edge Case:  white move: "start time"
+        // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+        if self.game_move_number == 0 {
+            let this_timestamp = timestamp_64();
+            self.current_move_timestamp = this_timestamp;
+            self.project_start_time_timestamp = this_timestamp;
+        };
+        
         // Update the last move time (previous 'current' time)
         self.previous_move_timestamp = self.current_move_timestamp;
         println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
