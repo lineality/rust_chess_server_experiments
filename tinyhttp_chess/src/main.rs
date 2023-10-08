@@ -7656,68 +7656,290 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     }
 
 
+    // fn generate_html_timedata(project: &TimedProject) -> String {
+    //     let mut html_timedata_string = String::new();
+    
+    //     let mut time_controls_combined: HashMap<u32, (u32, u32)> = HashMap::new();
+    
+    //     for (&move_num, &(min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+    //         time_controls_combined.insert(move_num, (min, sec));
+    //     }
+    
+    //     for (&move_num, &(min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+    //         if let Some(val) = time_controls_combined.get_mut(&move_num) {
+    //             if *val != (min, sec) {
+    //                 // If the values are different, set to a flag value to identify later.
+    //                 *val = (u32::MAX, u32::MAX);
+    //             }
+    //         } else {
+    //             time_controls_combined.insert(move_num, (min, sec));
+    //         }
+    //     }
+    
+    //     for (move_num, (min, sec)) in time_controls_combined {
+    //         if min != 0 {
+    //             if sec != 0 && sec != u32::MAX {
+    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min and {} sec per move.</li>", move_num, min, sec));
+    //             } else if sec == u32::MAX {
+    //                 // White and Black have different values.
+    //                 let white_val = project.white_timecontrol_move_min_incrsec_key_values_list.get(&move_num).unwrap();
+    //                 let black_val = project.black_timecontrol_move_min_incrsec_key_values_list.get(&move_num).unwrap();
+    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}, adds {} min.</li>", move_num, white_val.0));
+    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}, adds {} min.</li>", move_num, black_val.0));
+    //             } else {
+    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min.</li>", move_num, min));
+    //             }
+    //         }
+    //     }
+    
+    //     let mut increments_combined: HashMap<u32, u32> = HashMap::new();
+    
+    //     for (&move_num, &sec) in &project.white_increments_sec_sec_key_value_list {
+    //         increments_combined.insert(move_num, sec);
+    //     }
+    
+    //     for (&move_num, &sec) in &project.black_increments_sec_sec_key_value_list {
+    //         if let Some(val) = increments_combined.get_mut(&move_num) {
+    //             if *val != sec {
+    //                 *val = u32::MAX;
+    //             }
+    //         } else {
+    //             increments_combined.insert(move_num, sec);
+    //         }
+    //     }
+    
+    //     for (move_num, sec) in increments_combined {
+    //         if sec != 0 {
+    //             if sec != u32::MAX {
+    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}, adding {} sec per move.</li>", move_num, sec));
+    //             } else {
+    //                 // White and Black have different values.
+    //                 let white_val = project.white_increments_sec_sec_key_value_list.get(&move_num).unwrap();
+    //                 let black_val = project.black_increments_sec_sec_key_value_list.get(&move_num).unwrap();
+    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}, adding {} sec per move.</li>", move_num, *white_val));
+    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}, adding {} sec per move.</li>", move_num, *black_val));
+    //             }
+    //         }
+    //     }
+    
+    //     html_timedata_string
+    // }
+    
+    // fn generate_html_timedata(project: &TimedProject) -> String {
+
+    //     let mut html_timedata_string = String::new();
+    
+    //     // Extracting the current move number for clarity and ease of use
+    //     let current_move = project.game_move_number;
+    //     let current_move = project.game_move_number;
+
+    
+    //     println!("Current Move: {}", current_move);  // Debugging print
+
+
+    //     // For time controls
+    //     let mut time_controls: HashMap<u32, (Option<u32>, Option<u32>)> = HashMap::new();
+    
+    //     for (&move_num, &(min, _)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+    //         time_controls.entry(move_num).or_insert((Some(min), None)).0 = Some(min);
+    //     }
+    
+    //     for (&move_num, &(min, _)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+    //         time_controls.entry(move_num).or_insert((None, Some(min))).1 = Some(min);
+    //     }
+    
+    //     for (move_num, (white_min, black_min)) in time_controls {
+    //         match (white_min, black_min) {
+    //             (Some(wm), Some(bm)) if wm == bm => {
+    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, wm));
+    //             }
+    //             (Some(wm), Some(bm)) => {
+    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, wm));
+    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, bm));
+    //             }
+    //             (Some(wm), None) => {
+    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, wm));
+    //             }
+    //             (None, Some(bm)) => {
+    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, bm));
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+    
+
+    //     // Filtering out past rules
+    //     let future_time_controls: Vec<_> = time_controls.iter()
+    //         .filter(|&&(move_num, _)| move_num > current_move)
+    //         .collect();
+    
+    //     let future_increments: Vec<_> = increments.iter()
+    //         .filter(|&&(move_num, _)| move_num > current_move)
+    //         .collect();
+
+    //     // For increments
+    //     let mut increments: HashMap<u32, (Option<u32>, Option<u32>)> = HashMap::new();
+    
+    //     for (&move_num, &sec) in &project.white_increments_sec_sec_key_value_list {
+    //         if sec != 0 {
+    //             increments.entry(move_num).or_insert((Some(sec), None)).0 = Some(sec);
+    //         }
+    //     }
+    
+    //     for (&move_num, &sec) in &project.black_increments_sec_sec_key_value_list {
+    //         if sec != 0 {
+    //             increments.entry(move_num).or_insert((None, Some(sec))).1 = Some(sec);
+    //         }
+    //     }
+    
+
+    //     // increment details
+    //     let white_current_increment = project.white_increments_sec_sec_key_value_list
+    //         .iter()
+    //         .filter(|&&(move_num, _)| move_num <= current_move)
+    //         .map(|(_, &incr)| incr)
+    //         .last()
+    //         .unwrap_or(0);
+    
+    //     let black_current_increment = project.black_increments_sec_sec_key_value_list
+    //         .iter()
+    //         .filter(|&&(move_num, _)| move_num <= current_move)
+    //         .map(|(_, &incr)| incr)
+    //         .last()
+    //         .unwrap_or(0);
+    
+    //     if white_current_increment == black_current_increment {
+    //         if white_current_increment != 0 {
+    //             html_timedata_string.push_str(&format!("<li>Current Increment: {} sec per move.</li>", white_current_increment));
+    //         }
+    //     } else {
+    //         if white_current_increment != 0 {
+    //             html_timedata_string.push_str(&format!("<li>White's Current Increment: {} sec per move.</li>", white_current_increment));
+    //         }
+    //         if black_current_increment != 0 {
+    //             html_timedata_string.push_str(&format!("<li>Black's Current Increment: {} sec per move.</li>", black_current_increment));
+    //         }
+    //     }
+
+
+
+
+    //     for (move_num, (white_sec, black_sec)) in increments {
+    //         match (white_sec, black_sec) {
+    //             (Some(ws), Some(bs)) if ws == bs => {
+    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
+    //             }
+    //             (Some(ws), Some(bs)) => {
+    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
+    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, bs));
+    //             }
+    //             (Some(ws), None) => {
+    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
+    //             }
+    //             (None, Some(bs)) => {
+    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, bs));
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+    
+    //     html_timedata_string
+    // }
+    
+
+    // fn generate_html_timedata(project: &TimedProject) -> String {
+    //     let mut html_timedata_string = String::new();
+    
+    //     let current_move = project.game_move_number;
+    //     println!("Current Move: {}", current_move); // Debugging print
+    
+    //     // Merge time controls and increments into unified HashMaps for easier processing
+    //     let mut combined_time_controls: HashMap<u32, (u32, u32)> = project.white_timecontrol_move_min_incrsec_key_values_list
+    //         .clone()
+    //         .into_iter()
+    //         .collect();
+    
+    //     for (&key, &value) in &project.black_timecontrol_move_min_incrsec_key_values_list {
+    //         combined_time_controls.insert(key, value);
+    //     }
+    
+    //     let mut combined_increments: HashMap<u32, (u32, u32)> = project.white_increments_sec_sec_key_value_list
+    //         .clone()
+    //         .into_iter()
+    //         .collect();
+    
+    //     for (&key, &value) in &project.black_increments_sec_sec_key_value_list {
+    //         combined_increments.insert(key, value);
+    //     }
+    
+    //     // Time control messages
+    //     for (move_num, (white_min, black_min)) in combined_time_controls {
+    //         if move_num > current_move {
+    //             if white_min == black_min && white_min != 0 {
+    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, white_min / 60));
+    //             } else {
+    //                 if white_min != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, white_min / 60));
+    //                 }
+    //                 if black_min != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, black_min / 60));
+    //                 }
+    //             }
+    //         }
+    //     }
+    
+    //     // Increment messages
+    //     for (move_num, (white_sec, black_sec)) in combined_increments {
+    //         if move_num > current_move {
+    //             if white_sec == black_sec && white_sec != 0 {
+    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+    //             } else {
+    //                 if white_sec != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+    //                 }
+    //                 if black_sec != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, black_sec));
+    //                 }
+    //             }
+    //         }
+    //     }
+    
+    //     html_timedata_string
+    // }
+    
+
     fn generate_html_timedata(project: &TimedProject) -> String {
         let mut html_timedata_string = String::new();
     
-        let mut time_controls_combined: HashMap<u32, (u32, u32)> = HashMap::new();
+        let current_move = project.game_move_number;
+        println!("Current Move: {}", current_move); // Debugging print
     
-        for (&move_num, &(min, sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
-            time_controls_combined.insert(move_num, (min, sec));
-        }
+        for (&move_num, &(white_min, white_sec)) in &project.white_timecontrol_move_min_incrsec_key_values_list {
+            if move_num > current_move {
+                if let Some(&(black_min, black_sec)) = project.black_timecontrol_move_min_incrsec_key_values_list.get(&move_num) {
+                    // Both white and black have the same time control for this move number
+                    if white_min == black_min && white_min != 0 {
+                        html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, white_min));
+                    } else {
+                        if white_min != 0 {
+                            html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, white_min));
+                        }
+                        if black_min != 0 {
+                            html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, black_min));
+                        }
+                    }
     
-        for (&move_num, &(min, sec)) in &project.black_timecontrol_move_min_incrsec_key_values_list {
-            if let Some(val) = time_controls_combined.get_mut(&move_num) {
-                if *val != (min, sec) {
-                    // If the values are different, set to a flag value to identify later.
-                    *val = (u32::MAX, u32::MAX);
-                }
-            } else {
-                time_controls_combined.insert(move_num, (min, sec));
-            }
-        }
-    
-        for (move_num, (min, sec)) in time_controls_combined {
-            if min != 0 {
-                if sec != 0 && sec != u32::MAX {
-                    html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min and {} sec per move.</li>", move_num, min, sec));
-                } else if sec == u32::MAX {
-                    // White and Black have different values.
-                    let white_val = project.white_timecontrol_move_min_incrsec_key_values_list.get(&move_num).unwrap();
-                    let black_val = project.black_timecontrol_move_min_incrsec_key_values_list.get(&move_num).unwrap();
-                    html_timedata_string.push_str(&format!("<li>White Time Control on move {}, adds {} min.</li>", move_num, white_val.0));
-                    html_timedata_string.push_str(&format!("<li>Black Time Control on move {}, adds {} min.</li>", move_num, black_val.0));
-                } else {
-                    html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min.</li>", move_num, min));
-                }
-            }
-        }
-    
-        let mut increments_combined: HashMap<u32, u32> = HashMap::new();
-    
-        for (&move_num, &sec) in &project.white_increments_sec_sec_key_value_list {
-            increments_combined.insert(move_num, sec);
-        }
-    
-        for (&move_num, &sec) in &project.black_increments_sec_sec_key_value_list {
-            if let Some(val) = increments_combined.get_mut(&move_num) {
-                if *val != sec {
-                    *val = u32::MAX;
-                }
-            } else {
-                increments_combined.insert(move_num, sec);
-            }
-        }
-    
-        for (move_num, sec) in increments_combined {
-            if sec != 0 {
-                if sec != u32::MAX {
-                    html_timedata_string.push_str(&format!("<li>Increment starts on move {}, adding {} sec per move.</li>", move_num, sec));
-                } else {
-                    // White and Black have different values.
-                    let white_val = project.white_increments_sec_sec_key_value_list.get(&move_num).unwrap();
-                    let black_val = project.black_increments_sec_sec_key_value_list.get(&move_num).unwrap();
-                    html_timedata_string.push_str(&format!("<li>White Increment starts on move {}, adding {} sec per move.</li>", move_num, *white_val));
-                    html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}, adding {} sec per move.</li>", move_num, *black_val));
+                    // Both white and black have the same increment for this move number
+                    if white_sec == black_sec && white_sec != 0 {
+                        html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+                    } else {
+                        if white_sec != 0 {
+                            html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+                        }
+                        if black_sec != 0 {
+                            html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, black_sec));
+                        }
+                    }
                 }
             }
         }
@@ -7859,8 +8081,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
 
         html_timedata_string.push_str(&Self::generate_html_timedata(project));
  
-
-
 
         html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
         html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
