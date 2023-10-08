@@ -361,13 +361,13 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Response, Method, Header}; 
+use tiny_http::{Server, Request, Response, Method, Header}; 
 use std::path::Path;
 use rand::prelude::*;
 use std::convert::TryInto;
 use std::fs;
 use std::fs::File;
-use std::io::{self, Write, Read};
+use std::io::{self, BufWriter, Write, Read, Error};
 use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
@@ -375,6 +375,19 @@ use svg::node::element::Text;
 use svg::node::element::Image;
 use base64::Engine; // Bring the Engine trait into scope
 use base64::engine::general_purpose::STANDARD;
+
+
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::time::Duration;
+
+
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
+// use std::thread;
+
+const RAM_QUEUE_THRESHOLD: usize = 100000;
+
 
 // use zeroize::Zeroize;
 
@@ -392,7 +405,27 @@ struct GameData {
 }
 
 
+pub struct CleanerState {
+    next_check_time: SystemTime, // This is a variable of type `SystemTime`
+    expiration_by_name: HashMap<String, SystemTime>,
+    names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
+}
+
+
+
 fn main() {
+    // Use a constant for the filename
+    const NEXT_CHECK_TIME_FILE: &str = "next_check_time.txt";
+
+    // Instantiate CleanerState
+    let mut cleaner_state = match CleanerState::new(NEXT_CHECK_TIME_FILE) {
+        Ok(state) => state,
+        Err(e) => {
+            eprintln!("Failed to initialize CleanerState: {}", e);
+            return;
+        }
+    };
+
     let server = match Server::http("0.0.0.0:8000") {
         Ok(server) => server,
         Err(e) => {
@@ -400,14 +433,79 @@ fn main() {
             return;
         }
     };
-    
-    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| " );
 
-    for request in server.incoming_requests() {
+    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| ");
 
-        // get request containing game and move
+
+    /*
+    Hybrid Queue for Managing Requests
+    */
+
+    // Create the in-memory queue as a thread-safe data structure using Arc and Mutex
+    let in_memory_queue: Arc<Mutex<VecDeque<Request>>> = Arc::new(Mutex::new(VecDeque::new()));
+    loop {
+        // Handle incoming requests
+        let incoming_request = match server.recv() {
+            Ok(request) => request,
+            Err(e) => {
+                eprintln!("Failed to receive request: {}", e);
+                continue;
+            }
+        };
+
+        // Push the incoming request to the in-memory queue
+        {
+            let mut queue = in_memory_queue.lock().unwrap();
+            queue.push_back(incoming_request);
+        }
+        
+
+        // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
+        if let Ok(queue) = in_memory_queue.lock() {
+            if queue.len() >= RAM_QUEUE_THRESHOLD {
+                // Start a new thread to write the batch to disk asynchronously
+                // let in_memory_queue_clone = in_memory_queue.clone();
+                // if let Err(e) = thread::spawn(move || {
+                //     write_batch_to_disk(in_memory_queue_clone);
+                // }).join() {
+                //     eprintln!("Failed to write batch to disk: {:?}", e);
+                // }
+                if let Err(e) = write_batch_to_disk(in_memory_queue.clone()) {
+                    eprintln!("Error writing batch to disk: {:?}", e);
+                }
+                // Clear the in-memory queue after writing to disk
+                if let Ok(mut queue) = in_memory_queue.lock() {
+                    queue.clear();
+                } else {
+                    eprintln!("Failed to clear in-memory queue.");
+                }
+            }
+        } else {
+            eprintln!("Failed to lock in-memory queue.");
+        }
+
+        // Process requests in the in-memory queue
+        process_in_memory_requests(&in_memory_queue, &mut cleaner_state);
+    }
+}
+
+
+
+
+// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
+fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, cleaner_state: &mut CleanerState) {
+
+    let mut queue = in_memory_queue.lock().unwrap();
+    // Process requests in the in-memory queue
+    while let Some(request) = queue.pop_front() {
+        // Implement your request processing logic here
         if request.method() == &Method::Get {
             let url_parts: Vec<&str> = request.url().split('/').collect();
+
+            /*
+            Server Here
+            for request in server.incoming_requests() {
+            */ 
 
             // Terminal Inspection of Request
             println!("url_parts.len: {}",url_parts.len());
@@ -421,12 +519,16 @@ fn main() {
                 println!("url_parts[{}]: {}", i, part);
             }
 
+            // process update expiration dates of projects
+            process_url_and_update_expiration(&url_parts, cleaner_state);
+
 
             // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
+                    println!("ip_string: {}", ip_string);
                     let alternating_stamp = str_filter_alternating(&ip_string);
                     let reduced_ip_stamp = remove_duplicates(&alternating_stamp);
 
@@ -441,14 +543,13 @@ fn main() {
             };
 
             // Testing Only
-            // println!("ip_stamp: {}", ip_stamp);
+            println!("ip_stamp: {}", ip_stamp);
             
 
             /////////////////////
             // site landing page
             /////////////////////
 
-            // if url_parts.len() == 1 || url_parts[0] == "" {
             if url_parts.len() == 1 || url_parts[1] == "" {
 
                 // inspection
@@ -484,6 +585,49 @@ fn main() {
                 println!("{}",url_parts[0].to_string());
                 println!("{}",url_parts[1].to_string());
                 println!("{}",game_name);
+
+                // Docs
+                if game_name == "docs" {
+                    // inspection
+                    println!{" docs ->  "};
+
+                    let response = std::fs::read_to_string("docs.txt").map_or_else(
+                        |e| {
+                            eprintln!("Failed to read docs: {}", e);
+                            Response::from_string(format!("Failed to read docs: {}", e)).with_status_code(500)
+                        },
+                        |docs_string| {
+                            Response::from_string(docs_string).with_status_code(200)
+                        },
+                    );
+
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop for the docs page
+                }
+
+                // if game_name == "docs" {
+                //     // inspection
+                //     println!{" docs ->  "};
+
+                //     let response = match landing_page_no_html() {
+                //         Ok(response_string) => {
+                //             Response::from_string(response_string).with_status_code(200)
+                //         },
+                //         Err(e) => {
+                //             eprintln!("Failed to generate landing page: {}", e);
+                //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
+                //         }
+                //     };
+
+                //     if let Err(e) = request.respond(response) {
+                //         eprintln!("Failed to respond to request: {}", e);
+                    
+                //     }
+                //     continue; // No need to run the rest of the loop for the landing page
+                //     }
+
 
                 // // // declare response outside match blocks so we can assign it in each match block
                 // let response = Response::from_string(response_string);
@@ -575,6 +719,66 @@ fn main() {
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(_) => { // Changed svg_content to _
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <img src="games/{}/board.svg" alt="chess board" height="850px" width="850px" />
+                //             </body>
+                //         </html>
+                //         "#, game_name);
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+                
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(svg_content) => { // Change back to svg_content
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <div style="width:50px; height:50px;">{}</div>
+                //             </body>
+                //         </html>
+                //         "#, svg_content); // Insert SVG content directly
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+                
+
+
+
 
             } 
 
@@ -702,11 +906,11 @@ fn main() {
                     }
                 };
                 
-                
+
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
-
+                
             } 
 
             //////////
@@ -850,7 +1054,7 @@ fn main() {
             }
             }
     }
-}
+    }
 
 
 
@@ -921,13 +1125,21 @@ fn main() {
             百　円
             円
 
-            y0urm0ve.com/setup/chess/
-            　　　　YOUR_GAME_NAME/
-            　　　　　　YOUR_GAME_PHRASE 
-
             y0urm0ve.com/
-            　　YOUR_GAME_NAME/
-            　　　　Pc2c4
+             setup/
+              chess/
+               GAME_NAME/
+                GAME_PHRASE 
+
+            y0ur
+             m0ve.com/
+              GAME_NAME/
+               Pc2c4
+
+            y0ur
+               m0ve.
+                   com/docs
+               
 
             "#.to_string();
 
@@ -1059,10 +1271,9 @@ fn main() {
                 // return svg...
                 // After generating the SVG...
                 let svg_content = doc.to_string();
+
                 Ok(svg_content)
 
-
-                
             }
             Err(e) => {
                 // This is the error case. Return or handle the error in some way here.
@@ -1492,8 +1703,8 @@ fn main() {
 
         // create list for initial game_data list
         let ip_hash_list = vec![hashed_ip_stamp];
-        
 
+        
 
         // create first game_data struct
         let game_data = GameData::new(
@@ -1953,135 +2164,103 @@ fn main() {
         shorter_string
     }
 
-
-
-
-    // // for delating old games...
-    // fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
-    //     let mut file = File::open(file_path)?;
-    //     let mut timestamp_str = String::new();
-    //     file.read_to_string(&mut timestamp_str)?;
-    //     Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
-    // }
-
-
-    // fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
-    //     // TODO add gamename for dir-path ,which timestamp to use?
-    //     let new_timestamp = SystemTime::now()
-    //         .duration_since(UNIX_EPOCH)
-    //         .unwrap()
-    //         .as_secs() as i64;
-
-    //     let mut file = File::create(file_path)?;
-    //     file.write_all(new_timestamp.to_string().as_bytes())?;
-
-    //     Ok(())
-    // }
-
-
-
-
-
-    // Function to generate the SVG chessboard
     fn generate_white_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
         from: Option<(usize, usize)>, 
-            to: Option<(usize, usize)>
-        ) -> Document {
-
+        to: Option<(usize, usize)>
+    ) -> Document {
+    
         let mut doc = Document::new()
-            .set("width", "500")  // Adjusting the width to account for labels
-            .set("height", "500")  // Adjusting the height to account for labels
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  // Adjusting the width to account for labels
+            .set("height", "1000")  // Adjusting the height to account for labels
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #000;");  // Set background to black
-
+    
         // Define labels
         let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
-
+    
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-                .set("y", 472)  // Positioning the label slightly above the bottom edge
+                .set("x", 100 + idx * 100 + 50)  // Adjusting the x-coordinate to account for labels
+                .set("y", 944)  // Positioning the label slightly above the bottom edge
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-
+    
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 32)  // Positioning the label slightly to the right of the left edge
-                .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+                .set("x", 64)  // Positioning the label slightly to the right of the left edge
+                .set("y", 100 + idx * 100 + 70)  // Adjusting the y-coordinate to account for labels
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-
+    
         for (row, row_pieces) in chessboard.iter().enumerate() {
             for (col, &piece) in row_pieces.iter().enumerate() {
-                let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
-                let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
-
+                let x = 100 + col * 100;  // Adjusting the x-coordinate to account for labels
+                let y = 100 + row * 100;  // Adjusting the y-coordinate to account for labels
+    
                 let square_color = if (row + col) % 2 == 0 {
                     "#ccc"
                 } else {
                     "#666"
                 };
-
+    
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 50)
-                    .set("height", 50)
+                    .set("width", 100)
+                    .set("height", 100)
                     .set("fill", square_color);
-
+    
                 doc = doc.add(square);
-
+    
                 if piece != ' ' {
-
-
+    
                     // setting from an to color
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
-                    
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
+    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
-                    
+                            .set("stroke-width", 6);
+    
                         doc = doc.add(highlight);
                     }
-                    
+    
                     if let Some(to_coords) = to {
                         let (row, col) = to_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
-                    
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
+    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
-                    
+                            .set("stroke-width", 6);
+    
                         doc = doc.add(highlight);
                     }
-
-
+    
                     // map character to piece name and background
                     let (piece_name, background) = match piece {
                         'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
@@ -2098,26 +2277,164 @@ fn main() {
                         'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
                         _   => panic!("Unknown piece"),
                     };
-
-                    // // Load SVG chess piece based on piece name and background
+    
+                    // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
                     let data_url = load_image_as_data_url(&file_path)
                         .expect("Failed to load image as data URL");
-
+    
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
+                        .set("width", 100)
+                        .set("height", 100)
                         .set("href", data_url);
-
+    
                     doc = doc.add(piece_image);
                 }
             }
         }
-
-    doc
+    
+        doc
     }
+    
+
+    // // Function to generate the SVG chessboard
+    // fn generate_white_oriented_chessboard_small(
+    //     chessboard: &[[char; 8]; 8], 
+    //     from: Option<(usize, usize)>, 
+    //         to: Option<(usize, usize)>
+    //     ) -> Document {
+
+    //     let mut doc = Document::new()
+    //         .set("width", "500")  // Adjusting the width to account for labels
+    //         .set("height", "500")  // Adjusting the height to account for labels
+    //         .set("viewBox", (0, 0, 500, 500))
+    //         .set("style", "background-color: #000;");  // Set background to black
+
+    //     // Define labels
+    //     let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    //     let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
+
+    //     // Add column labels
+    //     for (idx, label) in column_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
+    //             .set("y", 472)  // Positioning the label slightly above the bottom edge
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to white
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     // Add row labels
+    //     for (idx, label) in row_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 32)  // Positioning the label slightly to the right of the left edge
+    //             .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to white
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     for (row, row_pieces) in chessboard.iter().enumerate() {
+    //         for (col, &piece) in row_pieces.iter().enumerate() {
+    //             let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
+    //             let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+
+    //             let square_color = if (row + col) % 2 == 0 {
+    //                 "#ccc"
+    //             } else {
+    //                 "#666"
+    //             };
+
+    //             let square = Rectangle::new()
+    //                 .set("x", x)
+    //                 .set("y", y)
+    //                 .set("width", 50)
+    //                 .set("height", 50)
+    //                 .set("fill", square_color);
+
+    //             doc = doc.add(square);
+
+    //             if piece != ' ' {
+
+
+    //                 // setting from an to color
+    //                 if let Some(from_coords) = from {
+    //                     let (row, col) = from_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+                    
+    //                 if let Some(to_coords) = to {
+    //                     let (row, col) = to_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+
+
+    //                 // map character to piece name and background
+    //                 let (piece_name, background) = match piece {
+    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     _   => panic!("Unknown piece"),
+    //                 };
+
+    //                 // // Load SVG chess piece based on piece name and background
+    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
+    //                 let data_url = load_image_as_data_url(&file_path)
+    //                     .expect("Failed to load image as data URL");
+
+    //                 let piece_image = Image::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("href", data_url);
+
+    //                 doc = doc.add(piece_image);
+    //             }
+    //         }
+    //     }
+
+    // doc
+    // }
 
 
 
@@ -2257,6 +2574,7 @@ fn main() {
     // }
 
 
+
     // Function to generate the SVG chessboard with black orientation
     fn generate_black_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
@@ -2265,9 +2583,9 @@ fn main() {
         ) -> Document {
 
         let mut doc = Document::new()
-            .set("width", "500")  
-            .set("height", "500")  
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  
+            .set("height", "1000")  
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
         // Define labels, reversed for black piece orientation
@@ -2277,10 +2595,10 @@ fn main() {
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 50 + idx * 50 + 25)  
-                .set("y", 472)  
+                .set("x", 100 + idx * 100 + 50)  
+                .set("y", 944)  
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to dark grey
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2289,10 +2607,10 @@ fn main() {
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 32)  
-                .set("y", 50 + idx * 50 + 35)  
+                .set("x", 64)  
+                .set("y", 100 + idx * 100 + 70)  
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2300,8 +2618,8 @@ fn main() {
 
         for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
             for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-                let x = 50 + col * 50;  
-                let y = 50 + row * 50;  
+                let x = 100 + col * 100;  
+                let y = 100 + row * 100;  
 
                 // Set Square Colours
                 let square_color = if (row + col) % 2 == 0 {
@@ -2313,8 +2631,8 @@ fn main() {
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 50)
-                    .set("height", 50)
+                    .set("width", 100)
+                    .set("height", 100)
                     .set("fill", square_color);
 
                 doc = doc.add(square);
@@ -2323,14 +2641,14 @@ fn main() {
 
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
                             .set("stroke-width", 3);
@@ -2340,17 +2658,17 @@ fn main() {
                     
                     if let Some(to_coords) = to {
                         let (row, col) = to_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
+                            .set("stroke-width", 6);
                     
                         doc = doc.add(highlight);
                     }
@@ -2375,14 +2693,15 @@ fn main() {
 
                     // // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-                    let data_url = load_image_as_data_url(&file_path)
-                        .expect("Failed to load image as data URL");
+                    let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
+                    let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
+                    
 
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
+                        .set("width", 100)
+                        .set("height", 100)
                         .set("href", data_url);
 
                     doc = doc.add(piece_image);
@@ -2392,6 +2711,144 @@ fn main() {
 
         doc
     }
+
+
+    // // Function to generate the SVG chessboard with black orientation
+    // fn generate_black_oriented_chessboard_small(
+    //     chessboard: &[[char; 8]; 8], 
+    //     from: Option<(usize, usize)>, 
+    //     to: Option<(usize, usize)>
+    //     ) -> Document {
+
+    //     let mut doc = Document::new()
+    //         .set("width", "500")  
+    //         .set("height", "500")  
+    //         .set("viewBox", (0, 0, 500, 500))
+    //         .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+    //     // Define labels, reversed for black piece orientation
+    //     let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    //     let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    //     // Add column labels
+    //     for (idx, label) in column_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 50 + idx * 50 + 25)  
+    //             .set("y", 472)  
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to dark grey
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     // Add row labels
+    //     for (idx, label) in row_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 32)  
+    //             .set("y", 50 + idx * 50 + 35)  
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+    //         for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+    //             let x = 50 + col * 50;  
+    //             let y = 50 + row * 50;  
+
+    //             // Set Square Colours
+    //             let square_color = if (row + col) % 2 == 0 {
+    //                 "#ccc"
+    //             } else {
+    //                 "#666"
+    //             };
+                
+    //             let square = Rectangle::new()
+    //                 .set("x", x)
+    //                 .set("y", y)
+    //                 .set("width", 50)
+    //                 .set("height", 50)
+    //                 .set("fill", square_color);
+
+    //             doc = doc.add(square);
+
+    //             if piece != ' ' {
+
+    //                 if let Some(from_coords) = from {
+    //                     let (row, col) = from_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+                    
+    //                 if let Some(to_coords) = to {
+    //                     let (row, col) = to_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+
+
+    //                 // map character to piece name and background
+    //                 let (piece_name, background) = match piece {
+    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     _   => panic!("Unknown piece"),
+    //                 };
+
+    //                 // // Load SVG chess piece based on piece name and background
+    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
+    //                 let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
+    //                 let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
+                    
+
+    //                 let piece_image = Image::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("href", data_url);
+
+    //                 doc = doc.add(piece_image);
+    //             }
+    //         }
+    //     }
+
+    //     doc
+    // }
 
 
     fn load_image_as_data_url(file_path: &str) -> io::Result<String> {
@@ -2905,15 +3362,414 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 }
 
 
+impl CleanerState {
 
 
-// fn string_to_board(s: &str) -> [[char; 8]; 8] {
-//     let mut board = [[' '; 8]; 8];
-//     let s = s.chars().filter(|c| !c.is_whitespace()).collect::<Vec<_>>();
-//     for i in 0..8 {
-//         for j in 0..8 {
-//             board[i][j] = s[i * 8 + j];
+    pub fn new(next_check_time_file: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // Ensure the file exists, if not, create it
+        if !Path::new(next_check_time_file).exists() {
+            let default_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);
+            write_next_check_time_to_file(next_check_time_file, default_time)?;
+        }
+        
+        let next_check_time = read_next_check_time_from_file(next_check_time_file)?;
+        Ok(Self {
+            next_check_time,
+            expiration_by_name: HashMap::new(),
+            names_by_expiration: BTreeMap::new(),
+        })
+    }
+
+
+    pub fn update_directory_expiration_if_exists(&mut self, name: &str) {
+        if self.expiration_by_name.contains_key(name) {
+            let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
+            self.add_directory(name.to_string(), new_expiration_date);
+        }
+    }
+    
+
+
+    pub fn add_directory(&mut self, name: String, expiration_date: SystemTime) {
+        self.remove_directory(&name);
+        self.expiration_by_name.insert(name.clone(), expiration_date);
+        self.names_by_expiration
+            .entry(expiration_date)
+            .or_insert_with(Vec::new)
+            .push(name);
+    }
+
+    pub fn remove_directory(&mut self, name: &str) {
+        if let Some(expiration_date) = self.expiration_by_name.remove(name) {
+            if let Some(names) = self.names_by_expiration.get_mut(&expiration_date) {
+                names.retain(|n| n != name);
+                if names.is_empty() {
+                    self.names_by_expiration.remove(&expiration_date);
+                }
+            }
+        }
+    }
+
+    pub fn update_next_check_time(&mut self, next_check_time_file: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.next_check_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);  // one week from now
+        write_next_check_time_to_file(next_check_time_file, self.next_check_time)
+    }
+    
+    pub fn check_and_remove_expired(&mut self, next_check_time_file: &str) {
+        let current_time = SystemTime::now();
+        if let Ok(duration) = self.next_check_time.duration_since(current_time) {
+            if duration.as_secs() == 0 {
+
+                match self.update_next_check_time(next_check_time_file) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Failed to update next check time: {}", e),
+                }
+
+                let now = SystemTime::now();
+                let expired_keys: Vec<SystemTime> = self.names_by_expiration
+                    .range(..now)
+                    .map(|(&key, _)| key)
+                    .collect();
+    
+                for key in expired_keys {
+                    if let Some(names) = self.names_by_expiration.remove(&key) {
+                        for name in names {
+                            match remove_directory(&name) {
+                                Ok(_) => (),
+                                Err(e) => println!("Failed to remove directory '{}': {}", name, e),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
+}
+    
+
+
+
+// ...
+
+fn read_next_check_time_from_file(filename: &str) -> Result<SystemTime, Box<dyn std::error::Error>> {
+    let mut file = fs::File::open(filename)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let secs = contents.trim().parse::<u64>()?;
+    Ok(UNIX_EPOCH + Duration::from_secs(secs))
+}
+
+fn write_next_check_time_to_file(filename: &str, next_check_time: SystemTime) -> Result<(), Box<dyn std::error::Error>> {
+    let secs = next_check_time.duration_since(UNIX_EPOCH)?.as_secs();
+    let contents = secs.to_string();
+
+    let mut file = fs::File::create(filename)?;
+    file.write_all(contents.as_bytes())?;
+    Ok(())
+}
+
+
+fn check_url_parts_against_directory(url_parts: &[&str]) -> std::io::Result<Option<String>> {
+    // Read all directory names from games/
+    let directory_names: Vec<_> = fs::read_dir("games/")?
+        .filter_map(|entry| {
+            entry.ok().and_then(|e| e.path().file_name().and_then(|n| n.to_str().map(String::from)))
+        })
+        .collect();
+
+    let indices_to_check = [1, 3];
+
+    for &index in &indices_to_check {
+        if index < url_parts.len() && directory_names.contains(&url_parts[index].to_string()) {
+            return Ok(Some(url_parts[index].to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn update_directory_expiration_from_url(url_parts: &[&str], cleaner: &mut CleanerState) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(matched_directory) = check_url_parts_against_directory(url_parts)? {
+        // Access the directory to update its expiration time
+        cleaner.update_directory_expiration_if_exists(&matched_directory);
+    }
+    Ok(())
+}
+
+// fn process_url_and_update_expiration2(url: &str) {
+//     let matched_dir = check_url_parts_against_directory(url);
+//     if let Some(dir_name) = matched_dir {
+//         update_directory_expiration_from_url(&dir_name);
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str]) {
+//     // Note: Assuming check_url_parts_against_directory returns an Option<String>
+//     match check_url_parts_against_directory(url_parts) {
+//         Ok(Some(dir_name)) => {
+//             // Assuming update_directory_expiration_from_url takes a directory name
+//             // and returns a Result<(), ErrorType>
+//             if let Err(e) = update_directory_expiration_from_url(&dir_name) {
+//                 eprintln!("Error updating directory expiration: {}", e);
+//             }
+//         },
+//         Ok(None) => println!("No matching directory found."),
+//         Err(e) => println!("Error checking input against directory: {}", e),
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+
+    // Note: Assuming check_url_parts_against_directory returns an Option<String>
+    match check_url_parts_against_directory(url_parts) {
+        Ok(Some(dir_name)) => {
+            // Convert dir_name to slice
+            let dir_name_slice = [&dir_name[..]];
+
+            // Now pass both arguments to update_directory_expiration_from_url
+            if let Err(e) = update_directory_expiration_from_url(&dir_name_slice, cleaner_state) {
+                eprintln!("Error updating directory expiration: {}", e);
+            }
+        },
+        Ok(None) => println!("No directory names fournd to undate expiration dates."),
+        Err(e) => println!("Error checking input against directory: {}", e),
+    }
+}
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+    
+//     // Implement the logic to write each request to disk asynchronously
+//     for request in queue.iter() {
+//         if let Some(body) = request.as_reader() {
+//             let mut buffer = Vec::new();
+//             if let Ok(_) = body.read_to_end(&mut buffer) {
+//                 if let Ok(mut file) = File::create("requests.txt") {
+//                     if let Ok(_) = file.write_all(&buffer) {
+//                         println!("Successfully wrote request to disk.");
+//                     } else {
+//                         println!("Failed to write request to disk.");
+//                     }
+//                 } else {
+//                     println!("Failed to create the file.");
+//                 }
+//             } else {
+//                 println!("Failed to read request body.");
+//             }
 //         }
 //     }
-//     board
 // }
+
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+    
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//             }
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.as_reader() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+    
+    
+    
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+// use std::io::Read;
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) -> Result<(), Error> {
+    // Lock the in-memory queue for writing to disk
+    let mut queue = in_memory_queue.lock().unwrap();
+
+    // Create a buffer to store all requests' contents as Strings
+    let mut buffer = String::new();
+
+    // Collect all requests' contents into the buffer
+    for request in queue.drain(..) {
+        // Here, for simplicity, we are adding request methods and URLs to buffer
+        // Adjust as necessary
+        buffer.push_str(&format!("{} {}\n", request.method(), request.url()));
+    }
+
+    // If there's data to write
+    if !buffer.is_empty() {
+        // Append to the file to ensure previous data isn't overwritten
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open("requests.txt")?;
+        
+        let mut writer = BufWriter::new(&mut file);
+        writer.write_all(buffer.as_bytes())?;
+        println!("Successfully wrote batch of requests to disk.");
+    } else {
+        println!("No requests to write to disk.");
+    }
+
+    Ok(())
+}

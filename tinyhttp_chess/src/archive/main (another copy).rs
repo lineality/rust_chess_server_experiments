@@ -13,13 +13,22 @@ http://0.0.0.0:8000/game/Pc2c4
 /* TODO:
 https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces 
 
+$ sudo lsof -n -i :8000 | grep LISTEN
 $ sudo lsof -n -i :80 | grep LISTEN
 $ kill -9 <PID #####>
 
 for just game_name
 show two svg images...black and white...
 
+/*
+    let board_orientation: bool = true; // 
+    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
 
+    let board_orientation: bool = false; // 
+    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+*/
 
 - is game_data ip_hash
 list .csv based?
@@ -361,13 +370,13 @@ extern crate csv;
 
 // use std::sync::{Arc, Mutex};
 use std::fs::OpenOptions;
-use tiny_http::{Server, Response, Method, Header}; 
+use tiny_http::{Server, Request, Response, Method, Header, StatusCode}; 
 use std::path::Path;
-use rand::prelude::*;
+// use rand::prelude::*;
 use std::convert::TryInto;
 use std::fs;
 use std::fs::File;
-use std::io::{self, Write, Read};
+use std::io::{self, BufRead, BufReader, BufWriter, Write, Read, Error, ErrorKind};
 use std::time::{SystemTime, UNIX_EPOCH};
 use svg::Document;
 use svg::node::element::Rectangle;
@@ -375,6 +384,26 @@ use svg::node::element::Text;
 use svg::node::element::Image;
 use base64::Engine; // Bring the Engine trait into scope
 use base64::engine::general_purpose::STANDARD;
+
+
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::time::Duration;
+
+extern crate image;
+
+use image::{Rgba, ImageBuffer, GenericImageView};
+use rand::Rng;
+use std::fmt::Debug;
+// use std::any::type_name;
+
+
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
+// use std::thread;
+
+const RAM_QUEUE_THRESHOLD: usize = 100000;
+
 
 // use zeroize::Zeroize;
 
@@ -391,8 +420,28 @@ struct GameData {
     game_board_state: [[char; 8]; 8],
 }
 
+pub struct CleanerState {
+    next_check_time: SystemTime, // This is a variable of type `SystemTime`
+    expiration_by_name: HashMap<String, SystemTime>,
+    names_by_expiration: BTreeMap<SystemTime, Vec<String>>,
+}
 
 fn main() {
+    /*
+    Automated cleaning system
+    */
+    // Use a constant for the filename
+    const NEXT_CHECK_TIME_FILE: &str = "next_check_time.txt";
+
+    // Instantiate CleanerState
+    let mut cleaner_state = match CleanerState::new(NEXT_CHECK_TIME_FILE) {
+        Ok(state) => state,
+        Err(e) => {
+            eprintln!("Failed to initialize CleanerState: {}", e);
+            return;
+        }
+    };
+
     let server = match Server::http("0.0.0.0:8000") {
         Ok(server) => server,
         Err(e) => {
@@ -400,14 +449,109 @@ fn main() {
             return;
         }
     };
-    
-    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| " );
 
-    for request in server.incoming_requests() {
+    println!("Server >*< trench runnnnnnning at http://0.0.0.0:8000 |o| |o| ");
 
-        // get request containing game and move
+
+    /*
+    Hybrid Queue for Managing Requests
+    */
+
+    // Create the in-memory queue as a thread-safe data structure using Arc and Mutex
+    let in_memory_queue: Arc<Mutex<VecDeque<Request>>> = Arc::new(Mutex::new(VecDeque::new()));
+    loop {
+        // Handle incoming requests
+        let incoming_request = match server.recv() {
+            Ok(request) => request,
+            Err(e) => {
+                eprintln!("Failed to receive request: {}", e);
+                continue;
+            }
+        };
+
+        // Push the incoming request to the in-memory queue
+        {
+            let mut queue = in_memory_queue.lock().unwrap();
+            queue.push_back(incoming_request);
+        }
+        
+
+        // Check if the in-memory queue size exceeds the threshold, and if so, write a batch to disk
+        if let Ok(queue) = in_memory_queue.lock() {
+            if queue.len() >= RAM_QUEUE_THRESHOLD {
+                // Start a new thread to write the batch to disk asynchronously
+                // let in_memory_queue_clone = in_memory_queue.clone();
+                // if let Err(e) = thread::spawn(move || {
+                //     write_batch_to_disk(in_memory_queue_clone);
+                // }).join() {
+                //     eprintln!("Failed to write batch to disk: {:?}", e);
+                // }
+                if let Err(e) = write_batch_to_disk(in_memory_queue.clone()) {
+                    eprintln!("Error writing batch to disk: {:?}", e);
+                }
+                // Clear the in-memory queue after writing to disk
+                if let Ok(mut queue) = in_memory_queue.lock() {
+                    queue.clear();
+                } else {
+                    eprintln!("Failed to clear in-memory queue.");
+                }
+            }
+        } else {
+            eprintln!("Failed to lock in-memory queue.");
+        }
+
+        // Process requests in the in-memory queue
+        process_in_memory_requests(&in_memory_queue, &mut cleaner_state);
+    }
+}
+
+
+
+
+// fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>) {
+fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, cleaner_state: &mut CleanerState) {
+
+    let mut queue = in_memory_queue.lock().unwrap();
+    // Process requests in the in-memory queue
+    while let Some(request) = queue.pop_front() {
+
+
+        // Implement your request processing logic here
         if request.method() == &Method::Get {
-            let url_parts: Vec<&str> = request.url().split('/').collect();
+            // let url_parts: Vec<&str> = request.url().split('/').collect();
+
+            let url = request.url();
+            let sanitized_url = sanitize_url(url);
+            let url_parts: Vec<&str> = sanitized_url.split('/').collect();
+
+            let is_favicon_request = url_parts.get(1).map_or(false, |part| *part == "favicon.ico");
+            
+            if is_favicon_request {
+                let path = "favicon.ico";
+                let response = match File::open(&path) {
+                    Ok(mut file) => {
+                        let mut content = Vec::new();
+                        if file.read_to_end(&mut content).is_err() {
+                            Response::from_data(Vec::new()).with_status_code(StatusCode(500))
+                        } else {
+                            let mut response = Response::from_data(content);
+                            response.add_header(Header::from_bytes(&b"Content-Type"[..], &b"image/x-icon"[..]).unwrap());
+                            response
+                        }
+                    }
+                    Err(_) => Response::from_data(Vec::new()).with_status_code(StatusCode(404)),
+                };
+                if let Err(e) = request.respond(response) {
+                    eprintln!("Failed to respond to request: {}", e);
+                }
+                return; // Return early to prevent further processing for this request.
+            }
+
+
+            /*
+            Server Here
+            for request in server.incoming_requests() {
+            */ 
 
             // Terminal Inspection of Request
             println!("url_parts.len: {}",url_parts.len());
@@ -421,12 +565,16 @@ fn main() {
                 println!("url_parts[{}]: {}", i, part);
             }
 
+            // process update expiration dates of projects
+            process_url_and_update_expiration(&url_parts, cleaner_state);
+
 
             // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
                     
                     let ip_string = socket_addr.ip().to_string();
+                    println!("ip_string: {}", ip_string);
                     let alternating_stamp = str_filter_alternating(&ip_string);
                     let reduced_ip_stamp = remove_duplicates(&alternating_stamp);
 
@@ -441,14 +589,22 @@ fn main() {
             };
 
             // Testing Only
-            // println!("ip_stamp: {}", ip_stamp);
+            println!("ip_stamp: {}", ip_stamp);
             
+
+
+
+            
+            // Continue processing other requests...
+            
+            
+
+
 
             /////////////////////
             // site landing page
             /////////////////////
 
-            // if url_parts.len() == 1 || url_parts[0] == "" {
             if url_parts.len() == 1 || url_parts[1] == "" {
 
                 // inspection
@@ -472,9 +628,10 @@ fn main() {
                 }
 
 
-            ///////////////////////
+            ////////////////////////
             // game landing pages
-            //////////////////////
+            // and meta-tag images
+            ///////////////////////
             else if url_parts.len() == 2 {
 
                 // inspection
@@ -485,10 +642,11 @@ fn main() {
                 println!("{}",url_parts[1].to_string());
                 println!("{}",game_name);
 
+
                 // Docs
                 if game_name == "docs" {
                     // inspection
-                    println!{" docs ->  "};
+                    // println!{" docs ->  "};
 
                     let response = std::fs::read_to_string("docs.txt").map_or_else(
                         |e| {
@@ -506,57 +664,280 @@ fn main() {
                     continue; // No need to run the rest of the loop for the docs page
                 }
 
-                // if game_name == "docs" {
-                //     // inspection
-                //     println!{" docs ->  "};
-
-                //     let response = match landing_page_no_html() {
-                //         Ok(response_string) => {
-                //             Response::from_string(response_string).with_status_code(200)
-                //         },
-                //         Err(e) => {
-                //             eprintln!("Failed to generate landing page: {}", e);
-                //             Response::from_string(format!("Failed to generate landing page: {}", e)).with_status_code(500)
-                //         }
-                //     };
-
-                //     if let Err(e) = request.respond(response) {
-                //         eprintln!("Failed to respond to request: {}", e);
-                    
-                //     }
-                //     continue; // No need to run the rest of the loop for the landing page
-                //     }
 
 
-                // // // declare response outside match blocks so we can assign it in each match block
-                // let response = Response::from_string(response_string);
-                if is_existing_game_name(&game_name) {
-                    // println!("Game exists, proceed with the game logic.");
-                } else {
-                    println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
-                }
-
-                // // call game move function
-                let response = match show_board(game_name) {
-                    Ok(svg_content) => {
-                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                // 960
+                if game_name == "960" {
+                    let result = generate_new_chess960_board_only();
+                    let header_result = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]);
                 
-                        Response::from_string(svg_content).with_header(header).with_status_code(200)
-                    },
-                    Err(e) => {
-                        eprintln!("Failed to handle move: {}", e);
-                        Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    let response = match result {
+                        Ok(document) => {
+                            // Convert the SVG Document into a String
+                            let svg_content = document.to_string();
+                
+                            match header_result {
+                                Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
+                                Err(_) => {
+                                    eprintln!("Invalid header!");
+                                    Response::from_string("Internal Server Error").with_status_code(500)
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+                
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
                     }
-                };
+                    continue; // No need to run the rest of the loop for the docs page
+                }
+
+
+
+            
+
+
+                /* 
+                note: separate game vs. meta-tag request
+                */
+
+                // if let Some(stripped_name) = game_name.strip_prefix("metatag_") {
+                //     let new_game_name = &stripped_name[..stripped_name.len() - 4];
+                //     // then proceed with the rest of your logic using new_game_name
+                // }
+
+
+
+                /* 
+                If url is image_gamename
+                */
+                if let Some(stripped_name) = game_name.strip_prefix("image_") {
+                    let new_game_name = &stripped_name[..stripped_name.len() - 4];
+
+                    let new_game_name = new_game_name.to_string();
+                    // then proceed with the rest of your logic using new_game_name
+                
+                    // // // declare response outside match blocks so we can assign it in each match block
+                    // let response = Response::from_string(response_string);
+                    if is_existing_game_name(&new_game_name) {
+                        // println!("Game exists, proceed with the game logic.");
+                    } else {
+                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                    }
+
+                    // // // call game move function
+                    // let response = match show_board(new_game_name) {
+                    //     Ok(svg_content) => {
+                    //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                    //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                    
+                    //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //     },
+                    //     Err(e) => {
+                    //         eprintln!("Failed to handle move: {}", e);
+                    //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    //     }
+                    // };
+
+                    let response = match show_board_png(&new_game_name) { // Assuming this function returns the PNG content
+                        Ok(png_content) => {
+                            // Create a Header for the PNG content type
+                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..])
+                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                            
+                            // Create the Response with the PNG content, header, and status code
+                            Response::from_data(png_content).with_header(header).with_status_code(200)
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+
+
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop;
+                }
+                    
+
+
+                /* 
+                If url is metatag_gamename:
+                if game_name.starts_with("metatag_") {
+                    let new_game_name = game_name.trim_start_matches("metatag_").to_string();
+
+                if game_name.starts_with("metatag_") {
+                    let new_game_name = game_name.trim_start_matches("metatag_").to_string();
+
+
+                */
+                if let Some(stripped_name) = game_name.strip_prefix("metatag_") {
+                    let new_game_name = &stripped_name[..stripped_name.len() - 4];
+                    let new_game_name = new_game_name.to_string();
+                    // then proceed with the rest of your logic using new_game_name
+                
+                    // // // declare response outside match blocks so we can assign it in each match block
+                    // let response = Response::from_string(response_string);
+                    if is_existing_game_name(&new_game_name) {
+                        // println!("Game exists, proceed with the game logic.");
+                    } else {
+                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                    }
+
+                    // // // svg call game move function
+                    // let response = match show_board(new_game_name) {
+                    //     Ok(svg_content) => {
+                    //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                    //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                    
+                    //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                    //     },
+                    //     Err(e) => {
+                    //         eprintln!("Failed to handle move: {}", e);
+                    //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                    //     }
+                    // };
+
+
+                    let response = match show_board_png(&new_game_name) { // Assuming this function returns the PNG content
+                        Ok(png_content) => {
+                            // Create a Header for the PNG content type
+                            let header = Header::from_bytes(&b"Content-Type"[..], &b"image/png"[..])
+                                .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                            
+                            // Create the Response with the PNG content, header, and status code
+                            Response::from_data(png_content).with_header(header).with_status_code(200)
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+                    
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    continue; // No need to run the rest of the loop;
+                }
+
+
+                /* 
+                If just game_name:
+                */
+
+                else {
+                    if !is_existing_game_name(&game_name) {
+                        println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                        // Handle error or continue
+                    }
+                
+                    let response = match show_board(game_name.clone()) {
+                        Ok(svg_content) => {
+                            let html_content = format!(r#"
+                            <!DOCTYPE html>
+                            <head>
+                            <meta property="og:title" content="Current Game Board" />
+                            <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                            </head>
+                            <html>
+                                <body style="background-color:black;">
+                                    <br>
+                                    <div>{}</div>
+                                </body>
+                            </html>
+                            "#, game_name, svg_content);
+                
+                            match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                                Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                                Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                            }
+                        },
+                        Err(e) => {
+                            eprintln!("Failed to handle move: {}", e);
+                            Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                        }
+                    };
+                
+                    if let Err(e) = request.respond(response) {
+                        eprintln!("Failed to respond to request: {}", e);
+                    }
+                    // continue; // No need to run the rest of the loop;
+                }
+                
+                    
+                    // return an html response with with 
+                // { // Clone game_name
+
+
+                //     the new version needs to use this html AND the svg from a file
+
+                //     Ok(_) => { // Changed svg_content to _
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <head>
+                //         <meta property="og:title" content="Current Game Board" />
+                //         <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                //         </head>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+                //             </body>
+                //         </html>
+                //         "#, game_name, game_name);
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     // Err(e) => {
+                //     //     eprintln!("Failed to handle move: {}", e);
+                //     //     Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     // }
+                // };
+                
+            
+                // )
+                // (old old version with no html)
+                // // // // declare response outside match blocks so we can assign it in each match block
+                // // let response = Response::from_string(response_string);
+                // if is_existing_game_name(&game_name) {
+                //     // println!("Game exists, proceed with the game logic.");
+                // } else {
+                //     println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                // }
+
+                // // // call game move function
+                // let response = match show_board(game_name) {
+                //     Ok(svg_content) => {
+                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                
+                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
+                //     }
+                // };
                 
 
-                if let Err(e) = request.respond(response) {
-                    eprintln!("Failed to respond to request: {}", e);
-                }
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+
+            
                 continue; // No need to run the rest of the loop;
                 }
-                
+
+
 
 
             /////////
@@ -600,13 +981,46 @@ fn main() {
                 }
 
 
-                // // call game move function
-                let response = match handle_chess_move(game_name, move_data) {
-                    Ok(svg_content) => {
-                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                // // // raw image call game move function
+                // let response = match handle_chess_move(game_name, move_data) {
+                //     Ok(svg_content) => {
+                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
                 
-                        Response::from_string(svg_content).with_header(header).with_status_code(200)
+                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+
+
+                let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                    Ok(_) => { // Changed svg_content to _
+                        let html_content = format!(r#"
+                        <!DOCTYPE html>
+                        <head>
+                        <meta property="og:title" content="Current Game Board" />
+                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                        </head>
+                        <html>
+                            <body style="background-color:black;">
+                                <br>
+                                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+                            </body>
+                        </html>
+                        "#, game_name, game_name);
+                
+                        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                        }
                     },
                     Err(e) => {
                         eprintln!("Failed to handle move: {}", e);
@@ -614,10 +1028,41 @@ fn main() {
                     }
                 };
                 
-
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+                
+
+                // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                //     Ok(svg_content) => { // Change back to svg_content
+                //         let html_content = format!(r#"
+                //         <!DOCTYPE html>
+                //         <html>
+                //             <body style="background-color:black;">
+                //                 <br>
+                //                 <div style="width:50px; height:50px;">{}</div>
+                //             </body>
+                //         </html>
+                //         "#, svg_content); // Insert SVG content directly
+                
+                //         match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                //             Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                //             Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                //         }
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+                
+
+
+
 
             } 
 
@@ -732,12 +1177,47 @@ fn main() {
 
 
                 // // call game move function
-                let response = match handle_chess_move(game_name, move_data) {
-                    Ok(svg_content) => {
-                        let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
-                            .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
+                // let response = match handle_chess_move(game_name, move_data) {
+                //     Ok(svg_content) => {
+                //         let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..])
+                //             .unwrap_or_else(|_| panic!("Invalid header!")); // This is a placeholder; replace it with an appropriate error handling.
                 
-                        Response::from_string(svg_content).with_header(header).with_status_code(200)
+                //         Response::from_string(svg_content).with_header(header).with_status_code(200)
+                //     },
+                //     Err(e) => {
+                //         eprintln!("Failed to handle move: {}", e);
+                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
+                //     }
+                // };
+                
+
+                // if let Err(e) = request.respond(response) {
+                //     eprintln!("Failed to respond to request: {}", e);
+                // }
+                
+
+
+                // html call game move function
+                let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
+                    Ok(_) => { // Changed svg_content to _
+                        let html_content = format!(r#"
+                        <!DOCTYPE html>
+                        <head>
+                        <meta property="og:title" content="Current Game Board" />
+                        <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
+                        </head>
+                        <html>
+                            <body style="background-color:black;">
+                                <br>
+                                <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
+                            </body>
+                        </html>
+                        "#, game_name, game_name);
+                
+                        match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                            Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                            Err(_) => Response::from_string("Failed to create header").with_status_code(500),
+                        }
                     },
                     Err(e) => {
                         eprintln!("Failed to handle move: {}", e);
@@ -745,16 +1225,18 @@ fn main() {
                     }
                 };
                 
-                
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+                
+
+
 
             } 
 
-            //////////
-            // setup    (new game)
-            /////////
+            ///////////////////////////
+            // setup    (new project)
+            /////////////////////////
             else if url_parts.len() == 5 {
                 let mode = url_parts[1].to_string();
                 if mode != "setup" {
@@ -767,12 +1249,33 @@ fn main() {
                     }
                 } else {
                     let game_type = url_parts[2].to_string();
-                    let game_name = url_parts[3].to_string();
+                    let raw_game_name_section = url_parts[3].to_string();
                     let game_phrase = url_parts[4].to_string();
 
-                    // Call setup_new_chess_game here
 
-                    // Check the game type and call the corresponding function
+                    // strip out modules
+
+                    // // strip out gamename
+                    let game_name = raw_game_name_section.chars()
+                        .take_while(|&ch| ch != '_')
+                        .collect::<String>();
+
+                    // let game_name: String = raw_game_name_section
+                    //     .split('_')[0];
+                    //     // .skip(0)  // Skip the first part before '_'
+                    //     // .collect(); // Collect the rest of the parts into a String
+                
+
+
+                    // if let Some(game_name) = extract_game_name(&whole_game_name) {
+                    //     println!("Game name is: {}", game_name);
+                    // } else {
+                    //     println!("Failed to extract game name.");
+                    // }
+
+
+                    // Call e.g. setup_new_png_chess_game here
+
 
                     // Check the game type and call the corresponding function
                     let response = if game_type == "chess960" {
@@ -793,7 +1296,24 @@ fn main() {
                             Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e)).with_status_code(500),
                         }
                     } else if game_type == "chess" {
-                        match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                        match setup_new_png_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
+                            Ok(_) => {
+                                // Load SVG content from file
+                                match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
+                                    Ok(svg_content) => {
+                                        // Create headerfsetu
+                                        match Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]) {
+                                            Ok(header) => Response::from_string(svg_content).with_header(header).with_status_code(200),
+                                            Err(_) => Response::from_string("Failed to create response header.").with_status_code(500),
+                                        }
+                                    },
+                                    Err(_) => Response::from_string("Failed to read SVG file.").with_status_code(500),
+                                }
+                            },
+                            Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e)).with_status_code(500),
+                        }
+                    } else if game_type == "chesssvg" {
+                        match setup_new_svg_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
                             Ok(_) => {
                                 // Load SVG content from file
                                 match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
@@ -817,62 +1337,17 @@ fn main() {
                         eprintln!("Failed to respond to request: {}", e);
                     }
 
-                    // let response = if game_type == "chess960" {
-                    //     match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                    //         Ok(_) => {
-                    //             // Load SVG content from file
-                    //             let svg_content = std::fs::read_to_string(format!("games/{}/board.svg", game_name))?;
-                                
-                    //             let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]).unwrap_or_else(|_| panic!("Invalid header!"));
-                    //             Response::from_string(svg_content).with_header(header).with_status_code(200)
-                    //         },
-                    //         Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e)).with_status_code(500),
-                    //     }
-                    // } else if game_type == "chess" {
-                    //     match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                    //         Ok(_) => {
-                    //             // Load SVG content from file
-                    //             let svg_content = std::fs::read_to_string(format!("games/{}/board.svg", game_name))?;
-                                
-                    //             let header = Header::from_bytes(&b"Content-Type"[..], &b"image/svg+xml"[..]).unwrap_or_else(|_| panic!("Invalid header!"));
-                    //             Response::from_string(svg_content).with_header(header).with_status_code(200)
-                    //         },
-                    //         Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e)).with_status_code(500),
-                    //     }
-                    // } else {
-                    //     Response::from_string("Invalid game type.").with_status_code(400)
-                    // };
+                    // time_setup
+                    // check for game-modes
+                    time_data_parse_setup_string(&raw_game_name_section);
 
-                    // if let Err(e) = request.respond(response) {
-                    //     eprintln!("Failed to respond to request: {}", e);
-                    // }
-
-
-                    // // Check the game type and call the corresponding function
-                    // let response = if game_type == "chess960" {
-                    //     match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                    //         Ok(_) => Response::from_string("Chess960 game setup successfully.")
-                    //             .with_status_code(200),
-                    //         Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e))
-                    //             .with_status_code(500),
-                    //     }
-                    // } else if game_type == "chess" {
-                    //     match setup_new_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
-                    //         Ok(_) => Response::from_string("Chess game setup successfully.")
-                    //             .with_status_code(200),
-                    //         Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e))
-                    //             .with_status_code(500),
-                    //     }
-                    // } else {
-                    //     Response::from_string("Invalid game type.")
-                    //         .with_status_code(400)
-                    // };
-
-                    // if let Err(e) = request.respond(response) {
-                    //     eprintln!("Failed to respond to request: {}", e);
-                    // }
                 }
+
+
+
             }
+
+
 
             else {
                 // ... Invalid request format
@@ -893,7 +1368,7 @@ fn main() {
             }
             }
     }
-}
+    }
 
 
 
@@ -964,13 +1439,21 @@ fn main() {
             百　円
             円
 
-            y0urm0ve.com/setup/chess/
-            　　　　YOUR_GAME_NAME/
-            　　　　　　YOUR_GAME_PHRASE 
-
             y0urm0ve.com/
-            　　YOUR_GAME_NAME/
-            　　　　Pc2c4
+             setup/
+              chess/
+               GAME_NAME/
+                GAME_PHRASE 
+
+            y0ur
+             m0ve.com/
+              GAME_NAME/
+               Pc2c4
+
+            y0ur
+               m0ve.
+                   com/docs
+               
 
             "#.to_string();
 
@@ -1034,7 +1517,7 @@ fn main() {
                 let to_x_y_coordinates: (usize, usize);
 
                 // "FROM" moves
-                let from_coords_result = to_coords(&format!("{}{}", from.0, from.1));
+                let from_coords_result = to_coords_chess(&format!("{}{}", from.0, from.1));
                 let from_coords = from_coords_result?;
                 let (x, y) = from_coords;
                 board[x][y] = ' ';
@@ -1042,11 +1525,11 @@ fn main() {
 
 
                 // "TO" moves
-                let to_coords_result = to_coords(&format!("{}{}", to.0, to.1));
-                let to_coords = to_coords_result?;
-                let (x, y) = to_coords;
+                let to_coords_chess_result = to_coords_chess(&format!("{}{}", to.0, to.1));
+                let to_coords_chess = to_coords_chess_result?;
+                let (x, y) = to_coords_chess;
                 board[x][y] = piece;
-                to_x_y_coordinates = to_coords;
+                to_x_y_coordinates = to_coords_chess;
 
 
                 // Save game (save game_board_state to .txt file)
@@ -1069,16 +1552,42 @@ fn main() {
                     board_string
                 ));
 
-                // generate svg
+                // generate png
+                // Assuming from and to are already defined as (char, u8)
+                // let from_option: Option<(usize, usize)> = Some((from.1 as usize - 1, (from.0 as u8 - b'a') as usize));
+                // let to_option: Option<(usize, usize)> = Some((to.1 as usize - 1, (to.0 as u8 - b'a') as usize));
+
+
+                // let from_option: Option<(usize, usize)> = Some(((from.0 as u8 - b'a') as usize, from.1 as usize - 1));
+                // let to_option: Option<(usize, usize)> = Some(((to.0 as u8 - b'a') as usize, to.1 as usize - 1));
+                
+                dbg!("from -> ", from);
+                dbg!("to -> ", to);
+
+                // // // Flip the row for the PNG coordinate system
+                // let from_png_row = 7 - (from.1 as usize - 1);
+                // let to_png_row = 7 - (to.1 as usize - 1);
+
+                // let from_option: Option<(usize, usize)> = Some((from_png_row, (from.0 as u8 - b'a') as usize));
+                // let to_option: Option<(usize, usize)> = Some((to_png_row, (to.0 as u8 - b'a') as usize));
+
+
+                // Now pass these converted options to your function
+                generate_png_chess_board(&board, &game_name, from, to, !is_black)?;
+
+
+                // Generate png with board_string
+                // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+                // generate_png_chess_board(&board, &game_name, from, to, !is_black)?;
 
 
 
 
+                // Generate SVG with these coordinates
                 // Inverting the coordinates for black's perspective
                 let from_black_oriented = (7 - from_x_y_coordinates.0, 7 - from_x_y_coordinates.1);
                 let to_black_oriented = (7 - to_x_y_coordinates.0, 7 - to_x_y_coordinates.1);
 
-                // Generate SVG with these coordinates
                 let doc = if is_black {
                     generate_black_oriented_chessboard(&board, Some(from_black_oriented), Some(to_black_oriented))
                 } else {
@@ -1102,10 +1611,9 @@ fn main() {
                 // return svg...
                 // After generating the SVG...
                 let svg_content = doc.to_string();
+
                 Ok(svg_content)
 
-
-                
             }
             Err(e) => {
                 // This is the error case. Return or handle the error in some way here.
@@ -1192,7 +1700,7 @@ fn main() {
     }
 
 
-    fn to_coords(chess_notation: &str) -> Result<(usize, usize), String> {
+    fn to_coords_chess(chess_notation: &str) -> Result<(usize, usize), String> {
         if chess_notation.len() != 2 {
             return Err(format!("Invalid chess notation: '{}'. It should be two characters long.", chess_notation));
         }
@@ -1454,6 +1962,42 @@ fn main() {
 
 
 
+    // fn generate_new_chess960_board_only(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<Document> {
+
+    //     /*
+    //     make and return new svg chess960 board
+    //     */
+
+
+    //     // Set up board
+    //     let game_board_state_result = generate_chess960();
+    //     let game_board_state = match game_board_state_result {
+    //         Ok(board) => board,
+    //         Err(err) => return Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
+    //     };
+
+    //     // generate board
+    //     let doc = generate_white_oriented_chessboard(&game_board_state, None, None);
+    
+
+    //     Ok(doc)
+    // }
+
+    fn generate_new_chess960_board_only() -> Result<Document, &'static str> {
+        // Generate the Chess960 board
+        let chessboard_result = generate_chess960();
+        let chessboard = match chessboard_result {
+            Ok(board) => board,
+            Err(err) => return Err(err),
+        };
+    
+        // Generate the SVG representation of the board
+        let doc = generate_white_oriented_chessboard(&chessboard, None, None);
+    
+        Ok(doc)
+    }
+
+
     fn setup_new_chess960_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
@@ -1535,8 +2079,8 @@ fn main() {
 
         // create list for initial game_data list
         let ip_hash_list = vec![hashed_ip_stamp];
-        
 
+        
 
         // create first game_data struct
         let game_data = GameData::new(
@@ -1556,6 +2100,17 @@ fn main() {
         // svg in game_name directory
         generate_and_save_svg(&game_board_state, game_name)?;
 
+        let board_orientation: bool = true; // 
+        generate_chessboard_backboards(game_name, board_orientation)?;
+    
+        let board_orientation: bool = false; // 
+        generate_chessboard_backboards(game_name, board_orientation)?;
+    
+        let board_orientation: bool = true; // 
+        // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+        no_move_create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
+
+
         // // This is now done with game_data struct/impl
         // // Save game (save game_board_state to .txt file)
         if let Err(e) = save_original_game_board_state(&game_name, game_board_state) {
@@ -1566,7 +2121,138 @@ fn main() {
     }
 
 
-    fn setup_new_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
+    fn setup_new_png_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
+
+        // Validate game_name: novel, permitted, ascii etc.
+        if !is_valid_game_name(game_name) {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, 
+                "Invalid game name: ascii abc_123 novel names, try again. "));
+            }
+        /*
+
+        make files and folders...
+        set up and save initial game board
+        data in struct, separate files
+        
+        */
+
+        let board_orientation: bool = true; // 
+        generate_chessboard_backboards(game_name, board_orientation)?;
+    
+        let board_orientation: bool = false; // 
+        generate_chessboard_backboards(game_name, board_orientation)?;
+    
+
+        // make a game_data json
+
+        // Posix Timestamp for game_timestamp and activity_timestamp
+        let this_timestamp: u128 = timestamp();
+
+
+        // make gamephrase hash: to verify if just the 'unknown' game_phrase is correct
+        let hashed_gamephrase = make_hash(game_phrase, this_timestamp, 10);
+
+
+        /* make ip_hash
+        ip_hash made with only half of ip, every other number, so the actual ip is never used at all
+
+        Step 1. the ip_stamp needs to be unique enough to have few collisions between people
+        but non-unique enough to not be 'personal data'
+
+        Step 2. user game_timestamp (or what will be used to set game_timestamp) to make hashed_ip_stamp
+        */
+        let hashed_ip_stamp: u128 = make_hash(&ip_stamp, this_timestamp, 10);
+        
+
+        // Set up board
+        let board: [[char; 8]; 8] = [
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ];
+        let game_board_state:[[char; 8]; 8] = board;
+
+
+        // // This is now done with game_data struct/impl
+        // // Save game (save game_board_state to .txt file)
+        if let Err(e) = save_original_game_board_state(&game_name, board) {
+            eprintln!("Failed to save game state: {}", e);
+        }
+
+        // create folder for game_name
+        let dir_path = format!("./games/{}", game_name);
+        std::fs::create_dir_all(&dir_path)?;
+
+        let file_path = format!("{}/game_type.txt", dir_path);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(file_path)?;
+
+        writeln!(file, "{}", game_type)?;
+
+        // create list for initial game_data list
+        let ip_hash_list = vec![hashed_ip_stamp];
+        
+
+        // create first game_data struct
+        let game_data = GameData::new(
+            game_name.to_string(),
+            hashed_gamephrase, 
+            game_type.to_string(), 
+            this_timestamp,
+            this_timestamp,
+            ip_hash_list, 
+            game_board_state
+        );
+
+        // write
+        game_data.to_txt()?;
+
+
+        // generate png first board
+
+        // Set up board
+        // let board: [[char; 8]; 8] = [
+        //     ['r', 'n', 'b', 'q', 'k', 'b', ' ', 'r'],
+        //     ['p', 'p', 'p', 'p', ' ', 'p', 'p', 'p'],
+        //     [' ', ' ', ' ', ' ', ' ', 'n', ' ', ' '],
+        //     [' ', ' ', ' ', ' ', 'p', ' ', ' ', ' '],
+        //     [' ', 'P', ' ', ' ', ' ', ' ', ' ', ' '],
+        //     [' ', ' ', 'N', ' ', ' ', ' ', ' ', ' '],
+        //     ['P', ' ', 'P', 'P', 'P', 'P', 'P', 'P'],
+        //     ['R', ' ', 'B', 'Q', 'K', 'B', 'N', 'R']
+        // ];
+        // let game_board_state:[[char; 8]; 8] = board;
+
+        let board_orientation: bool = true; // 
+        // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+        no_move_create_chessboard_with_pieces(&game_board_state, game_name, board_orientation)?;
+
+        // // Generate SVG
+        // let doc = generate_white_oriented_chessboard(&game_board_state, None, None);
+
+        // // Define the file path
+        // let svg_file_path = format!("games/{}/board.svg", game_name);
+
+        // // Write the SVG code to the file
+        // svg::save(svg_file_path, &doc).expect("Unable to write SVG to file");
+
+        // Generate and save SVG
+        generate_and_save_svg(&game_board_state, game_name)?;
+
+        Ok(())
+    }
+
+
+
+    fn setup_new_svg_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -1668,6 +2354,7 @@ fn main() {
         Ok(())
     }
 
+
     // fn generate_and_save_svg(board: &[[char; 8]; 8], game_name: &str) -> Result<(), Box<dyn std::error::Error>> {
     //     // Generate SVG
     //     let doc = generate_white_oriented_chessboard(board, None, None);
@@ -1689,7 +2376,7 @@ fn main() {
         // Write the SVG code to the file
         svg::save(svg_file_path, &doc).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
-    
+
 
     impl GameData {
         /*
@@ -1887,7 +2574,8 @@ fn main() {
             "docs",
             "y0ur_m0ve",
             "start",
-            "erase"
+            "erase",
+            "metatag"
             ];
         if reserved_words.contains(&game_name) {
             eprintln!("error # 1: Invalid game name: Reserved word used.");
@@ -1996,135 +2684,103 @@ fn main() {
         shorter_string
     }
 
-
-
-
-    // // for delating old games...
-    // fn read_last_timestamp(file_path: &str) -> Result<i64, io::Error> {
-    //     let mut file = File::open(file_path)?;
-    //     let mut timestamp_str = String::new();
-    //     file.read_to_string(&mut timestamp_str)?;
-    //     Ok(timestamp_str.trim().parse::<i64>().unwrap_or(0))
-    // }
-
-
-    // fn update_activity_timestamp(file_path: &str) -> Result<(), io::Error> {
-    //     // TODO add gamename for dir-path ,which timestamp to use?
-    //     let new_timestamp = SystemTime::now()
-    //         .duration_since(UNIX_EPOCH)
-    //         .unwrap()
-    //         .as_secs() as i64;
-
-    //     let mut file = File::create(file_path)?;
-    //     file.write_all(new_timestamp.to_string().as_bytes())?;
-
-    //     Ok(())
-    // }
-
-
-
-
-
-    // Function to generate the SVG chessboard
     fn generate_white_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
         from: Option<(usize, usize)>, 
-            to: Option<(usize, usize)>
-        ) -> Document {
-
+        to: Option<(usize, usize)>
+    ) -> Document {
+    
         let mut doc = Document::new()
-            .set("width", "500")  // Adjusting the width to account for labels
-            .set("height", "500")  // Adjusting the height to account for labels
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  // Adjusting the width to account for labels
+            .set("height", "1000")  // Adjusting the height to account for labels
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #000;");  // Set background to black
-
+    
         // Define labels
         let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
-
+    
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
-                .set("y", 472)  // Positioning the label slightly above the bottom edge
+                .set("x", 100 + idx * 100 + 50)  // Adjusting the x-coordinate to account for labels
+                .set("y", 944)  // Positioning the label slightly above the bottom edge
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-
+    
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 32)  // Positioning the label slightly to the right of the left edge
-                .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+                .set("x", 64)  // Positioning the label slightly to the right of the left edge
+                .set("y", 100 + idx * 100 + 70)  // Adjusting the y-coordinate to account for labels
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to white
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
         }
-
+    
         for (row, row_pieces) in chessboard.iter().enumerate() {
             for (col, &piece) in row_pieces.iter().enumerate() {
-                let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
-                let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
-
+                let x = 100 + col * 100;  // Adjusting the x-coordinate to account for labels
+                let y = 100 + row * 100;  // Adjusting the y-coordinate to account for labels
+    
                 let square_color = if (row + col) % 2 == 0 {
                     "#ccc"
                 } else {
                     "#666"
                 };
-
+    
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 50)
-                    .set("height", 50)
+                    .set("width", 100)
+                    .set("height", 100)
                     .set("fill", square_color);
-
+    
                 doc = doc.add(square);
-
+    
                 if piece != ' ' {
-
-
+    
                     // setting from an to color
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
-                    
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
+    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
-                    
+                            .set("stroke-width", 6);
+    
                         doc = doc.add(highlight);
                     }
-                    
-                    if let Some(to_coords) = to {
-                        let (row, col) = to_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
-                    
+    
+                    if let Some(to_coords_chess) = to {
+                        let (row, col) = to_coords_chess;
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
+    
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
-                    
+                            .set("stroke-width", 6);
+    
                         doc = doc.add(highlight);
                     }
-
-
+    
                     // map character to piece name and background
                     let (piece_name, background) = match piece {
                         'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
@@ -2141,26 +2797,164 @@ fn main() {
                         'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
                         _   => panic!("Unknown piece"),
                     };
-
-                    // // Load SVG chess piece based on piece name and background
+    
+                    // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
                     let data_url = load_image_as_data_url(&file_path)
                         .expect("Failed to load image as data URL");
-
+    
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
+                        .set("width", 100)
+                        .set("height", 100)
                         .set("href", data_url);
-
+    
                     doc = doc.add(piece_image);
                 }
             }
         }
-
-    doc
+    
+        doc
     }
+    
+
+    // // Function to generate the SVG chessboard
+    // fn generate_white_oriented_chessboard_small(
+    //     chessboard: &[[char; 8]; 8], 
+    //     from: Option<(usize, usize)>, 
+    //         to: Option<(usize, usize)>
+    //     ) -> Document {
+
+    //     let mut doc = Document::new()
+    //         .set("width", "500")  // Adjusting the width to account for labels
+    //         .set("height", "500")  // Adjusting the height to account for labels
+    //         .set("viewBox", (0, 0, 500, 500))
+    //         .set("style", "background-color: #000;");  // Set background to black
+
+    //     // Define labels
+    //     let column_labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    //     let row_labels = ['8', '7', '6', '5', '4', '3', '2', '1'];  // Chessboard starts with 8 from the top
+
+    //     // Add column labels
+    //     for (idx, label) in column_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 50 + idx * 50 + 25)  // Adjusting the x-coordinate to account for labels
+    //             .set("y", 472)  // Positioning the label slightly above the bottom edge
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to white
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     // Add row labels
+    //     for (idx, label) in row_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 32)  // Positioning the label slightly to the right of the left edge
+    //             .set("y", 50 + idx * 50 + 35)  // Adjusting the y-coordinate to account for labels
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to white
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     for (row, row_pieces) in chessboard.iter().enumerate() {
+    //         for (col, &piece) in row_pieces.iter().enumerate() {
+    //             let x = 50 + col * 50;  // Adjusting the x-coordinate to account for labels
+    //             let y = 50 + row * 50;  // Adjusting the y-coordinate to account for labels
+
+    //             let square_color = if (row + col) % 2 == 0 {
+    //                 "#ccc"
+    //             } else {
+    //                 "#666"
+    //             };
+
+    //             let square = Rectangle::new()
+    //                 .set("x", x)
+    //                 .set("y", y)
+    //                 .set("width", 50)
+    //                 .set("height", 50)
+    //                 .set("fill", square_color);
+
+    //             doc = doc.add(square);
+
+    //             if piece != ' ' {
+
+
+    //                 // setting from an to color
+    //                 if let Some(from_coords) = from {
+    //                     let (row, col) = from_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+                    
+    //                 if let Some(to_coords_chess) = to {
+    //                     let (row, col) = to_coords_chess;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+
+
+    //                 // map character to piece name and background
+    //                 let (piece_name, background) = match piece {
+    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     _   => panic!("Unknown piece"),
+    //                 };
+
+    //                 // // Load SVG chess piece based on piece name and background
+    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
+    //                 let data_url = load_image_as_data_url(&file_path)
+    //                     .expect("Failed to load image as data URL");
+
+    //                 let piece_image = Image::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("href", data_url);
+
+    //                 doc = doc.add(piece_image);
+    //             }
+    //         }
+    //     }
+
+    // doc
+    // }
 
 
 
@@ -2245,8 +3039,8 @@ fn main() {
     //                 doc = doc.add(highlight);
     //             }
                 
-    //             if let Some(to_coords) = to {
-    //                 let (row, col) = to_coords;
+    //             if let Some(to_coords_chess) = to {
+    //                 let (row, col) = to_coords_chess;
     //                 let x = 50 + col * 50;
     //                 let y = 50 + row * 50;
                 
@@ -2300,6 +3094,7 @@ fn main() {
     // }
 
 
+
     // Function to generate the SVG chessboard with black orientation
     fn generate_black_oriented_chessboard(
         chessboard: &[[char; 8]; 8], 
@@ -2308,9 +3103,9 @@ fn main() {
         ) -> Document {
 
         let mut doc = Document::new()
-            .set("width", "500")  
-            .set("height", "500")  
-            .set("viewBox", (0, 0, 500, 500))
+            .set("width", "1000")  
+            .set("height", "1000")  
+            .set("viewBox", (0, 0, 1000, 1000))
             .set("style", "background-color: #2f0300;");  // Set background to dark red
 
         // Define labels, reversed for black piece orientation
@@ -2320,10 +3115,10 @@ fn main() {
         // Add column labels
         for (idx, label) in column_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 50 + idx * 50 + 25)  
-                .set("y", 472)  
+                .set("x", 100 + idx * 100 + 50)  
+                .set("y", 944)  
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  // Set text color to dark grey
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2332,10 +3127,10 @@ fn main() {
         // Add row labels
         for (idx, label) in row_labels.iter().enumerate() {
             let label_text = Text::new()
-                .set("x", 32)  
-                .set("y", 50 + idx * 50 + 35)  
+                .set("x", 64)  
+                .set("y", 100 + idx * 100 + 70)  
                 .set("text-anchor", "middle")
-                .set("font-size", 20)
+                .set("font-size", 40)
                 .set("fill", "#757575")  
                 .add(svg::node::Text::new(label.to_string()));
             doc = doc.add(label_text);
@@ -2343,8 +3138,8 @@ fn main() {
 
         for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
             for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
-                let x = 50 + col * 50;  
-                let y = 50 + row * 50;  
+                let x = 100 + col * 100;  
+                let y = 100 + row * 100;  
 
                 // Set Square Colours
                 let square_color = if (row + col) % 2 == 0 {
@@ -2356,8 +3151,8 @@ fn main() {
                 let square = Rectangle::new()
                     .set("x", x)
                     .set("y", y)
-                    .set("width", 50)
-                    .set("height", 50)
+                    .set("width", 100)
+                    .set("height", 100)
                     .set("fill", square_color);
 
                 doc = doc.add(square);
@@ -2366,14 +3161,14 @@ fn main() {
 
                     if let Some(from_coords) = from {
                         let (row, col) = from_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
                             .set("stroke-width", 3);
@@ -2381,19 +3176,19 @@ fn main() {
                         doc = doc.add(highlight);
                     }
                     
-                    if let Some(to_coords) = to {
-                        let (row, col) = to_coords;
-                        let x = 50 + col * 50;
-                        let y = 50 + row * 50;
+                    if let Some(to_coords_chess) = to {
+                        let (row, col) = to_coords_chess;
+                        let x = 100 + col * 100;
+                        let y = 100 + row * 100;
                     
                         let highlight = Rectangle::new()
                             .set("x", x)
                             .set("y", y)
-                            .set("width", 50)
-                            .set("height", 50)
+                            .set("width", 100)
+                            .set("height", 100)
                             .set("fill", "none") // Transparent fill
                             .set("stroke", "#3189D9")
-                            .set("stroke-width", 3);
+                            .set("stroke-width", 6);
                     
                         doc = doc.add(highlight);
                     }
@@ -2418,14 +3213,15 @@ fn main() {
 
                     // // Load SVG chess piece based on piece name and background
                     let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
-                    let data_url = load_image_as_data_url(&file_path)
-                        .expect("Failed to load image as data URL");
+                    let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
+                    let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
+                    
 
                     let piece_image = Image::new()
                         .set("x", x)
                         .set("y", y)
-                        .set("width", 50)
-                        .set("height", 50)
+                        .set("width", 100)
+                        .set("height", 100)
                         .set("href", data_url);
 
                     doc = doc.add(piece_image);
@@ -2435,6 +3231,144 @@ fn main() {
 
         doc
     }
+
+
+    // // Function to generate the SVG chessboard with black orientation
+    // fn generate_black_oriented_chessboard_small(
+    //     chessboard: &[[char; 8]; 8], 
+    //     from: Option<(usize, usize)>, 
+    //     to: Option<(usize, usize)>
+    //     ) -> Document {
+
+    //     let mut doc = Document::new()
+    //         .set("width", "500")  
+    //         .set("height", "500")  
+    //         .set("viewBox", (0, 0, 500, 500))
+    //         .set("style", "background-color: #2f0300;");  // Set background to dark red
+
+    //     // Define labels, reversed for black piece orientation
+    //     let column_labels = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
+    //     let row_labels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    //     // Add column labels
+    //     for (idx, label) in column_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 50 + idx * 50 + 25)  
+    //             .set("y", 472)  
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  // Set text color to dark grey
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     // Add row labels
+    //     for (idx, label) in row_labels.iter().enumerate() {
+    //         let label_text = Text::new()
+    //             .set("x", 32)  
+    //             .set("y", 50 + idx * 50 + 35)  
+    //             .set("text-anchor", "middle")
+    //             .set("font-size", 20)
+    //             .set("fill", "#757575")  
+    //             .add(svg::node::Text::new(label.to_string()));
+    //         doc = doc.add(label_text);
+    //     }
+
+    //     for (row, row_pieces) in chessboard.iter().rev().enumerate() {  // Reverse rows for black piece orientation
+    //         for (col, &piece) in row_pieces.iter().rev().enumerate() {  // Reverse columns for black piece orientation
+    //             let x = 50 + col * 50;  
+    //             let y = 50 + row * 50;  
+
+    //             // Set Square Colours
+    //             let square_color = if (row + col) % 2 == 0 {
+    //                 "#ccc"
+    //             } else {
+    //                 "#666"
+    //             };
+                
+    //             let square = Rectangle::new()
+    //                 .set("x", x)
+    //                 .set("y", y)
+    //                 .set("width", 50)
+    //                 .set("height", 50)
+    //                 .set("fill", square_color);
+
+    //             doc = doc.add(square);
+
+    //             if piece != ' ' {
+
+    //                 if let Some(from_coords) = from {
+    //                     let (row, col) = from_coords;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+                    
+    //                 if let Some(to_coords_chess) = to {
+    //                     let (row, col) = to_coords_chess;
+    //                     let x = 50 + col * 50;
+    //                     let y = 50 + row * 50;
+                    
+    //                     let highlight = Rectangle::new()
+    //                         .set("x", x)
+    //                         .set("y", y)
+    //                         .set("width", 50)
+    //                         .set("height", 50)
+    //                         .set("fill", "none") // Transparent fill
+    //                         .set("stroke", "#3189D9")
+    //                         .set("stroke-width", 3);
+                    
+    //                     doc = doc.add(highlight);
+    //                 }
+
+
+    //                 // map character to piece name and background
+    //                 let (piece_name, background) = match piece {
+    //                     'p' => ("black_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'r' => ("black_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'n' => ("black_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'b' => ("black_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'q' => ("black_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'k' => ("black_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'P' => ("white_pawn", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'R' => ("white_rook", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'N' => ("white_night", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'B' => ("white_bishop", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'Q' => ("white_queen", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     'K' => ("white_king", if square_color == "#666" {"darksquare"} else {"lightsquare"}),
+    //                     _   => panic!("Unknown piece"),
+    //                 };
+
+    //                 // // Load SVG chess piece based on piece name and background
+    //                 let file_path = format!("pieces_svg/{}_{}.svg", piece_name, background);
+    //                 let panic_message = format!("Failed to load image as data URL from path: {}", &file_path);
+    //                 let data_url = load_image_as_data_url(&file_path).expect(&panic_message);
+                    
+
+    //                 let piece_image = Image::new()
+    //                     .set("x", x)
+    //                     .set("y", y)
+    //                     .set("width", 50)
+    //                     .set("height", 50)
+    //                     .set("href", data_url);
+
+    //                 doc = doc.add(piece_image);
+    //             }
+    //         }
+    //     }
+
+    //     doc
+    // }
 
 
     fn load_image_as_data_url(file_path: &str) -> io::Result<String> {
@@ -2529,8 +3463,8 @@ fn main() {
 //                         doc = doc.add(highlight);
 //                     }
                     
-//                     if let Some(to_coords) = to {
-//                         let (row, col) = to_coords;
+//                     if let Some(to_coords_chess) = to {
+//                         let (row, col) = to_coords_chess;
 //                         let x = 50 + col * 50;
 //                         let y = 50 + row * 50;
                     
@@ -2888,6 +3822,10 @@ fn main() -> Result<(), &'static str> {
 
 */
 
+fn extract_game_name(input: &str) -> Option<&str> {
+    input.split('_').next()
+}
+
 
 fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
     let mut rng = rand::thread_rng();
@@ -2948,15 +3886,2360 @@ fn generate_chess960() -> Result<[[char; 8]; 8], &'static str> {
 }
 
 
+impl CleanerState {
 
 
-// fn string_to_board(s: &str) -> [[char; 8]; 8] {
-//     let mut board = [[' '; 8]; 8];
-//     let s = s.chars().filter(|c| !c.is_whitespace()).collect::<Vec<_>>();
-//     for i in 0..8 {
-//         for j in 0..8 {
-//             board[i][j] = s[i * 8 + j];
+    pub fn new(next_check_time_file: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // Ensure the file exists, if not, create it
+        if !Path::new(next_check_time_file).exists() {
+            let default_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);
+            write_next_check_time_to_file(next_check_time_file, default_time)?;
+        }
+        
+        let next_check_time = read_next_check_time_from_file(next_check_time_file)?;
+        Ok(Self {
+            next_check_time,
+            expiration_by_name: HashMap::new(),
+            names_by_expiration: BTreeMap::new(),
+        })
+    }
+
+
+    pub fn update_directory_expiration_if_exists(&mut self, name: &str) {
+        if self.expiration_by_name.contains_key(name) {
+            let new_expiration_date = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30); // 30 days from now
+            self.add_directory(name.to_string(), new_expiration_date);
+        }
+    }
+    
+
+
+    pub fn add_directory(&mut self, name: String, expiration_date: SystemTime) {
+        self.remove_directory(&name);
+        self.expiration_by_name.insert(name.clone(), expiration_date);
+        self.names_by_expiration
+            .entry(expiration_date)
+            .or_insert_with(Vec::new)
+            .push(name);
+    }
+
+    pub fn remove_directory(&mut self, name: &str) {
+        if let Some(expiration_date) = self.expiration_by_name.remove(name) {
+            if let Some(names) = self.names_by_expiration.get_mut(&expiration_date) {
+                names.retain(|n| n != name);
+                if names.is_empty() {
+                    self.names_by_expiration.remove(&expiration_date);
+                }
+            }
+        }
+    }
+
+    pub fn update_next_check_time(&mut self, next_check_time_file: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.next_check_time = SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 7);  // one week from now
+        write_next_check_time_to_file(next_check_time_file, self.next_check_time)
+    }
+    
+    pub fn check_and_remove_expired(&mut self, next_check_time_file: &str) {
+        let current_time = SystemTime::now();
+        if let Ok(duration) = self.next_check_time.duration_since(current_time) {
+            if duration.as_secs() == 0 {
+
+                match self.update_next_check_time(next_check_time_file) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Failed to update next check time: {}", e),
+                }
+
+                let now = SystemTime::now();
+                let expired_keys: Vec<SystemTime> = self.names_by_expiration
+                    .range(..now)
+                    .map(|(&key, _)| key)
+                    .collect();
+    
+                for key in expired_keys {
+                    if let Some(names) = self.names_by_expiration.remove(&key) {
+                        for name in names {
+                            match remove_directory(&name) {
+                                Ok(_) => (),
+                                Err(e) => println!("Failed to remove directory '{}': {}", name, e),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
+}
+    
+
+
+
+// ...
+
+fn read_next_check_time_from_file(filename: &str) -> Result<SystemTime, Box<dyn std::error::Error>> {
+    let mut file = fs::File::open(filename)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let secs = contents.trim().parse::<u64>()?;
+    Ok(UNIX_EPOCH + Duration::from_secs(secs))
+}
+
+fn write_next_check_time_to_file(filename: &str, next_check_time: SystemTime) -> Result<(), Box<dyn std::error::Error>> {
+    let secs = next_check_time.duration_since(UNIX_EPOCH)?.as_secs();
+    let contents = secs.to_string();
+
+    let mut file = fs::File::create(filename)?;
+    file.write_all(contents.as_bytes())?;
+    Ok(())
+}
+
+
+fn check_url_parts_against_directory(url_parts: &[&str]) -> std::io::Result<Option<String>> {
+    // Read all directory names from games/
+    let directory_names: Vec<_> = fs::read_dir("games/")?
+        .filter_map(|entry| {
+            entry.ok().and_then(|e| e.path().file_name().and_then(|n| n.to_str().map(String::from)))
+        })
+        .collect();
+
+    let indices_to_check = [1, 3];
+
+    for &index in &indices_to_check {
+        if index < url_parts.len() && directory_names.contains(&url_parts[index].to_string()) {
+            return Ok(Some(url_parts[index].to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+fn update_directory_expiration_from_url(url_parts: &[&str], cleaner: &mut CleanerState) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(matched_directory) = check_url_parts_against_directory(url_parts)? {
+        // Access the directory to update its expiration time
+        cleaner.update_directory_expiration_if_exists(&matched_directory);
+    }
+    Ok(())
+}
+
+// fn process_url_and_update_expiration2(url: &str) {
+//     let matched_dir = check_url_parts_against_directory(url);
+//     if let Some(dir_name) = matched_dir {
+//         update_directory_expiration_from_url(&dir_name);
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str]) {
+//     // Note: Assuming check_url_parts_against_directory returns an Option<String>
+//     match check_url_parts_against_directory(url_parts) {
+//         Ok(Some(dir_name)) => {
+//             // Assuming update_directory_expiration_from_url takes a directory name
+//             // and returns a Result<(), ErrorType>
+//             if let Err(e) = update_directory_expiration_from_url(&dir_name) {
+//                 eprintln!("Error updating directory expiration: {}", e);
+//             }
+//         },
+//         Ok(None) => println!("No matching directory found."),
+//         Err(e) => println!("Error checking input against directory: {}", e),
+//     }
+// }
+
+
+// fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+fn process_url_and_update_expiration(url_parts: &[&str], cleaner_state: &mut CleanerState) {
+
+    // Note: Assuming check_url_parts_against_directory returns an Option<String>
+    match check_url_parts_against_directory(url_parts) {
+        Ok(Some(dir_name)) => {
+            // Convert dir_name to slice
+            let dir_name_slice = [&dir_name[..]];
+
+            // Now pass both arguments to update_directory_expiration_from_url
+            if let Err(e) = update_directory_expiration_from_url(&dir_name_slice, cleaner_state) {
+                eprintln!("Error updating directory expiration: {}", e);
+            }
+        },
+        Ok(None) => println!("No directory names fournd to update expiration dates."),
+        Err(e) => println!("Error checking input against directory: {}", e),
+    }
+}
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+    
+//     // Implement the logic to write each request to disk asynchronously
+//     for request in queue.iter() {
+//         if let Some(body) = request.as_reader() {
+//             let mut buffer = Vec::new();
+//             if let Ok(_) = body.read_to_end(&mut buffer) {
+//                 if let Ok(mut file) = File::create("requests.txt") {
+//                     if let Ok(_) = file.write_all(&buffer) {
+//                         println!("Successfully wrote request to disk.");
+//                     } else {
+//                         println!("Failed to write request to disk.");
+//                     }
+//                 } else {
+//                     println!("Failed to create the file.");
+//                 }
+//             } else {
+//                 println!("Failed to read request body.");
+//             }
 //         }
 //     }
-//     board
 // }
+
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+    
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//             }
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.as_reader() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = (body as &dyn std::io::Read).read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+    
+    
+    
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let mut buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//             // For other types of requests (e.g., POST, PUT, DELETE), read the body if present
+//             if let Some(body) = request.body() {
+//                 let mut temp_buffer = Vec::new();
+//                 if let Ok(_) = body.read_to_end(&mut temp_buffer) {
+//                     buffer.extend_from_slice(&temp_buffer);
+//                 }
+//             }
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(mut writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+// use std::io::Read;
+
+// // Function to write a batch of requests to disk asynchronously
+// fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) {
+//     // Lock the in-memory queue for writing to disk
+//     let queue = in_memory_queue.lock().unwrap();
+
+//     // Create a buffer to store all requests' contents
+//     let buffer = Vec::new();
+
+//     // Collect all requests' contents into the buffer
+//     for request in queue.iter() {
+//         if request.method() == &Method::Get {
+//             let url_parts: Vec<&str> = request.url().split('/').collect();
+//             // Process the URL parts for GET requests (as you have already implemented)
+//         } else {
+//         }
+//     }
+
+//     // Implement the logic to write the batch to disk asynchronously
+//     if !buffer.is_empty() {
+//         if let Ok(mut file) = File::create("requests.txt") {
+//             if let Ok(writer) = BufWriter::new(&mut file).write_all(&buffer) {
+//                 println!("Successfully wrote batch of requests to disk.");
+//             } else {
+//                 println!("Failed to write batch of requests to disk.");
+//             }
+//         } else {
+//             println!("Failed to create the file.");
+//         }
+//     } else {
+//         println!("No requests to write to disk.");
+//     }
+// }
+
+
+fn write_batch_to_disk(in_memory_queue: Arc<Mutex<VecDeque<Request>>>) -> Result<(), Error> {
+    // Lock the in-memory queue for writing to disk
+    let mut queue = in_memory_queue.lock().unwrap();
+
+    // Create a buffer to store all requests' contents as Strings
+    let mut buffer = String::new();
+
+    // Collect all requests' contents into the buffer
+    for request in queue.drain(..) {
+        // Here, for simplicity, we are adding request methods and URLs to buffer
+        // Adjust as necessary
+        buffer.push_str(&format!("{} {}\n", request.method(), request.url()));
+    }
+
+    // If there's data to write
+    if !buffer.is_empty() {
+        // Append to the file to ensure previous data isn't overwritten
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open("requests.txt")?;
+        
+        let mut writer = BufWriter::new(&mut file);
+        writer.write_all(buffer.as_bytes())?;
+        println!("Successfully wrote batch of requests to disk.");
+    } else {
+        println!("No requests to write to disk.");
+    }
+
+    Ok(())
+}
+
+
+// fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+//     /*
+//     extern crate image;
+//     use image::ImageBuffer;
+//     use std::path::Path;
+
+//     combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "output.png")?;
+//     Ok(())
+//      */
+
+//     // Load the images
+//     let image1 = image::open(image_path1)?;
+//     let image2 = image::open(image_path2)?;
+
+//     // Check the height of the images and make them the same if necessary, or handle differently as needed.
+//     let height = std::cmp::max(image1.height(), image2.height());
+
+//     // Create a new image with the combined width of both images and the maximum height
+//     let mut combined_image = ImageBuffer::new(image1.width() + image2.width(), height);
+
+//     // Copy pixels from image1 into the new image
+//     for (x, y, pixel) in image1.to_rgba8().enumerate_pixels() {
+//         combined_image.put_pixel(x, y, *pixel);
+//     }
+
+//     // Copy pixels from image2 into the new image, offsetting by the width of image1
+//     for (x, y, pixel) in image2.to_rgba8().enumerate_pixels() {
+//         combined_image.put_pixel(x + image1.width(), y, *pixel);
+//     }
+
+//     // Save the new image
+//     combined_image.save(output_path)?;
+
+//     Ok(())
+// }
+
+
+fn sanitize_url(input: &str) -> String {
+    let without_trailing_slashes_and_spaces = input.trim_end_matches(|c| c == '/' || c == ' ');
+    without_trailing_slashes_and_spaces
+        .chars()
+        .filter(|&c| c.is_ascii_alphanumeric() 
+        || c == '_' 
+        || c == '/'
+        || c == '.'
+        || c == '='
+        || c == '&'
+        || c == '^'
+        || c == '@'
+        || c == '-'
+        || c == '+'
+        || c == '*'
+        || c == '!'
+        || c == '~'
+        || c == '`'
+        || c == ';'
+        || c == ','
+    )
+        .collect()
+}
+
+// Define the show_board_png function to get the PNG content from the file or other sources
+fn show_board_png(new_game_name: &str) -> Result<Vec<u8>, std::io::Error> {
+    let mut file = File::open(format!("games/{}/board.png", new_game_name))?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+
+
+
+
+/*
+png image functions
+
+extern crate image;
+use std::path::Path;
+use image::{Rgba, ImageBuffer, GenericImageView};
+use rand::Rng;
+use std::{fs, io};
+use std::io::{ErrorKind, Error};
+use std::fmt::Debug;
+*/
+
+// fn combine_side_by_side<P: AsRef<Path>>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+fn combine_side_by_side<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+    // println!(
+    //     "\ncombine_side_by_side...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+    //     &image_path1,
+    //     &image_path2,
+    //     &output_path
+    // );
+
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_side_by_side Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_side_by_side Failed to load image at {:?}", &image_path2))))?;
+    
+
+
+    /*
+    extern crate image;
+    use image::ImageBuffer;
+    use std::path::Path;
+
+    combine_side_by_side("white_pawn_darksquare.png", "white_pawn_lightsquare.png", "output.png")?;
+    Ok(())
+     */
+
+    // Load the images
+    // let image1 = image::open(image_path1)?;
+    // let image2 = image::open(image_path2)?;
+
+
+    // Check the height of the images and make them the same if necessary, or handle differently as needed.
+    let height = std::cmp::max(image1.height(), image2.height());
+
+    // Create a new image with the combined width of both images and the maximum height
+    let mut combined_image = ImageBuffer::new(image1.width() + image2.width(), height);
+
+    // Copy pixels from image1 into the new image
+    for (x, y, pixel) in image1.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x, y, *pixel);
+    }
+
+    // Copy pixels from image2 into the new image, offsetting by the width of image1
+    for (x, y, pixel) in image2.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x + image1.width(), y, *pixel);
+    }
+
+    // Save the new image
+    combined_image.save(output_path)?;
+
+    Ok(())
+}
+
+
+
+fn combine_top_to_bottom<P: AsRef<Path> + Debug>(image_path1: P, image_path2: P, output_path: P) -> Result<(), image::ImageError> {
+    // println!(
+    //     "\ncombine_top_to_bottom...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+    //     &image_path1,
+    //     &image_path2,
+    //     &output_path
+    // );
+    // Load the images
+    let image1 = image::open(&image_path1).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path1))))?;
+    let image2 = image::open(&image_path2).map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("combine_top_to_bottom Failed to load image at {:?}", &image_path2))))?;
+    
+
+    // Check the width of the images and make them the same if necessary, or handle differently as needed.
+    let width = std::cmp::max(image1.width(), image2.width());
+
+    // Create a new image with the combined height of both images and the maximum width
+    let mut combined_image = ImageBuffer::new(width, image1.height() + image2.height());
+
+    // Copy pixels from image1 into the new image
+    for (x, y, pixel) in image1.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x, y, *pixel);
+    }
+
+    // Copy pixels from image2 into the new image, offsetting by the height of image1
+    for (x, y, pixel) in image2.to_rgba8().enumerate_pixels() {
+        combined_image.put_pixel(x, y + image1.height(), *pixel);
+    }
+
+    // Save the new image
+    combined_image.save(output_path)?;
+
+    Ok(())
+}
+
+
+
+fn overlay_images<P: AsRef<Path> + std::fmt::Debug>(
+    image_path1: P,
+    image_path2: P,
+    output_path: P,
+) -> Result<(), image::ImageError> {
+    println!(
+        "\nOverlaying images...\nimage_path1: {:?}\nimage_path2: {:?}\noutput_path: {:?}",
+        &image_path1,
+        &image_path2,
+        &output_path
+    );
+
+    // Load the images with custom error handling
+    let mut image1 = image::open(&image_path1)
+        .map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path1))))?
+        .to_rgba8();
+    let image2 = image::open(&image_path2)
+        .map_err(|_| image::ImageError::from(io::Error::new(io::ErrorKind::Other, format!("Failed to load image at {:?}", &image_path2))))?
+        .to_rgba8();
+
+
+    // Ensure the images are the same size, or handle differently as needed.
+    assert_eq!(image1.dimensions(), image2.dimensions());
+
+    // Iterate over the coordinates and pixels of image2.
+    for (x, y, pixel) in image2.enumerate_pixels() {
+        let pixel1 = image1.get_pixel_mut(x, y);
+        // Perform blending here. You could write your own blending logic or use a pre-existing function.
+        blend_pixels(pixel1, *pixel);
+    }
+
+    // Save the result.
+    image1.save(output_path)?;
+
+    Ok(())
+}
+
+
+// A simple alpha blending function. You might want to use a more sophisticated blending function depending on your needs.
+fn blend_pixels(bottom: &mut Rgba<u8>, top: Rgba<u8>) {
+    // println!(
+    //     "\nblend_pixels...\nbottom: {:?}\ntop: {:?}",
+    //     bottom,
+    //     top,
+    // );
+
+    let alpha_top = top[3] as f32 / 255.0;
+    let alpha_bottom = bottom[3] as f32 * (1.0 - alpha_top) / 255.0;
+    let alpha_combined = alpha_top + alpha_bottom;
+
+    for i in 0..3 {
+        bottom[i] = ((top[i] as f32 * alpha_top + bottom[i] as f32 * alpha_bottom) / alpha_combined) as u8;
+    }
+    bottom[3] = (alpha_combined * 255.0) as u8;
+}
+
+
+fn random_image_from_directory(directory: &str) -> Result<String, std::io::Error> {
+    // println!(
+    //     "\nrandom_image_from_directory...\ndirectory: {:?}",
+    //     &directory,
+    // );
+    let paths: Vec<_> = fs::read_dir(directory)?
+        .filter_map(Result::ok) // Only keep the Ok values
+        .collect();
+
+    if paths.is_empty() {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "No images found"));
+    }
+
+    let random_entry = &paths[rand::thread_rng().gen_range(0..paths.len())];
+    let random_file = random_entry.file_name();
+    let file_path_str = random_file.to_str().ok_or(std::io::Error::new(std::io::ErrorKind::Other, "Invalid file name"))?;
+    let file_path = format!("{}/{}", directory, file_path_str);
+
+    Ok(file_path)
+}
+
+
+fn make_board_core(sandbox_path: &str, orientation_white: bool) -> Result<(), io::Error> {
+    // println!("\nmake_board_core()...");
+    let mut row_images = Vec::new();
+
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
+    // Make the 8 Rows
+    for row in 0..8 {
+        let mut row_image_path = String::new();
+
+        // for col in 0..8 {
+        //     let texture_directory = if (row + col) % 2 == 0 {
+        //         if orientation_white {
+        //             "image_files/lightsquares"
+        //         } else {
+        //             "image_files/darksquares"
+        //         }
+        //     } else {
+        //         if orientation_white {
+        //             "image_files/darksquares"
+        //         } else {
+        //             "image_files/lightsquares"
+        //         }
+        //     };
+
+        for col in 0..8 {
+            let texture_directory = if (row + col) % 2 == 0 {
+                "image_files/lightsquares"
+            } else {
+                "image_files/darksquares"
+            };
+
+            let random_image_path = random_image_from_directory(texture_directory)?;
+
+            if row_image_path.is_empty() {
+                row_image_path = random_image_path;
+            } else {
+                let output_path = format!("{}/row_{}_col_{}.png", sandbox_path, row, col);
+            combine_side_by_side(row_image_path, random_image_path, output_path.clone())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+                row_image_path = output_path;
+            }
+        }
+
+        row_images.push(row_image_path);
+    }
+
+    // connect the 8 rows
+    let mut final_board_image_path = row_images[0].clone();
+    for i in 1..8 {
+        let output_path = format!("{}/final_row_{}.png", sandbox_path, i);
+        combine_top_to_bottom(final_board_image_path, row_images[i].clone(), output_path.clone())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+    
+        final_board_image_path = output_path;
+    }
+
+
+    // Move (create?) the final image inside the sandbox
+    let sandbox_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    fs::rename(final_board_image_path, sandbox_path)?;
+
+    Ok(())
+}
+
+
+fn make_and_attach_letter_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    // println!(
+    //     "make_and_attach_letter_bar images...\nsandbox_path: {:?}\norientation_white: {:?}\nboard_image_path: {:?}",
+    //     &sandbox_path,
+    //     &orientation_white,
+    //     &board_image_path
+    // );
+
+    // ONLY HERE
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
+    // Determine the order of letters
+    let letters_order = if orientation_white {
+        ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"]
+    } else {
+        ["h.png", "g.png", "f.png", "e.png", "d.png", "c.png", "b.png", "a.png"]
+    };
+
+    // Create the letter bar by combining individual letters
+    let mut letter_bar_path = String::new();
+    for letter in &letters_order {
+        let path = format!("image_files/legend_alpha_num/{}", letter);
+        if letter_bar_path.is_empty() {
+            letter_bar_path = path;
+        } else {
+            let new_output_path = format!("{}/tmp_{}.png", sandbox_path, letter); // Prepend sandbox_path
+            combine_side_by_side(letter_bar_path, path, new_output_path.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+            letter_bar_path = new_output_path;
+        }
+    }
+
+
+    // Combine the letter bar with the board image
+    let final_image_with_letters_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    combine_top_to_bottom(board_image_path, &letter_bar_path, &final_image_with_letters_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    // Clean up temporary files created during the process
+    for letter in &letters_order {
+        let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, letter);
+        if std::path::Path::new(&tmp_file_path).exists() {
+            let _ = std::fs::remove_file(tmp_file_path);
+        }
+    }
+
+    Ok(())
+}
+
+
+fn make_and_attach_number_bar(sandbox_path: &str, orientation_white: bool, board_image_path: &str) -> Result<(), io::Error> {
+    // println!(
+    //     "make_and_attach_number_bar images...\nsandbox_path: {:?}\norientation_white: {:?}\nboard_image_path: {:?}",
+    //     &sandbox_path,
+    //     &orientation_white,
+    //     &board_image_path
+    // );
+
+    // ONLY HERE
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
+    // Determine the order of numbers
+    let numbers_order = if orientation_white {
+        ["8.png", "7.png", "6.png", "5.png", "4.png", "3.png", "2.png", "1.png"]
+    } else {
+        ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png"]
+    };
+
+    // Create a temporary image for the vertical number bar
+    let mut number_bar_path = String::new(); // Start without a path, as we will build it dynamically
+
+    for number in &numbers_order {
+        let path = format!("image_files/legend_alpha_num/{}", number);
+        if number_bar_path.is_empty() {
+            number_bar_path = path;
+        } else {
+            let new_output_path = format!("{}/tmp_{}.png", sandbox_path, number);
+            combine_top_to_bottom(number_bar_path, path, new_output_path.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+            number_bar_path = new_output_path;
+        }
+    }
+
+    // Now combine the final number bar with a blank image at the bottom
+    let blank_image_path: String = "image_files/legend_alpha_num/blank.png".to_string();
+    let new_output_path = format!("{}/tmp_blank.png", sandbox_path);
+    combine_top_to_bottom(number_bar_path, blank_image_path, new_output_path.clone())
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+    number_bar_path = new_output_path.clone();
+
+    // Combine the number bar with the board image
+    let final_image_with_numbers_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    combine_side_by_side(&number_bar_path, &board_image_path.to_string(), &final_image_with_numbers_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e)))?;
+
+    // Optional: Clean up temporary files created during the process
+    for number in &numbers_order {
+        let tmp_file_path = format!("{}/tmp_{}.png", sandbox_path, number);
+        if std::path::Path::new(&tmp_file_path).exists() {
+            let _ = std::fs::remove_file(tmp_file_path);
+        }
+    }
+
+    // Remove the temporary blank file
+    if std::path::Path::new(&new_output_path).exists() {
+        let _ = std::fs::remove_file(new_output_path);
+    }
+
+    Ok(())
+}
+
+
+// fn generate_chessboard_backboards(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+fn generate_chessboard_backboards(game_name: &str, orientation_white: bool) -> Result<(), Error> {
+
+    // println!(
+    //     "generate_chessboard_backboards images...\ngame_name: {:?}\norientation_white: {:?}",
+    //     &game_name,
+    //     &orientation_white,
+    // );
+
+    let orientation_string: String = if orientation_white {
+            "white".to_string()
+        } else {
+            "black".to_string()
+        };
+
+    let sandbox_path: String = format!("games/{}/sandboxes/sandbox_backboard", game_name);
+
+    // Check if the sandbox_backboard folder exists
+    if fs::metadata(&sandbox_path).is_ok() {
+        // If it exists, delete it
+        fs::remove_dir_all(&sandbox_path)?;
+    }
+
+    // Create the new directory
+    fs::create_dir_all(&sandbox_path)?;
+
+    // check if sandbox_backboard exists, if so, delete it
+
+    let final_image_path: String = format!("games/{}", game_name);
+
+
+    // Create the temporary directory
+    fs::create_dir_all(&sandbox_path)?;
+
+    // Generate the chessboard
+    let result = make_board_core(&sandbox_path, orientation_white);
+    
+    // Add letter bar
+    let board_image_path = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    make_and_attach_letter_bar(&sandbox_path, orientation_white, &board_image_path)?;
+
+    // Add number bar
+    make_and_attach_number_bar(&sandbox_path, orientation_white, &board_image_path)?;
+
+    // Assuming the final image is first created inside sandbox as final_image.png
+    // then moved to the game folder
+    let final_image_source = format!("{}/back_board_{}.png", sandbox_path, orientation_string);
+    let final_image_destination = format!("{}/back_board_{}.png", final_image_path, orientation_string);
+
+    // Move the final image to the desired location
+    if result.is_ok() {
+        fs::rename(final_image_source, final_image_destination)?;
+    }
+
+    // Clean up by deleting the temporary directory
+    let _ = fs::remove_dir_all(&sandbox_path);
+
+    result
+}
+
+
+
+// fn create_chess_pieces_layer(chessboard: &[[char; 8]; 8], white_orientation: bool) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+//     let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+
+//     for (row, row_pieces) in chessboard.iter().enumerate() {
+//         for (col, &piece) in row_pieces.iter().enumerate() {
+//             let (actual_row, actual_col) = if white_orientation {
+//                 (row, col)
+//             } else {
+//                 (7 - row, 7 - col)
+//             };
+            
+//             let square_color = if (actual_row + actual_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+//             let (piece_prefix, piece_suffix) = match piece {
+
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
+            
+//             };
+
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//             let (x, y) = (col * 75, row * 75);
+
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//         }
+//     }
+
+//     Ok(img)
+// }
+
+
+fn format_directory_name(dir_name: &str) -> String {
+    let formatted = dir_name
+        .replace(" ", "")
+        .replace("(", "")
+        .replace(")", "")
+        .replace(",", "_");
+    formatted
+}
+
+
+fn create_chess_pieces_layer(
+    chessboard: &[[char; 8]; 8],
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>,
+    white_orientation: bool,
+    game_name: &str,
+) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+    let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+    let mut mutable_board = *chessboard;
+
+    // save move-from location
+    if let Some((from_row, from_col)) = from {
+        mutable_board[from_row][from_col] = '>';
+    }
+
+    /*
+    Make/check directory:
+    1. get the piece locations as the board game-state
+    2. get the from-to move data
+    3. add from-box as addition playing piece
+    4. add to-box to image and overlay
+    Use sandbox for temp files.
+    */
+
+
+    /*
+    Section: Make sure directory exists:
+    */
+    // Create a string that uniquely identifies the from-to move
+    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+    // Set alpha directory-path
+    let original_dir_name = format!("games/{}/sandboxes/temp_{}", game_name, from_to_name);
+    // format directory path
+    let formatted_dir_name = format_directory_name(&original_dir_name);
+    // if directory does not exist, created it.
+    if !formatted_dir_name.is_empty() && !std::path::Path::new(&formatted_dir_name).exists() {
+        fs::create_dir_all(&formatted_dir_name)?;
+        println!("Directory '{}' created successfully!", formatted_dir_name);
+    } else {
+        println!("Directory '{}' already exists.", formatted_dir_name);
+    }
+
+    // Make a unique temp directory based on game_name and the move
+    // let dir_name = "my_directory";
+
+    // if !dir_name.is_empty() && !std::path::Path::new(&dir_name).exists() {
+    //     fs::create_dir(&dir_name)?;
+    //     println!("Directory '{}' created successfully!", dir_name);
+    // } else {
+    //     println!("Directory '{}' already exists.", dir_name);
+    // }
+
+
+    if white_orientation {
+        for (row, row_pieces) in mutable_board.iter().enumerate() {
+            for (col, &piece) in row_pieces.iter().enumerate() {
+                // Process the piece, (row, col) will be the actual coordinates for white orientation
+                let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+            let (piece_prefix, piece_suffix) = match piece {
+
+                'p' => ("p_", square_color),
+                'r' => ("r_", square_color),
+                'n' => ("n_", square_color),
+                'b' => ("b_", square_color),
+                'q' => ("q_", square_color),
+                'k' => ("k_", square_color),
+                'P' => ("P_", square_color),
+                'R' => ("R_", square_color),
+                'N' => ("N_", square_color),
+                'B' => ("B_", square_color),
+                'Q' => ("Q_", square_color),
+                'K' => ("K_", square_color),
+                '>' => ("from_to_box_", square_color),
+                _ => continue,
+            };
+
+            let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+            let piece_image_path = random_image_from_directory(&texture_directory)?;
+            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+            let (x, y) = (col * 75, row * 75);
+
+            // Overlay the piece image on the correct square
+            for (i, j, pixel) in piece_image.pixels() {
+                let (x_new, y_new) = (x + i as usize, y + j as usize);
+                img.put_pixel(x_new as u32, y_new as u32, pixel);
+            }
+
+            /* To->Here border-box overlay: 
+            this whole huge next section 
+            for just that little line 
+            face palm*/
+
+            // if to-square is the same as current row and col:
+            // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+
+            if let Some((to_row, to_col)) = to {
+                if to_row == row && to_col == col {
+
+                    // println!("WHITE inspect before more_to png ovelay");
+                    // dbg!("this piece, to_row -> ", row);
+                    // dbg!("this piece, to_col -> ", col);
+                    // dbg!("(input) to -> ", to);
+
+
+                    // if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+                        // if let Some((to_row, to_col)) = to {
+
+                        let to_piece_char = chessboard[to_row][to_col];
+                    
+                        let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+    
+                        // Determine the directory where the "to" border image is stored
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", to_square_color);
+
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", border_directory);
+                        let random_border_path = random_image_from_directory(&border_directory)?;
+        
+                        // Determine the directory where the "to" border image is stored
+                        let texture_directory = format!("image_files/chess_pieces/{}_{}", to_piece_char, to_square_color);
+                        // image_files/chess_pieces/from_to_box_lightsquare
+
+                        // Create a string that uniquely identifies the from-to move
+                        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+
+                        let original_dir_name = format!("games/{}/sandboxes/temp_{}/to_here_overlay.png", game_name, from_to_name);
+                        let temp_image_path = format_directory_name(&original_dir_name); 
+
+                        // // Make a unique temp directory based on game_name and the move
+                        // let temp_image_path = format!("games/{}/sandboxes/temp_{}/to_here_overlay.png", game_name, from_to_name);
+                
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", texture_directory);
+                        let random_piece_image_path = random_image_from_directory(&texture_directory)?;
+                
+                        // overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
+
+                        // Perform the overlay
+                        println!("About to overlay image. Temp directory: {}", temp_image_path);
+                        overlay_images(random_piece_image_path, random_border_path, temp_image_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+                       // Again: Make a unique temp directory based on game_name and the move
+                       let original_dir_name = format!("games/{}/sandboxes/temp_{}/to_here_overlay.png", game_name, from_to_name);
+                       let temp_image_path = format_directory_name(&original_dir_name); 
+
+                        // Load the image from the temporary directory
+                        let piece_image = image::open(Path::new(&temp_image_path))
+                            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+                
+                        let (x, y) = (col * 75, row * 75);
+                
+                        // Overlay the piece image on the correct square
+                        for (i, j, pixel) in piece_image.pixels() {
+                            let (x_new, y_new) = (x + i as usize, y + j as usize);
+                            img.put_pixel(x_new as u32, y_new as u32, pixel);
+                        }
+                }
+                // }
+            }
+            }
+        }
+    } else {  // .rev().enumerate()
+        for (row, row_pieces) in mutable_board.iter().rev().enumerate() {
+            for (col, &piece) in row_pieces.iter().rev().enumerate() {
+
+                // Process the piece, (row, col) will be the actual coordinates for white orientation
+                let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+            let (piece_prefix, piece_suffix) = match piece {
+
+                'p' => ("p_", square_color),
+                'r' => ("r_", square_color),
+                'n' => ("n_", square_color),
+                'b' => ("b_", square_color),
+                'q' => ("q_", square_color),
+                'k' => ("k_", square_color),
+                'P' => ("P_", square_color),
+                'R' => ("R_", square_color),
+                'N' => ("N_", square_color),
+                'B' => ("B_", square_color),
+                'Q' => ("Q_", square_color),
+                'K' => ("K_", square_color),
+                '>' => ("from_to_box_", square_color),
+                _ => continue,
+            
+            };
+
+            let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+            let piece_image_path = random_image_from_directory(&texture_directory)?;
+            let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+            let (x, y) = (col * 75, row * 75);
+
+            // Overlay the piece image on the correct square
+            for (i, j, pixel) in piece_image.pixels() {
+                let (x_new, y_new) = (x + i as usize, y + j as usize);
+                img.put_pixel(x_new as u32, y_new as u32, pixel);
+            }
+
+            // dbg!("this piece, piece -> ", piece);
+            // dbg!("this piece, to_row -> ", row);
+            // dbg!("this piece, to_col -> ", col);
+            // dbg!("(input) to -> ", to);
+            // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+
+
+            /* To->Here border-box overlay: 
+            this whole huge next section 
+            for just that little line 
+            face palm*/
+
+            // if to_square is the same as current iteration row and col:
+            if let Some((to_row, to_col)) = adjust_to_png_coords(to) {
+
+                if to_row == row && to_col == col {
+
+                    // println!("black inspect before more_to png ovelay");
+                    // dbg!("this piece, to_row -> ", row);
+                    // dbg!("this piece, to_col -> ", col);
+                    // dbg!("(input) to -> ", to);
+                    // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+
+
+
+                    if let Some((to_row, to_col)) = to {
+
+                        // println!("black inspect before more_to png ovelay");
+                        // dbg!("this piece, to_row -> ", row);
+                        // dbg!("this piece, to_col -> ", col);
+                        // dbg!("(input) to -> ", to);
+                        // dbg!("(input) adjust_to_png_coords(to) -> ", adjust_to_png_coords(to));
+
+                        let to_piece_char = chessboard[to_row][to_col];
+                    
+                        let to_square_color = if (to_row + to_col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+
+                        // Determine the directory where the "to" border image is stored
+                        let border_directory = format!("image_files/chess_pieces/{}_{}", "from_to_box", to_square_color);
+
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", border_directory);
+                        let random_border_path = random_image_from_directory(&border_directory)?;
+        
+                        // Determine the directory where the "to" border image is stored
+                        let texture_directory = format!("image_files/chess_pieces/{}_{}", to_piece_char, to_square_color);
+                        // image_files/chess_pieces/from_to_box_lightsquare
+
+                        // Create a string that uniquely identifies the from-to move
+                        let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+                
+                        // Make a unique temp directory based on game_name and the move
+                        let original_dir_name = format!("games/{}/sandboxes/temp_{}/to_here_overlay.png", game_name, from_to_name);
+                        let temp_image_path = format_directory_name(&original_dir_name); 
+ 
+                        // Get a random image path from the directory
+                        println!("About to select random image from directory: {}", texture_directory);
+                        let random_piece_image_path = random_image_from_directory(&texture_directory)?;
+                
+                        // overlay_images("light_wood_square.png", "white_pawn_lightsquare.png", "light_overlay.png")?;
+
+                        // Perform the overlay
+                        println!("About to overlay image. Temp directory: {}", temp_image_path);
+                        overlay_images(random_piece_image_path, random_border_path, temp_image_path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+                        // Again: Make a unique temp directory based on game_name and the move
+                        let original_dir_name = format!("games/{}/sandboxes/temp_{}/to_here_overlay.png", game_name, from_to_name);
+                        let temp_image_path = format_directory_name(&original_dir_name); 
+ 
+                        // Load the image from the temporary directory
+                        let piece_image = image::open(Path::new(&temp_image_path))
+                            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+                
+                        // let (x, y) = if !white_orientation {
+                        //     ((7 - col) * 75, (7 - row) * 75)
+                        // } else {
+                        //     (col * 75, row * 75)
+                        // };
+                        
+
+                        let (x, y) = (col * 75, row * 75);
+                
+                        // Overlay the piece image on the correct square
+                        for (i, j, pixel) in piece_image.pixels() {
+                            let (x_new, y_new) = (x + i as usize, y + j as usize);
+                            img.put_pixel(x_new as u32, y_new as u32, pixel);
+                        }
+                }
+
+                }
+            }
+        }
+    }
+}
+
+    Ok(img)
+}
+
+
+
+// fn no_move_create_chess_pieces_layer(
+//     chessboard: &[[char; 8]; 8],
+//     white_orientation: bool,
+// ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+//     let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+
+//     /*
+//     1. get the piece locations as the board game-state
+//     2. get the from-to move data
+//     */
+
+//     if white_orientation {
+//         for (row, row_pieces) in chessboard.iter().enumerate() {
+//             for (col, &piece) in row_pieces.iter().enumerate() {
+//                 // Process the piece, (row, col) will be the actual coordinates for white orientation
+//                 let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+//             let (piece_prefix, piece_suffix) = match piece {
+
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
+            
+//             };
+
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//             let (x, y) = (col * 75, row * 75);
+
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//             }
+//         }
+
+
+//     } else {
+//         for (row, row_pieces) in chessboard.iter().rev().enumerate() {
+//             for (col, &piece) in row_pieces.iter().rev().enumerate() {
+//                 // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
+//                 let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+//             let (piece_prefix, piece_suffix) = match piece {
+
+//                 'p' => ("p_", square_color),
+//                 'r' => ("r_", square_color),
+//                 'n' => ("n_", square_color),
+//                 'b' => ("b_", square_color),
+//                 'q' => ("q_", square_color),
+//                 'k' => ("k_", square_color),
+//                 'P' => ("P_", square_color),
+//                 'R' => ("R_", square_color),
+//                 'N' => ("N_", square_color),
+//                 'B' => ("B_", square_color),
+//                 'Q' => ("Q_", square_color),
+//                 'K' => ("K_", square_color),
+//                 _ => continue,
+            
+//             };
+
+//             let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+//             let piece_image_path = random_image_from_directory(&texture_directory)?;
+//             let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//             let (x, y) = (col * 75, row * 75);
+
+//             // Overlay the piece image on the correct square
+//             for (i, j, pixel) in piece_image.pixels() {
+//                 let (x_new, y_new) = (x + i as usize, y + j as usize);
+//                 img.put_pixel(x_new as u32, y_new as u32, pixel);
+//             }
+//             }
+//         }    
+//     }
+
+//     Ok(img)
+// }
+
+
+
+fn create_chessboard_with_pieces(
+    game_board_state: &[[char; 8]; 8],
+    game_name: &str,
+    from: Option<(usize, usize)>, 
+    to: Option<(usize, usize)>,
+    orientation_white: bool,
+) -> Result<(), io::Error> {
+    println!(
+        "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+        &game_board_state
+    );
+
+    /*
+    TODO set up temp file sandbox:
+
+    // 1. Create a string that uniquely identifies the from-to move
+    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+
+
+    // 2. If directory already exists, delete the old one.
+
+
+
+    // 3. Make a unique temp directory based on game_name and the move
+    let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+
+    */
+
+    /*
+    Section: Make sure fresh directory exists:
+    */
+    // Create a string that uniquely identifies the from-to move
+    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+    // Set alpha directory-path
+    let original_dir_name = format!("games/{}/sandboxes/temp_{}", game_name, from_to_name);
+    // format directory path
+    let formatted_dir_name = format_directory_name(&original_dir_name);
+
+
+
+    let orientation_string: String = if orientation_white {
+        "white".to_string()
+    } else {
+        "black".to_string()
+    };
+
+    let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
+    let pieces_image_path = format!("{}/chess_pieces.png", formatted_dir_name);
+    pieces_image
+        .save(Path::new(&pieces_image_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+    // Open the bottom and top blank images
+    let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+    let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+    // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+    // ? TODO maybe add sandbox destination here:
+    // Combine pieces with bottom blank
+    let vertical_combined_path = format!("{}/vertical_combined.png", formatted_dir_name);
+    combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    // ? TODO maybe add sandbox destination here:
+    // Combine vertical combined with top blank
+    let final_pieces_image_path = format!("{}/final_pieces.png", formatted_dir_name);
+    combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+    let output_path = format!("games/{}/board.png", game_name);
+
+    // Overlay the backboard with final pieces image
+    overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+        .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+
+    }
+
+
+
+    fn no_move_create_chess_pieces_layer(
+        chessboard: &[[char; 8]; 8],
+        white_orientation: bool,
+    ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, io::Error> {
+        let mut img = ImageBuffer::new(600, 600); // 8x8 squares at 75 pixels
+    
+        /*
+        1. get the piece locations as the board game-state
+        2. get the from-to move data
+        */
+    
+        if white_orientation {
+            for (row, row_pieces) in chessboard.iter().enumerate() {
+                for (col, &piece) in row_pieces.iter().enumerate() {
+                    // Process the piece, (row, col) will be the actual coordinates for white orientation
+                    let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+                let (piece_prefix, piece_suffix) = match piece {
+    
+                    'p' => ("p_", square_color),
+                    'r' => ("r_", square_color),
+                    'n' => ("n_", square_color),
+                    'b' => ("b_", square_color),
+                    'q' => ("q_", square_color),
+                    'k' => ("k_", square_color),
+                    'P' => ("P_", square_color),
+                    'R' => ("R_", square_color),
+                    'N' => ("N_", square_color),
+                    'B' => ("B_", square_color),
+                    'Q' => ("Q_", square_color),
+                    'K' => ("K_", square_color),
+                    _ => continue,
+                
+                };
+    
+                let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+                let piece_image_path = random_image_from_directory(&texture_directory)?;
+                let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+                let (x, y) = (col * 75, row * 75);
+    
+                // Overlay the piece image on the correct square
+                for (i, j, pixel) in piece_image.pixels() {
+                    let (x_new, y_new) = (x + i as usize, y + j as usize);
+                    img.put_pixel(x_new as u32, y_new as u32, pixel);
+                }
+                }
+            }
+    
+    
+        } else {
+            for (row, row_pieces) in chessboard.iter().rev().enumerate() {
+                for (col, &piece) in row_pieces.iter().rev().enumerate() {
+                    // Process the piece, (7 - row, 7 - col) will be the actual coordinates for black orientation
+                    let square_color = if (row + col) % 2 != 0 { "darksquare" } else { "lightsquare" };
+                let (piece_prefix, piece_suffix) = match piece {
+    
+                    'p' => ("p_", square_color),
+                    'r' => ("r_", square_color),
+                    'n' => ("n_", square_color),
+                    'b' => ("b_", square_color),
+                    'q' => ("q_", square_color),
+                    'k' => ("k_", square_color),
+                    'P' => ("P_", square_color),
+                    'R' => ("R_", square_color),
+                    'N' => ("N_", square_color),
+                    'B' => ("B_", square_color),
+                    'Q' => ("Q_", square_color),
+                    'K' => ("K_", square_color),
+                    _ => continue,
+                
+                };
+    
+                let texture_directory = format!("image_files/chess_pieces/{}{}", piece_prefix, piece_suffix);
+                let piece_image_path = random_image_from_directory(&texture_directory)?;
+                let piece_image = image::open(Path::new(&piece_image_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+                let (x, y) = (col * 75, row * 75);
+    
+                // Overlay the piece image on the correct square
+                for (i, j, pixel) in piece_image.pixels() {
+                    let (x_new, y_new) = (x + i as usize, y + j as usize);
+                    img.put_pixel(x_new as u32, y_new as u32, pixel);
+                }
+                }
+            }    
+        }
+    
+        Ok(img)
+    }
+    
+    
+    
+    fn no_move_create_chessboard_with_pieces(
+        game_board_state: &[[char; 8]; 8],
+        game_name: &str,
+        orientation_white: bool,
+    ) -> Result<(), io::Error> {
+        println!(
+            "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+            &game_board_state
+        );
+    
+        let orientation_string: String = if orientation_white {
+            "white".to_string()
+        } else {
+            "black".to_string()
+        };
+    
+        let pieces_image = no_move_create_chess_pieces_layer(game_board_state, orientation_white)?;
+        let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+        pieces_image
+            .save(Path::new(&pieces_image_path))
+            .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+        // Open the bottom and top blank images
+        let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+        let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+        // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+        // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+    
+        // Combine pieces with bottom blank
+        let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+        combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+        // Combine vertical combined with top blank
+        let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+        combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+        let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+        let output_path = format!("games/{}/board.png", game_name);
+    
+        // Overlay the backboard with final pieces image
+        overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+            .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+    }
+    
+
+// fn old_create_chessboard_with_pieces(
+//     game_board_state: &[[char; 8]; 8],
+//     game_name: &str,
+//     from: Option<(usize, usize)>, 
+//     to: Option<(usize, usize)>,
+//     orientation_white: bool,
+// ) -> Result<(), io::Error> {
+//     println!(
+//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+//         &game_board_state
+//     );
+
+//     /*
+//     TODO set up temp file sandbox:
+
+//     // 1. Create a string that uniquely identifies the from-to move
+//     let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+
+
+//     // 2. If directory already exists, delete the old one.
+
+
+
+//     // 3. Make a unique temp directory based on game_name and the move
+//     let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+
+//     */
+
+//     let orientation_string: String = if orientation_white {
+//         "white".to_string()
+//     } else {
+//         "black".to_string()
+//     };
+
+//     let pieces_image = create_chess_pieces_layer(game_board_state, from, to, orientation_white, game_name)?;
+//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+//     pieces_image
+//         .save(Path::new(&pieces_image_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Open the bottom and top blank images
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Combine pieces with bottom blank
+//     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+//     combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     // Combine vertical combined with top blank
+//     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+//     combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+//     let output_path = format!("games/{}/board.png", game_name);
+
+//     // Overlay the backboard with final pieces image
+//     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+
+
+//     /*
+//     TODO clean up temp file sandbox:
+
+//     // Recoursively delete sandbox direcory.
+
+// // 1. Create a string that uniquely identifies the from-to move
+
+
+//     // Clean up temporary files created during the process
+//     for letter in &letters_order {
+//         let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+//         let temp_directory = format!("games/{}/sandboxes/temp_{}.png", game_name, from_to_name);
+//         if std::path::Path::new(&temp_directory).exists() {
+//             let _ = std::fs::remove_file(temp_directory);
+//         }
+//     }
+
+
+//     */
+
+//     // TODO Clean up files here
+
+//     }
+
+
+
+// fn no_move_create_chessboard_with_pieces(
+//     game_board_state: &[[char; 8]; 8],
+//     game_name: &str,
+//     orientation_white: bool,
+// ) -> Result<(), io::Error> {
+//     println!(
+//         "\ncreate_chessboard_with_pieces images...\ngame_board_state: {:?}",
+//         &game_board_state
+//     );
+
+//     let orientation_string: String = if orientation_white {
+//         "white".to_string()
+//     } else {
+//         "black".to_string()
+//     };
+
+//     let pieces_image = no_move_create_chess_pieces_layer(game_board_state, orientation_white)?;
+//     let pieces_image_path = format!("games/{}/chess_pieces.png", game_name);
+//     pieces_image
+//         .save(Path::new(&pieces_image_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Open the bottom and top blank images
+//     let bottom_blank_path = "image_files/legend_alpha_num/8x_blank_bottom.png";
+//     let side_vertical_blank_path = "image_files/legend_alpha_num/9x_blank_top.png";
+//     // let bottom_blank_image = image::open(Path::new(bottom_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+//     // let top_blank_image = image::open(Path::new(side_vertical_blank_path)).map_err(|e| io::Error::new(ErrorKind::Other, e))?;
+
+//     // Combine pieces with bottom blank
+//     let vertical_combined_path = format!("games/{}/vertical_combined.png", game_name);
+//     combine_top_to_bottom(pieces_image_path, bottom_blank_path.to_string(), vertical_combined_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     // Combine vertical combined with top blank
+//     let final_pieces_image_path = format!("games/{}/final_pieces.png", game_name);
+//     combine_side_by_side(side_vertical_blank_path.to_string(), vertical_combined_path.to_string(), final_pieces_image_path.to_string())
+//     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+//     let back_board_path = format!("games/{}/back_board_{}.png", game_name, orientation_string);
+//     let output_path = format!("games/{}/board.png", game_name);
+
+//     // Overlay the backboard with final pieces image
+//     overlay_images(Path::new(&back_board_path), Path::new(&final_pieces_image_path), Path::new(&output_path))
+//         .map_err(|e| io::Error::new(ErrorKind::Other, e)) // Convert the error to io::Error
+// }
+
+
+// // Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// // Takes the output of to_coords_chess function
+// fn adjust_to_png_coords(chess_coords: (usize, usize)) -> Option<(usize, usize)> {
+//     // Extract row and column from the input tuple
+//     let (row, column) = chess_coords;
+
+//     // Validate column index
+//     if column > 7 {
+//         return None; // Invalid column index
+//     }
+
+//     // Validate and reverse row index
+//     let row_index = match row {
+//         0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+//         _ => return None,  // Invalid row number
+//     };
+
+//     Some((row_index, column))
+// }
+
+
+
+
+// Function to adjust coordinates to png pixel coordinates (0,0 top left row, column)
+// Takes an Option of a tuple as input
+fn adjust_to_png_coords(chess_coords_option: Option<(usize, usize)>) -> Option<(usize, usize)> {
+    if let Some((row, column)) = chess_coords_option {
+        // Validate column index
+        if column > 7 {
+            return None; // Invalid column index
+        }
+        let column_index = match column {
+            0..=7 => 7 - column, // Reverse the row index (chess starts from bottom-left)
+            _ => return None,  // Invalid row number
+        };
+
+
+        // Validate and reverse row index
+        let row_index = match row {
+            0..=7 => 7 - row, // Reverse the row index (chess starts from bottom-left)
+            _ => return None,  // Invalid row number
+        };
+
+        return Some((row_index, column_index));
+    }
+    None
+}
+
+fn generate_png_chess_board(
+    game_board_state: &[[char; 8]; 8],
+    game_name: &str,
+    // from: Option<(usize, usize)>, 
+    // to: Option<(usize, usize)>,
+    from_char_u8: (char, u8),
+    to_char_u8: (char, u8),
+    orientation_white: bool,
+) -> Result<(), io::Error> {
+
+
+    // Flip the row for the PNG coordinate system
+    /*
+    Convert type and convert coordinates
+    chess-coordinates (column, row) to png pixel (0,0 top left row, colum)
+    (char, u8) -> Option<(usize, usize)> 
+    */
+
+    // inspect Before conversion
+    println!("inspect Before conversion");
+    dbg!("from_char_u8 -> ", from_char_u8);
+    dbg!("to_char_u8 -> ", to_char_u8);
+
+    // // convert number scale
+    // let from_png_row = 7 - (from_char_u8.1 as usize - 1);
+    // let to_png_row = 7 - (to_char_u8.1 as usize - 1);
+
+    // // letter and number to number and number
+    // let from: Option<(usize, usize)> = Some((from_png_row, (from_char_u8.0 as u8 - b'a') as usize));
+    // let to: Option<(usize, usize)> = Some((to_png_row, (to_char_u8.0 as u8 - b'a') as usize));
+
+    // // Convert chess coordinates to png with a function
+    // let from: Option<(usize, usize)> = chess_to_png_coords(from_char_u8);
+    // let to: Option<(usize, usize)> = chess_to_png_coords(to_char_u8);
+
+    // Convert chess coordinates to 0,0 array coordinates (bottom right is 0,0)
+    let from_char_u8_str = format!("{}{}", from_char_u8.0, from_char_u8.1);
+    let to_char_u8_str = format!("{}{}", to_char_u8.0, to_char_u8.1);
+    let from: Option<(usize, usize)> = to_coords_chess(&from_char_u8_str).ok();
+    let to: Option<(usize, usize)> = to_coords_chess(&to_char_u8_str).ok();
+    
+    
+
+    // inspect After conversion
+    println!("inspect After conversion");
+    dbg!("from -> ", from);
+    dbg!("to -> ", to);
+
+
+    // // manually entering test: 
+    // let from = Some((7, 1)); // Replace with your desired values
+    // let to = Some((5, 2));   // Replace with your desired values
+    // // inspect After conversion
+    // println!("should be! -> ");
+    // dbg!("from -> ", from);
+    // dbg!("to -> ", to);
+
+
+    /*
+    Section: Make sure fresh directory exists:
+    */
+    // Create a string that uniquely identifies the from-to move
+    let from_to_name = format!("{:?}_{:?}", from, to);  // Using debug format for Option<(usize, usize)>
+    // Set alpha directory-path
+    let original_dir_name = format!("games/{}/sandboxes/temp_{}", game_name, from_to_name);
+    // format directory path
+    let formatted_dir_name = format_directory_name(&original_dir_name);
+    // Check if the directory exists
+    if std::path::Path::new(&formatted_dir_name).exists() {
+        // Remove the old directory if it already exists
+        match fs::remove_dir_all(&formatted_dir_name) {
+            Ok(_) => println!("Successfully deleted older directory '{}'", formatted_dir_name),
+            Err(e) => eprintln!("Failed to delete older directory: {}", e),
+        }
+    }
+    // Create the new directory
+    match fs::create_dir_all(&formatted_dir_name) {
+        Ok(_) => println!("Directory '{}' created successfully!", formatted_dir_name),
+        Err(e) => eprintln!("Failed to create directory: {}", e),
+    }
+
+    // Make Board
+    create_chessboard_with_pieces(&game_board_state, game_name, from, to, orientation_white)?;
+
+
+    /*
+    Turn Off for Debugging 
+    (turn on (uncomment) the "Ok(())" below
+    */
+    // // Perform the cleanup at the end
+    // // Perform the cleanup at the end
+    match clean_up_directory(&formatted_dir_name) {
+        Ok(_) => {
+            // Successfully cleaned up
+            println!("Cleanup was successful.");
+            Ok(())
+        }
+        Err(e) => {
+            // Failed to clean up
+            eprintln!("Cleanup failed: {}", e);
+            Err(e)
+        }
+    }
+
+    // Ok(())
+}
+
+ // Cleanup function that deletes the directory and returns Result
+fn clean_up_directory(formatted_dir_name: &str) -> Result<(), io::Error> {
+    match fs::remove_dir_all(&formatted_dir_name) {
+        Ok(_) => {
+            println!(
+                "Successfully deleted the sandbox directory '{}'",
+                formatted_dir_name
+            );
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Failed to delete the sandbox directory: {}", e);
+            Err(io::Error::new(
+                ErrorKind::Other,
+                format!("Failed to delete the sandbox directory: {}", e),
+            ))
+        }
+    }
+}
+   
+/*
+    let board_orientation: bool = true; // 
+    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+
+    let board_orientation: bool = false; // 
+    // create_chessboard_with_pieces(&game_board_state, game_name, from, to, board_orientation)?;
+    generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+*/
+
+// fn main() -> Result<(), std::io::Error> {
+//     let game_name = "game";
+
+//     // let board_orientation: bool = true; // 
+//     // generate_chessboard_backboards(game_name, board_orientation)?;
+
+//     // let board_orientation: bool = false; // 
+//     // generate_chessboard_backboards(game_name, board_orientation)?;
+
+//     /*
+//     [src/main.rs:1533] "from -> " = "from -> "
+//     [src/main.rs:1533] from = (
+//     'c',
+//     2,
+//     )
+//     [src/main.rs:1534] "to -> " = "to -> "
+//     [src/main.rs:1534] to = (
+//     'c',
+//     4,
+//     )
+//     from: (char, u8),
+//     to: (char, u8),
+//     */
+
+
+//     // Manual test
+//     // let from = Some((7, 1)); // Replace with your desired values
+//     // let to = Some((5, 2));   // Replace with your desired values
+
+//     let from: (char, u8) = (
+//         'b',
+//         1,
+//         );
+//     let to: (char, u8) = (
+//         'c',
+//         3,
+//         );
+
+
+//     let from: (char, u8) = (
+//         'b',
+//         2,
+//         );
+//     let to: (char, u8) = (
+//         'b',
+//         4,
+//         );
+
+//     let from: (char, u8) = (
+//         'f',
+//         8,
+//         );
+//     let to: (char, u8) = (
+//         'd',
+//         6,
+//         );
+
+//     // Set up board
+//     let board: [[char; 8]; 8] = [
+//         ['r', 'n', 'b', 'q', 'k', ' ', ' ', 'r'],
+//         ['p', 'p', 'p', 'p', ' ', 'p', 'p', 'p'],
+//         [' ', ' ', ' ', 'b', ' ', 'n', ' ', ' '],
+//         [' ', ' ', ' ', ' ', 'p', ' ', ' ', ' '],
+//         [' ', 'P', ' ', ' ', ' ', ' ', ' ', ' '],
+//         [' ', ' ', 'N', ' ', ' ', ' ', ' ', 'N'],
+//         ['P', ' ', 'P', 'P', 'P', 'P', 'P', 'P'],
+//         ['R', ' ', 'B', 'Q', 'K', 'B', 'n', 'R']
+//     ];
+//     let game_board_state:[[char; 8]; 8] = board;
+
+
+//     let board_orientation: bool = false; // Black Pieces Orientation
+//     // let board_orientation: bool = true; // White
+//     generate_png_chess_board(&game_board_state, game_name, from, to, board_orientation)?;
+
+//     Ok(())
+// }
+
+
+
+/* 
+Timed Projects 
+*/
+#[derive(Debug)]
+/*
+Time Modes 
+*/
+struct TimedProject {
+    game_name: String,
+    start_time: u64,
+    increments_tuple_list: Vec<(i32, i32)>,
+    timecontrolminutes_tuple_list: Vec<(i32, i32)>,
+    last_move_time: u64,
+    player_white: bool,
+    game_move_number: usize,
+}
+
+
+impl TimedProject {
+    // Modified `from_str` function to handle the described format
+    fn from_increment_and_time_control(input: &str) -> Option<TimedProject> {
+        println!("starting from_increment_and_time_control() input:{}", input);
+
+        // Split the input into segments by underscores
+        let segments: Vec<&str> = input.split('_').collect();
+        
+        if segments.len() < 2 {
+            return None;
+        }
+
+        let game_name = segments[0].to_string();
+        println!("game_name:{}", game_name);
+
+
+
+        let mut start_time: u64 = 0;
+        let mut increments_tuple_list: Vec<(i32, i32)> = Vec::new();
+        let mut timecontrolminutes_tuple_list: Vec<(i32, i32)> = Vec::new();
+
+        // Parse the remaining segments
+        // Parse the remaining segments
+        for segment in &segments[1..] {
+            if *segment == "norway120" || *segment == "norwayarmageddon" {
+                return TimedProject::from_preset_time_modes_chess(segment, &game_name);
+            }
+
+            let mut iter = segment.split('(');
+            let control_type = iter.next()?;
+            
+            // Gather all tuples
+            let joined_tuples: String = iter.collect::<Vec<_>>().join("(");
+            let tuple_strs: Vec<&str> = joined_tuples.split(')').collect();
+    
+            for tuple_str in tuple_strs {
+                if tuple_str.is_empty() {
+                    continue;
+                }
+                
+                let elements: Vec<i32> = tuple_str.split(',')
+                    .filter_map(|x| x.parse().ok())
+                    .collect();
+                
+                if elements.len() != 2 {
+                    return None;
+                }
+
+                match control_type {
+                    "incrementseconds" => {
+                        increments_tuple_list.push((elements[0], elements[1]));
+                    },
+                    "timecontrolmin" => {
+                        timecontrolminutes_tuple_list.push((elements[0], elements[1]));
+                    },
+                    _ => return None,
+                }
+            }
+        }
+
+        Some(TimedProject {
+            game_name,
+            start_time,
+            increments_tuple_list,
+            timecontrolminutes_tuple_list,
+            last_move_time: 0,
+            player_white: true,
+            game_move_number: 0,
+        })
+
+
+    }
+
+
+    fn to_html(&self, white_time: i32, black_time: i32, game_move: i32) -> String {
+        println!("starting to_html()");
+
+        format!(
+            "<p>White Time: {}</p>
+            <p>Black Time: {}</p>
+            <p>Move Number: {}</p>", 
+            white_time, black_time, game_move
+        )
+    }
+
+    // fn save_to_txt(&self) -> std::io::Result<()> {
+    //     println!("starting save_to_txt()");
+
+    //     let path = format!("games/{}/time_data.txt", self.game_name);
+    //     let mut file = fs::File::create(path)?;
+
+    //     writeln!(file, "Game Name: {}", self.game_name)?;
+    //     writeln!(file, "Start Time: {}", self.start_time)?;
+
+    //     writeln!(file, "Increments:")?;
+    //     for (on_move, time_added) in &self.increments_tuple_list {
+    //         writeln!(file, "{},{}", on_move, time_added)?;
+    //     }
+
+    //     writeln!(file, "Time Controls:")?;
+    //     for (on_move, time_added) in &self.timecontrolminutes_tuple_list {
+    //         writeln!(file, "{},{}", on_move, time_added)?;
+    //     }
+    //     println!("time_data.txt saved! (...really??)");
+
+    //     Ok(())
+    // }
+
+    //     use std::fs;
+    // use std::io::Write;
+
+    fn save_to_txt(&self) -> std::io::Result<()> {
+        // Generate the intended path for debugging purposes
+        let path = format!("games/{}/time_data.txt", self.game_name);
+        println!("Attempting to save at path: {}", path);
+
+        // Try to create the file
+        match fs::File::create(&path) {
+            Ok(mut file) => {
+                writeln!(file, "Game Name: {}", self.game_name)?;
+                writeln!(file, "Start Time: {}", self.start_time)?;
+                // ... (rest of the writing code)
+                println!("Successfully saved time_data.txt at path: {}", path);
+                Ok(())
+            }
+            Err(e) => {
+                // Provide more contextual information about where it failed
+                println!("Failed to save project at path: {}. Error is: {}", path, e);
+                Err(e)
+            }
+        }
+    }
+
+
+
+    fn parse_get_request(url: &str) -> Option<TimedProject> {
+        println!("starting parse_get_request()");
+        // ... your code
+        // Make sure to return a value at the end
+        TimedProject::from_increment_and_time_control("") // This is a placeholder; replace it with real data
+    }
+
+    fn load_from_txt(game_name: &str) -> io::Result<TimedProject> {
+        println!("starting load_from_txt()");
+
+        let path = format!("games/{}/time_data.txt", game_name);
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+
+        let mut start_time = 0;
+        let mut increments_tuple_list = Vec::new();
+        let mut timecontrolminutes_tuple_list = Vec::new();
+        let mut last_move_time = 0;  // initialize a default value
+        let mut player_white = true; // initialize a default value
+        let mut game_move_number = 0; // initialize a default value
+    
+        for (index, line) in reader.lines().enumerate() {
+            let line = line?;
+            match index {
+                // 0 => game_name = &line.replace("Game Name: ", ""),
+                1 => start_time = line.replace("Start Time: ", "").parse().unwrap(),
+                2 => continue, // This is "Increments:"
+                _ => {
+                    let parts: Vec<&str> = line.split(',').collect();
+                    if parts.len() == 2 {
+                        let on_move: i32 = parts[0].parse().unwrap();
+                        let time_added: i32 = parts[1].parse().unwrap();
+                        if line.starts_with("Time Controls:") {
+                            timecontrolminutes_tuple_list.push((on_move, time_added));
+                        } else {
+                            increments_tuple_list.push((on_move, time_added));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(TimedProject {
+            game_name: game_name.to_string(),
+            start_time,
+            increments_tuple_list,
+            timecontrolminutes_tuple_list,
+            last_move_time,
+            player_white,
+            game_move_number,
+        })
+    }
+
+
+    /// Create a TimedProject from a known preset
+    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<TimedProject> {
+        println!("starting from_preset_time_modes_chess()");
+
+        match preset {
+            "norway120" => Some(TimedProject {
+                game_name: game_name.to_string(),
+                start_time: 7200, // 120 minutes in seconds
+                increments_tuple_list: vec![(40, 1800)], // Add 30 minutes after move 40
+                timecontrolminutes_tuple_list: vec![],
+                last_move_time: 0,  // Initialize missing field
+                player_white: true, // Initialize missing field
+                game_move_number: 0, // Initialize missing field
+            }),
+            "norwayarmageddon" => Some(TimedProject {
+                game_name: game_name.to_string(),
+                start_time: 300, // 5 minutes in seconds
+                increments_tuple_list: vec![], // No increment
+                timecontrolminutes_tuple_list: vec![],
+                last_move_time: 0,  // Initialize missing field
+                player_white: true, // Initialize missing field
+                game_move_number: 0, // Initialize missing field
+            }),
+            _ => None, // Unknown preset
+        }
+        }
+
+
+
+    fn process_chess_time_file(game_name: &str) -> String {
+        println!("starting process_chess_time_file()");
+
+
+        let path = format!("games/{}/time_data.txt", game_name);
+    
+        if !Path::new(&path).exists() {
+            return "".to_string();
+        }
+    
+        let file = match File::open(&path) {
+            Ok(f) => f,
+            Err(_) => return "".to_string(),
+        };
+    
+        let mut reader = BufReader::new(file);
+        let mut time_struct = TimedProject {
+            game_name: "".to_string(),
+            start_time: 0,
+            increments_tuple_list: vec![],
+            timecontrolminutes_tuple_list: vec![],
+            last_move_time: 0,
+            player_white: true,
+            game_move_number: 0,
+        };
+    
+        // Initialize `new_posix` and `current_increment` to remove "cannot find value" errors
+        let new_posix: u64 = 0; // Initialize properly
+        let current_increment: u64 = 0; // Initialize properly
+    
+        let mut this_player_time_spent = new_posix.saturating_sub(time_struct.last_move_time);
+    
+        // ... (rest of your code, make sure to handle errors without unwrap)
+    
+        "Some HTML or response".to_string() // Return value
+    }
+
+// End of struct implimentation: TimedProject
+}
+
+
+
+// Function to parse the time_section_string
+fn time_data_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
+    /*
+    uses: fn handle_segment(segment: &str) -> Option<TimedProject> {
+
+    This function should look at a string such as this
+    thisgamename_incrimentseconds-(start,30)-(300,10)-(30,5)_timecontrolmin-(40,30)-(60,15)
+
+    step 1, split it into sections based on '_' underscore delimiter
+    step 2, look for specific sections relating to time:
+    2.1 pre-set time modes: norway120 or norwaynorwayarmageddon etc
+    2.2 incrimentseconds: delimited by '-', each incriment in tuples
+    2.3 timecontrolmin: delimited by '-', teach time control in minutes
+        
+    2. the structure of the time data is systematic:
+    date segment is split on '_' underscore
+    _incrimentseconds-(0,30)-(300,10)-(30,5)_
+    _timecontrolmin-(40,30)-(60,15)/gamephrase_
+    each section can be split on '-' dash
+    the tuples are right there
+
+    for incrimentseconds: the first tuple number is the time in seconds when the incriment rule starts, the second number is how many seconds the player's clock gets incrimented by each move
+
+    the timecontrolmin: the first tuple number is the number of moves into the game when time gets added to the clock, the second number is how many minutes get added.
+    */
+    println!("time_section_string: {}", time_section_string);
+
+    let mut projects = Vec::new();
+
+    // Step 1: Split the string into segments based on '_' underscore delimiter
+    let segments: Vec<&str> = time_section_string.split('_').collect();
+
+    // Step 2: Loop through each segment, skipping the first one (game name),
+    // and parse the relevant time-related settings
+    for segment in segments.iter().skip(1) {
+        projects.push(handle_segment(segment, ));
+    }
+
+    // Save the parsed projects to a file at the end of the setup.
+    for project in &projects {
+        if let Some(valid_project) = project {
+            if let Err(e) = valid_project.save_to_txt() {
+                println!("Failed to save project: {}", e);
+            }
+        }
+    }
+
+    projects
+}
+
+
+// Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
+fn handle_segment(segment: &str) -> Option<TimedProject> {
+    println!("segment: {}", segment);
+    let keyword: Vec<&str> = segment.split('-').collect();
+
+    // Split the input into segments by underscores
+    let split_sub_segments: Vec<&str> = segment.split('_').collect();
+
+    let game_name = split_sub_segments[0].to_string();
+
+    // Step 2.1: Handle increment seconds
+    if keyword[0] == "incrimentseconds" {
+        println!("incrimentseconds => {}", keyword[0]);
+        println!("segment => {}", segment);
+
+
+        return TimedProject::from_increment_and_time_control(segment);
+    }
+
+    // Step 2.2: Handle time control minutes
+    if keyword[0] == "timecontrolmin" {
+        println!("timecontrolmin => {}", keyword[0]);
+        println!("segment => {}", segment);
+
+        return TimedProject::from_increment_and_time_control(segment);
+    }
+
+    // Step 2.3: Handle pre-set time modes
+    if keyword[0] == "norway120" || keyword[0] == "norwayarmageddon" {
+        println!("pre-set time mode => {}", keyword[0]);
+        println!("segment => {}", segment);
+
+        return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name);
+    }
+
+    None
+}

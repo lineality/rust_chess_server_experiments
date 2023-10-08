@@ -1,5 +1,37 @@
 Todo: 
 
+Three checks
+make three boolean flag variables,
+based on the results of checking two sets of tuples in a hash-table:
+
+
+1. are the two current time controls the same?
+if so, print one line
+if not, print separate
+
+2. is everything empty (if so, nothing to do)
+
+
+3. are all the keys in the hash table lower number than current_move (if so, nothing to do)
+4. are both key-value sets in the hash-table (for black-player, white player) identical?
+5. is there any future time-incerement? (if not, do nothing)
+
+6. is there any future time-control? (if not, do nothing)
+
+
+Step: turn seconds into minutes for time-control only (NOT increments)
+
+
+
+
+todo:
+like this whole function
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
+
+for custom inputs for time based and move
+based will need to be changed
+
+
 check custom many rules
 (any rules)
 
