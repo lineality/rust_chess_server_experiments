@@ -7672,196 +7672,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     }
 
 
-    // fn generate_html_timedata(project: &TimedProject) -> String {
-    //     let mut html_timedata_string = String::new();
-    
-    //     let mut time_controls_combined: HashMap<u32, (u32, u32)> = HashMap::new();
-    
-    //     for (&move_num, &(min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-    //         time_controls_combined.insert(move_num, (min, sec));
-    //     }
-    
-    //     for (&move_num, &(min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-    //         if let Some(val) = time_controls_combined.get_mut(&move_num) {
-    //             if *val != (min, sec) {
-    //                 // If the values are different, set to a flag value to identify later.
-    //                 *val = (u32::MAX, u32::MAX);
-    //             }
-    //         } else {
-    //             time_controls_combined.insert(move_num, (min, sec));
-    //         }
-    //     }
-    
-    //     for (move_num, (min, sec)) in time_controls_combined {
-    //         if min != 0 {
-    //             if sec != 0 && sec != u32::MAX {
-    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min and {} sec per move.</li>", move_num, min, sec));
-    //             } else if sec == u32::MAX {
-    //                 // White and Black have different values.
-    //                 let white_val = project.white_move_timecontrolmin_incrsec_key_values_list.get(&move_num).unwrap();
-    //                 let black_val = project.black_move_timecontrolmin_incrsec_key_values_list.get(&move_num).unwrap();
-    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}, adds {} min.</li>", move_num, white_val.0));
-    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}, adds {} min.</li>", move_num, black_val.0));
-    //             } else {
-    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}, adds {} min.</li>", move_num, min));
-    //             }
-    //         }
-    //     }
-    
-    //     let mut increments_combined: HashMap<u32, u32> = HashMap::new();
-    
-    //     for (&move_num, &sec) in &project.white_time_timecontrolmin_incrsec_key_values_list {
-    //         increments_combined.insert(move_num, sec);
-    //     }
-    
-    //     for (&move_num, &sec) in &project.black_time_timecontrolmin_incrsec_key_values_list {
-    //         if let Some(val) = increments_combined.get_mut(&move_num) {
-    //             if *val != sec {
-    //                 *val = u32::MAX;
-    //             }
-    //         } else {
-    //             increments_combined.insert(move_num, sec);
-    //         }
-    //     }
-    
-    //     for (move_num, sec) in increments_combined {
-    //         if sec != 0 {
-    //             if sec != u32::MAX {
-    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}, adding {} sec per move.</li>", move_num, sec));
-    //             } else {
-    //                 // White and Black have different values.
-    //                 let white_val = project.white_time_timecontrolmin_incrsec_key_values_list.get(&move_num).unwrap();
-    //                 let black_val = project.black_time_timecontrolmin_incrsec_key_values_list.get(&move_num).unwrap();
-    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}, adding {} sec per move.</li>", move_num, *white_val));
-    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}, adding {} sec per move.</li>", move_num, *black_val));
-    //             }
-    //         }
-    //     }
-    
-    //     html_timedata_string
-    // }
-    
-    // fn generate_html_timedata(project: &TimedProject) -> String {
-
-    //     let mut html_timedata_string = String::new();
-    
-    //     // Extracting the current move number for clarity and ease of use
-    //     let current_move = project.game_move_number;
-    //     let current_move = project.game_move_number;
-
-    
-    //     println!("Current Move: {}", current_move);  // Debugging print
-
-
-    //     // For time controls
-    //     let mut time_controls: HashMap<u32, (Option<u32>, Option<u32>)> = HashMap::new();
-    
-    //     for (&move_num, &(min, _)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-    //         time_controls.entry(move_num).or_insert((Some(min), None)).0 = Some(min);
-    //     }
-    
-    //     for (&move_num, &(min, _)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-    //         time_controls.entry(move_num).or_insert((None, Some(min))).1 = Some(min);
-    //     }
-    
-    //     for (move_num, (white_min, black_min)) in time_controls {
-    //         match (white_min, black_min) {
-    //             (Some(wm), Some(bm)) if wm == bm => {
-    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, wm));
-    //             }
-    //             (Some(wm), Some(bm)) => {
-    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, wm));
-    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, bm));
-    //             }
-    //             (Some(wm), None) => {
-    //                 html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, wm));
-    //             }
-    //             (None, Some(bm)) => {
-    //                 html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, bm));
-    //             }
-    //             _ => {}
-    //         }
-    //     }
-    
-
-    //     // Filtering out past rules
-    //     let future_time_controls: Vec<_> = time_controls.iter()
-    //         .filter(|&&(move_num, _)| move_num > current_move)
-    //         .collect();
-    
-    //     let future_increments: Vec<_> = increments.iter()
-    //         .filter(|&&(move_num, _)| move_num > current_move)
-    //         .collect();
-
-    //     // For increments
-    //     let mut increments: HashMap<u32, (Option<u32>, Option<u32>)> = HashMap::new();
-    
-    //     for (&move_num, &sec) in &project.white_time_timecontrolmin_incrsec_key_values_list {
-    //         if sec != 0 {
-    //             increments.entry(move_num).or_insert((Some(sec), None)).0 = Some(sec);
-    //         }
-    //     }
-    
-    //     for (&move_num, &sec) in &project.black_time_timecontrolmin_incrsec_key_values_list {
-    //         if sec != 0 {
-    //             increments.entry(move_num).or_insert((None, Some(sec))).1 = Some(sec);
-    //         }
-    //     }
-    
-
-    //     // increment details
-    //     let white_current_increment = project.white_time_timecontrolmin_incrsec_key_values_list
-    //         .iter()
-    //         .filter(|&&(move_num, _)| move_num <= current_move)
-    //         .map(|(_, &incr)| incr)
-    //         .last()
-    //         .unwrap_or(0);
-    
-    //     let black_current_increment = project.black_time_timecontrolmin_incrsec_key_values_list
-    //         .iter()
-    //         .filter(|&&(move_num, _)| move_num <= current_move)
-    //         .map(|(_, &incr)| incr)
-    //         .last()
-    //         .unwrap_or(0);
-    
-    //     if white_current_increment == black_current_increment {
-    //         if white_current_increment != 0 {
-    //             html_timedata_string.push_str(&format!("<li>Current Increment: {} sec per move.</li>", white_current_increment));
-    //         }
-    //     } else {
-    //         if white_current_increment != 0 {
-    //             html_timedata_string.push_str(&format!("<li>White's Current Increment: {} sec per move.</li>", white_current_increment));
-    //         }
-    //         if black_current_increment != 0 {
-    //             html_timedata_string.push_str(&format!("<li>Black's Current Increment: {} sec per move.</li>", black_current_increment));
-    //         }
-    //     }
-
-
-
-
-    //     for (move_num, (white_sec, black_sec)) in increments {
-    //         match (white_sec, black_sec) {
-    //             (Some(ws), Some(bs)) if ws == bs => {
-    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
-    //             }
-    //             (Some(ws), Some(bs)) => {
-    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
-    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, bs));
-    //             }
-    //             (Some(ws), None) => {
-    //                 html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, ws));
-    //             }
-    //             (None, Some(bs)) => {
-    //                 html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, bs));
-    //             }
-    //             _ => {}
-    //         }
-    //     }
-    
-    //     html_timedata_string
-    // }
-    
 
     // fn generate_html_timedata(project: &TimedProject) -> String {
     //     let mut html_timedata_string = String::new();
@@ -7869,52 +7679,31 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     //     let current_move = project.game_move_number;
     //     println!("Current Move: {}", current_move); // Debugging print
     
-    //     // Merge time controls and increments into unified HashMaps for easier processing
-    //     let mut combined_time_controls: HashMap<u32, (u32, u32)> = project.white_move_timecontrolmin_incrsec_key_values_list
-    //         .clone()
-    //         .into_iter()
-    //         .collect();
-    
-    //     for (&key, &value) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-    //         combined_time_controls.insert(key, value);
-    //     }
-    
-    //     let mut combined_increments: HashMap<u32, (u32, u32)> = project.white_time_timecontrolmin_incrsec_key_values_list
-    //         .clone()
-    //         .into_iter()
-    //         .collect();
-    
-    //     for (&key, &value) in &project.black_time_timecontrolmin_incrsec_key_values_list {
-    //         combined_increments.insert(key, value);
-    //     }
-    
-    //     // Time control messages
-    //     for (move_num, (white_min, black_min)) in combined_time_controls {
+    //     for (&move_num, &(white_min, white_sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
     //         if move_num > current_move {
-    //             if white_min == black_min && white_min != 0 {
-    //                 html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, white_min / 60));
-    //             } else {
-    //                 if white_min != 0 {
-    //                     html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, white_min / 60));
+    //             if let Some(&(black_min, black_sec)) = project.black_move_timecontrolmin_incrsec_key_values_list.get(&move_num) {
+    //                 // Both white and black have the same time control for this move number
+    //                 if white_min == black_min && white_min != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, white_min));
+    //                 } else {
+    //                     if white_min != 0 {
+    //                         html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, white_min));
+    //                     }
+    //                     if black_min != 0 {
+    //                         html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, black_min));
+    //                     }
     //                 }
-    //                 if black_min != 0 {
-    //                     html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, black_min / 60));
-    //                 }
-    //             }
-    //         }
-    //     }
     
-    //     // Increment messages
-    //     for (move_num, (white_sec, black_sec)) in combined_increments {
-    //         if move_num > current_move {
-    //             if white_sec == black_sec && white_sec != 0 {
-    //                 html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
-    //             } else {
-    //                 if white_sec != 0 {
-    //                     html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
-    //                 }
-    //                 if black_sec != 0 {
-    //                     html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, black_sec));
+    //                 // Both white and black have the same increment for this move number
+    //                 if white_sec == black_sec && white_sec != 0 {
+    //                     html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+    //                 } else {
+    //                     if white_sec != 0 {
+    //                         html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
+    //                     }
+    //                     if black_sec != 0 {
+    //                         html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, black_sec));
+    //                     }
     //                 }
     //             }
     //         }
@@ -7922,46 +7711,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     
     //     html_timedata_string
     // }
-    
-
-    fn generate_html_timedata(project: &TimedProject) -> String {
-        let mut html_timedata_string = String::new();
-    
-        let current_move = project.game_move_number;
-        println!("Current Move: {}", current_move); // Debugging print
-    
-        for (&move_num, &(white_min, white_sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-            if move_num > current_move {
-                if let Some(&(black_min, black_sec)) = project.black_move_timecontrolmin_incrsec_key_values_list.get(&move_num) {
-                    // Both white and black have the same time control for this move number
-                    if white_min == black_min && white_min != 0 {
-                        html_timedata_string.push_str(&format!("<li>Time Control on move {}: adds {} min.</li>", move_num, white_min));
-                    } else {
-                        if white_min != 0 {
-                            html_timedata_string.push_str(&format!("<li>White Time Control on move {}: adds {} min.</li>", move_num, white_min));
-                        }
-                        if black_min != 0 {
-                            html_timedata_string.push_str(&format!("<li>Black Time Control on move {}: adds {} min.</li>", move_num, black_min));
-                        }
-                    }
-    
-                    // Both white and black have the same increment for this move number
-                    if white_sec == black_sec && white_sec != 0 {
-                        html_timedata_string.push_str(&format!("<li>Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
-                    } else {
-                        if white_sec != 0 {
-                            html_timedata_string.push_str(&format!("<li>White Increment starts on move {}: adding {} sec per move.</li>", move_num, white_sec));
-                        }
-                        if black_sec != 0 {
-                            html_timedata_string.push_str(&format!("<li>Black Increment starts on move {}: adding {} sec per move.</li>", move_num, black_sec));
-                        }
-                    }
-                }
-            }
-        }
-    
-        html_timedata_string
-    }
     
 
 
@@ -8040,16 +7789,16 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("Current game move number: {}", project.game_move_number);
 
 
-        // // Include time increments for White and Black if available.
-        // // Loop through white_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-        // for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-        //     html_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-        // }
+        // Include time increments for White and Black if available.
+        // Loop through white_move_timecontrolmin_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        }
         
-        // // Loop through black_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-        // for (move_num, (min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-        //     html_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-        // }
+        // Loop through black_move_timecontrolmin_incrsec_key_values_list to dynamically include information
+        for (move_num, (min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
+            html_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        }
 
         // y0ur m0ve
         let next_move = if project.player_white {
@@ -8060,20 +7809,23 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         html_timedata_string.push_str(&format!("<li>Next Move: {}</li>", next_move));
                 
                 
-        // // Add time information to the HTML string
-        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
-        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+        // Add time information to the HTML string
+        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
 
-        // // Add move number
-        // html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
+        // Add move number
+        html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
         
-        // // Calculate and add next time control and increment details
-        // // Logic to determine moves to next time control, next time control in minutes, and increments.
+        
+        ///////////////////////////////////
+        
+        // Calculate and add next time control and increment details
+        // Logic to determine moves to next time control, next time control in minutes, and increments.
         // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
-        // // Add to HTML string
-        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+        // Add to HTML string
+        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
 
         // Format time using helper functions
@@ -8083,20 +7835,17 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         let black_time_str = seconds_to_hms(project.black_time_remaining_sec.into());  // <-- And here, if black_time_remaining_sec is also u32
         
         
-        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
-        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
+        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
+        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
 
-        // html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
+        html_timedata_string.push_str(&format!("- This Game Move: {}\n", project.game_move_number));
 
         // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
 
-        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
-        // call helper function to process time controll data
-
-        html_timedata_string.push_str(&Self::generate_html_timedata(project));
- 
+        ///////////////////////////////////
 
         html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
         html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
@@ -8189,28 +7938,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     }
 
 
-    // // Wrapper for use-case 1: Create or update struct and make HTML
-    // pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
-    //     let mut project = Self::load_timedata_from_txt(game_name)?;
 
-    //     // Update the struct using the update_timedata_before_move function
-    //     project.update_timedata_before_move(move_data);
-        
-    //     // Generate the HTML content using the updated struct
-    //     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
-    // }
-
-
-    // // Wrapper for use-case 2: Load text file and make HTML
-    // pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
-    //     let current_timestamp = timestamp_64();
-
-    //     // Load the TimedProject struct from the text file
-    //     let project = Self::load_timedata_from_txt(game_name)?;
-
-    //     // Generate the HTML content using the loaded struct
-    //     Ok(Self::generate_html_with_time_data(&project, current_timestamp))
-    // }
 
 
     // End of struct implimentation: TimedProject
@@ -8218,28 +7946,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
 
 
 
-// // Wrapper for use-case 1: Create or update struct and make HTML
-// pub fn wrapper_move_update_and_make_html(game_name: &str, move_data: &str) -> io::Result<String> {
-//     let mut project = Self::load_timedata_from_txt(game_name)?;
-
-//     // Update the struct using the update_timedata_before_move function
-//     project.update_timedata_before_move(move_data);
-    
-//     // Generate the HTML content using the updated struct
-//     Ok(Self::generate_html_with_time_data(&project, timestamp_64()))
-// }
-
-
-// // Wrapper for use-case 2: Load text file and make HTML
-// pub fn wrapper_no_move_load_and_make_html(game_name: &str) -> io::Result<String> {
-//     let current_timestamp = timestamp_64();
-
-//     // Load the TimedProject struct from the text file
-//     let project = Self::load_timedata_from_txt(game_name)?;
-
-//     // Generate the HTML content using the loaded struct
-//     Ok(Self::generate_html_with_time_data(&project, current_timestamp))
-// }
 
 
 // Wrapper for use-case 1: Create or update struct and make HTML
@@ -8380,64 +8086,6 @@ fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProjec
 }
 
 
-// /// Converts a specialized file-string to a HashMap<u32, u32>
-// pub fn string_to_hashmap_timedata(file_str: &str) -> HashMap<u32, u32> {
-//     let mut map = HashMap::new();
-//     let pairs = file_str.split('-').collect::<Vec<&str>>();
-    
-//     for pair in pairs.chunks(2) {
-//         if pair.len() == 2 {
-//             if let (Ok(key), Ok(value)) = (pair[0].parse::<u32>(), pair[1].parse::<u32>()) {
-//                 map.insert(key, value);
-//             }
-//         }
-//     }
-//     map
-// }
-
-
-
-// /// Converts a HashMap to a specialized file-string
-// pub fn hashmap_to_string_timedata<V1, V2>(map: &HashMap<V1, V2>) -> String
-//     where
-//         V1: std::fmt::Display,
-//         V2: std::fmt::Display,
-//     {
-//         let entries: Vec<String> = map
-//             .iter()
-//             .map(|(key, value)| format!("{},{}", key, value))
-//             .collect();
-//         entries.join("-")
-//     }
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     let mut map = HashMap::new();
-//     for item in input.split(',') {
-//         let parts: Vec<&str> = item.split(' ').collect();
-//         if parts.len() == 3 {
-//             if let (Ok(key), Ok(value1), Ok(value2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
-//                 map.insert(key, (value1, value2));
-//             }
-//         }
-//     }
-//     map
-// }
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     let mut map = HashMap::new();
-//     for item in input.split(',') {
-//         let parts: Vec<&str> = item.split(' ').collect();
-//         if parts.len() == 3 {
-//             if let (Ok(key), Ok(value1), Ok(value2)) = (parts[0].parse(), parts[1].parse(), parts[2].parse()) {
-//                 map.insert(key, (value1, value2));
-//             }
-//         }
-//     }
-//     map
-// }
-
 
 /*
 white_move_timecontrolmin_incrsec_key_values_list: {41: (0, 10)}
@@ -8515,505 +8163,6 @@ pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)>
 
 
 
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Raw Input: {}", input);
-
-//     let mut map = HashMap::new();
-
-//     // Remove spaces, curly braces, and parentheses
-//     let stripped_input = input.replace(" ", "").replace("{", "").replace("}", "");
-
-    
-//     // Split by `),` and then add `)` back to each segment (except the last one)
-//     let segments: Vec<String> = stripped_input.split("),").enumerate().map(|(i, seg)| {
-//         if i == stripped_input.split("),").count() - 1 {
-//             seg.to_string()
-//         } else {
-//             format!("{})", seg)
-//         }
-//     }).collect();
-
-//     for pair in &segments {
-//         let parts: Vec<&str> = pair.split(":").collect();
-//         if parts.len() != 2 {
-//             println!("   Error: Malformed input in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         let key: u32 = match parts[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Error: Key parsing error");
-//                 continue;  // Move to the next pair
-//             },
-//         };
-
-//         let values: Vec<u32> = parts[1].trim_start_matches("(").split(',').filter_map(|x| x.trim().parse().ok()).collect();
-//         if values.len() != 2 {
-//             println!("   Error: Malformed tuple in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-
-//     println!("Processed map: {:?}", map);
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Raw Input: {}", input);
-
-//     let mut map = HashMap::new();
-
-//     // Remove spaces, curly braces, and parentheses
-//     let stripped_input = input.replace(" ", "").replace("{", "").replace("}", "");
-
-//     // Split by `),` to get individual key-tuple-value pairs
-//     for pair in stripped_input.split("),") {
-//         let parts: Vec<&str> = pair.split(":").collect();
-//         if parts.len() != 2 {
-//             println!("   Error: Malformed input in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         let key: u32 = match parts[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Error: Key parsing error");
-//                 continue;  // Move to the next pair
-//             },
-//         };
-
-//         let values: Vec<u32> = parts[1].trim_start_matches("(").split(',').filter_map(|x| x.trim().parse().ok()).collect();
-//         if values.len() != 2 {
-//             println!("   Error: Malformed tuple in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-
-//     println!("Processed map: {:?}", map);
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata() ===");
-//     println!("Raw Input: {}", input);
-
-//     let mut map = HashMap::new();
-//     let stripped_input = input.replace("{", "").replace("}", "").replace("(", "").replace(")", "").replace(" ", "");
-    
-//     // Split by comma to separate each key-value pair
-//     for pair in stripped_input.split(",") {
-//         let parts: Vec<&str> = pair.split(":").collect();
-//         if parts.len() != 2 {
-//             println!("   Error: Malformed input in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         let key: u32 = match parts[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Error: Key parsing error");
-//                 continue;  // Move to the next pair
-//             },
-//         };
-
-//         let values: Vec<u32> = parts[1].splitn(2, ',').filter_map(|x| x.trim().parse().ok()).collect();
-//         if values.len() != 2 {
-//             println!("   Error: Malformed tuple in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-
-//     println!("Processed map: {:?}", map);
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata() ===");
-//     println!("Raw Input: {}", input);
-
-//     let mut map = HashMap::new();
-//     let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
-
-//     // Split by comma to separate each key-value pair
-//     for pair in data_str.split(",") {
-//         let parts: Vec<&str> = pair.split(": ").collect();
-//         if parts.len() != 2 {
-//             println!("   Error: Malformed input in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         let key: u32 = match parts[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Error: Key parsing error in pair.");
-//                 continue;  // Move to the next pair
-//             },
-//         };
-
-//         let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
-//         let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
-
-//         if values.len() != 2 {
-//             println!("   Error: Malformed tuple in pair.");
-//             continue;  // Move to the next pair
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-
-//     println!("Processed map: {:?}", map);
-//     println!("--- End string_to_tuple_hashmap_timedata() ---");
-//     map
-// }
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Raw Input: {}", input);
-
-//     let mut map = HashMap::new();
-//     let data_str = input.trim_matches(|c| c == '{' || c == '}').trim();
-
-//     let parts: Vec<&str> = data_str.split(": ").collect();
-//     if parts.len() != 2 {
-//         println!("   Error: Malformed input.");
-//         return map;
-//     }
-
-//     let key: u32 = match parts[0].trim().parse() {
-//         Ok(k) => k,
-//         Err(_) => {
-//             println!("   Error: Key parsing error");
-//             return map;
-//         },
-//     };
-
-//     let tuple_str = parts[1].trim().trim_matches(|c| c == '(' || c == ')');
-//     let values: Vec<u32> = tuple_str.split(',').filter_map(|x| x.trim().parse().ok()).collect();
-
-//     if values.len() != 2 {
-//         println!("   Error: Malformed tuple");
-//         return map;
-//     }
-
-//     map.insert(key, (values[0], values[1]));
-
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-// // use std::collections::HashMap;
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Raw Input: {}", input);
-
-//     // Extract the substring between `{}` brackets.
-//     let start_index = input.find('{');
-//     let end_index = input.rfind('}');
-    
-//     if start_index.is_none() || end_index.is_none() {
-//         println!("   Skipping, no valid input format found");
-//         return HashMap::new();
-//     }
-
-//     let substring = &input[start_index.unwrap() + 1..end_index.unwrap()];
-
-//     let mut map = HashMap::new();
-
-//     let items: Vec<&str> = substring.split(',').collect();
-//     for item in items {
-//         println!("-- Processing item: {}", item);
-
-//         let key_value: Vec<&str> = item.splitn(2, ":").collect();
-//         if key_value.len() != 2 {
-//             println!("   Skipping, key_value.len() != 2");
-//             continue;
-//         }
-
-//         let key: u32 = match key_value[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Skipping, key parsing error");
-//                 continue;
-//             },
-//         };
-
-//         // Clean the tuple and split by ','
-//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
-//         let values: Vec<u32> = clean_tuple
-//             .split(',')
-//             .filter_map(|x| x.trim().parse().ok())
-//             .collect();
-
-//         if values.len() != 2 {
-//             println!("   Skipping, values.len() != 2");
-//             continue;
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
-
-//     let mut map = HashMap::new();
-//     let clean_input = input.trim_start_matches('{').trim_end_matches('}');
-
-//     // Splitting by ',' but making sure it's outside of the tuple
-//     let items = clean_input.splitn(2, |c: char| c == ',' && !clean_input.chars().take_while(|&x| x != c).filter(|&x| x == '(').count() % 2 == 1);
-
-//     for item in items {
-//         println!("-- Processing item: {}", item);
-
-//         let key_value: Vec<&str> = item.splitn(2, ":").collect();
-//         if key_value.len() != 2 {
-//             println!("   Skipping, key_value.len() != 2");
-//             continue;
-//         }
-
-//         let key: u32 = match key_value[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => {
-//                 println!("   Skipping, key parsing error");
-//                 continue;
-//             },
-//         };
-
-//         // Clean the tuple and split by ','
-//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
-//         let values: Vec<u32> = clean_tuple
-//             .split(',')
-//             .filter_map(|x| x.trim().parse().ok())
-//             .collect();
-
-//         if values.len() != 2 {
-//             println!("   Skipping, values.len() != 2");
-//             continue;
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
-
-//     let mut map = HashMap::new();
-
-//     // Split the input into lines and process each line
-//     for line in input.lines() {
-//         // Check for lines that are similar to: {41: (0, 10)}
-//         if line.contains("{") && line.contains("}") {
-//             // Extracting the content between '{' and '}'
-//             let clean_input = line.split('{').nth(1).unwrap_or_default().split('}').next().unwrap_or_default();
-
-//             for item in clean_input.split(',') {
-//                 println!("-- Processing item: {}", item);
-
-//                 let key_value: Vec<&str> = item.split(":").collect();
-//                 if key_value.len() != 2 {
-//                     println!("   Skipping, key_value.len() != 2");
-//                     continue;
-//                 }
-
-//                 let key: u32 = match key_value[0].trim().parse() {
-//                     Ok(k) => k,
-//                     Err(_) => {
-//                         println!("   Skipping, failed to parse key");
-//                         continue;
-//                     },
-//                 };
-
-//                 // Extracting the tuple values between '(' and ')'
-//                 let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
-//                 let values: Vec<u32> = clean_tuple
-//                     .split(',')
-//                     .filter_map(|x| x.trim().parse().ok())
-//                     .collect();
-
-//                 if values.len() != 2 {
-//                     println!("   Skipping, values.len() != 2");
-//                     continue;
-//                 }
-
-//                 map.insert(key, (values[0], values[1]));
-//             }
-//         }
-//     }
-
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-
-// pub fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     println!("=== string_to_tuple_hashmap_timedata ===");
-//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
-
-//     let mut map = HashMap::new();
-//     // Assuming that the input string format is {41: (0, 10)}, stripping '{' and '}'.
-//     let clean_input = input.trim_start_matches('{').trim_end_matches('}');
-//     for item in clean_input.split(',') {
-//         println!("-- Processing item: {}", item);
-
-//         let key_value: Vec<&str> = item.split(":").collect();
-//         if key_value.len() != 2 {
-//             println!("   Skipping, key_value.len() != 2");
-//             continue;
-//         }
-
-//         let key: u32 = match key_value[0].trim().parse() {
-//             Ok(k) => k,
-//             Err(_) => continue,
-//         };
-
-//         // Assuming that the tuple format is (0, 10), stripping '(' and ')'.
-//         let clean_tuple = key_value[1].trim().trim_start_matches('(').trim_end_matches(')');
-//         let values: Vec<u32> = clean_tuple
-//             .split(',')
-//             .filter_map(|x| x.trim().parse().ok())
-//             .collect();
-
-//         if values.len() != 2 {
-//             println!("   Skipping, values.len() != 2");
-//             continue;
-//         }
-
-//         map.insert(key, (values[0], values[1]));
-//     }
-//     println!("=== End string_to_tuple_hashmap_timedata ===");
-//     map
-// }
-
-
-
-// fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     let mut result = HashMap::new();
-//     println!("\n=== string_to_tuple_hashmap_timedata ===");
-//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
-
-//     let trimmed = input.trim_matches(|c| c == '{' || c == '}');
-//     for item in trimmed.split(", ") {
-//         println!("-- Processing item: {}", item);
-//         let parts: Vec<&str> = item.split(": ").collect();
-//         if parts.len() != 2 {
-//             println!("   Skipping, parts.len() != 2");
-//             continue;
-//         }
-
-//         let tuple_str = parts[1].trim_matches(|c| c == '(' || c == ')');
-//         let tuple_parts: Vec<&str> = tuple_str.split(", ").collect();
-//         if tuple_parts.len() != 2 {
-//             println!("   Skipping, tuple_parts.len() != 2");
-//             continue;
-//         }
-
-//         if let (Ok(key), Ok(value1), Ok(value2)) = (
-//             parts[0].parse::<u32>(),
-//             tuple_parts[0].parse::<u32>(),
-//             tuple_parts[1].parse::<u32>(),
-//         ) {
-//             println!("   Parsed values: key = {}, value1 = {}, value2 = {}", key, value1, value2);
-//             result.insert(key, (value1, value2));
-//         }
-//     }
-//     println!("=== End string_to_tuple_hashmap_timedata ===\n");
-//     result
-// }
-
-
-// fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     let mut result = HashMap::new();
-//     println!("Input to string_to_tuple_hashmap_timedata: {}", input);
-
-//     let trimmed = input.trim_matches(|c| c == '{' || c == '}');
-//     for item in trimmed.split(", ") {
-//         println!("Processing item: {}", item);
-//         let parts: Vec<&str> = item.split(": ").collect();
-//         if parts.len() != 2 {
-//             continue;
-//         }
-
-//         let tuple_str = parts[1].trim_matches(|c| c == '(' || c == ')');
-//         let tuple_parts: Vec<&str> = tuple_str.split(", ").collect();
-//         if tuple_parts.len() != 2 {
-//             continue;
-//         }
-
-//         if let (Ok(key), Ok(value1), Ok(value2)) = (
-//             parts[0].parse::<u32>(),
-//             tuple_parts[0].parse::<u32>(),
-//             tuple_parts[1].parse::<u32>(),
-//         ) {
-//             println!("Parsed values: key = {}, value1 = {}, value2 = {}", key, value1, value2);
-//             result.insert(key, (value1, value2));
-//         }
-//     }
-
-//     result
-// }
-
-
-
-// // Converts a string in the form of "{key1: (value1, value2), key2: (value3, value4)}" to a HashMap<u32, (u32, u32)>
-// fn string_to_tuple_hashmap_timedata(input: &str) -> HashMap<u32, (u32, u32)> {
-//     let mut result = HashMap::new();
-
-//     let trimmed = input.trim_matches(|c| c == '{' || c == '}');
-//     for item in trimmed.split(", ") {
-//         let parts: Vec<&str> = item.split(": ").collect();
-//         if parts.len() != 2 {
-//             continue;
-//         }
-
-//         let tuple_str = parts[1].trim_matches(|c| c == '(' || c == ')');
-//         let tuple_parts: Vec<&str> = tuple_str.split(", ").collect();
-//         if tuple_parts.len() != 2 {
-//             continue;
-//         }
-
-//         if let (Ok(key), Ok(value1), Ok(value2)) = (
-//             parts[0].parse::<u32>(),
-//             tuple_parts[0].parse::<u32>(),
-//             tuple_parts[1].parse::<u32>(),
-//         ) {
-//             result.insert(key, (value1, value2));
-//         }
-//     }
-
-//     result
-// }
 
 // Function to find the next time control or increment for a given move
 fn find_next_time_control(map: &HashMap<u64, (u64, u64)>, current_move: u64) -> (u64, u64) {
@@ -9029,28 +8178,6 @@ fn find_next_time_control(map: &HashMap<u64, (u64, u64)>, current_move: u64) -> 
 fn add_to_html_string(html_string: &mut String, label: &str, value: u64) {
     html_string.push_str(&format!("<p>{}: {} sec</p>\n", label, value));
 }
-
-
-/// calculate time control and increment details.
-/// This function takes a reference to a TimedProject instance and returns a tuple
-/// containing moves to the next time control, next time control in minutes, current increment,
-/// next increment time in seconds, and next increment move.
-// Helper function
-// fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32) {
-//     let (moves_to_next_time_control, next_time_control_min) = project.white_move_timecontrolmin_incrsec_key_values_list
-//         .iter()
-//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-//         .map(|(&k, &v)| (k, v.0))
-//         .unwrap_or((0, 0));
-
-//     let (current_increment, next_increment_time, next_increment_move) = project.white_time_timecontrolmin_incrsec_key_values_list
-//         .iter()
-//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-//         .map(|(&k, &v)| (project.white_time_timecontrolmin_incrsec_key_values_list[&(project.game_move_number as u32)], k, v))
-//         .unwrap_or((0, 0, 0));
-    
-//     (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move)
-// }
 
 
 
@@ -9159,58 +8286,6 @@ fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32,
 }
 
 
-// fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32,u32, u32, u32, u32, u32) {
-//     // Print for debugging: display current game move number
-//     println!("Current game move number: {}", project.game_move_number);
-    
-//     let (moves_to_next_time_control, next_time_control_min) = project.white_move_timecontrolmin_incrsec_key_values_list
-//         .iter()
-//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-//         .map(|(&k, &v)| {
-//             println!("Found next time control move: {} min: {}", k, v.0);  // Print for debugging
-//             (k, v.0)
-//         })
-//         .unwrap_or_else(|| {
-//             println!("No next time control move found.");  // Print for debugging
-//             (0, 0)
-//         });
-
-//     let (current_increment, next_increment_time, next_increment_move) = project.white_time_timecontrolmin_incrsec_key_values_list
-//         .iter()
-//         .find(|&(&k, _)| k > project.game_move_number as u32)  // Fixed pattern matching
-//         .map(|(&k, &v)| {
-//             println!("Found next increment: {} time: {} move: {}", project.white_time_timecontrolmin_incrsec_key_values_list[&(project.game_move_number as u32)], k, v);  // Print for debugging
-//             (project.white_time_timecontrolmin_incrsec_key_values_list[&(project.game_move_number as u32)], k, v)
-//         })
-//         .unwrap_or_else(|| {
-//             println!("No next increment found.");  // Print for debugging
-//             (0, 0, 0)
-//         });
-    
-//     // Print for debugging: display all calculated values
-//     println!(
-//         "Calculated details: moves_to_next_time_control: {}, next_time_control_min: {}, current_increment: {}, next_increment_time: {}, next_increment_move: {}",
-//         moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move
-//     );
-
-//     (
-//         white_moves_to_next_time_control, 
-//         black_moves_to_next_time_control,
-
-//         white_next_time_control_min, 
-//         black_next_time_control_min, 
-
-//         white_current_increment, 
-//         black_current_increment, 
-
-//         white_next_increment_time, 
-//         black_next_increment_time, 
-
-//         white_next_increment_move,
-//         black_next_increment_move,        
-//     )
-
-// }
 
 
 // use std::time::{SystemTime, UNIX_EPOCH};

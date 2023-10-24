@@ -1,16 +1,47 @@
 Todo: 
 
-Three checks
-make three boolean flag variables,
-based on the results of checking two sets of tuples in a hash-table:
 
+given this time struct:
+struct TimedProject {
+    game_name: String, // The name of the game
+    project_start_time_timestamp: u64, // Timestamp when the project started
+    
+    // current remaining time
+    white_time_remaining_sec: u32,
+    black_time_remaining_sec: u32,
+
+    // current time increment
+    white_current_time_increment: u32,
+    black_current_time_increment: u32,
+
+    // HashMap containing time-based time-control and increment settings
+    white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32>,
+    black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32>,
+
+    // HashMap containing move-based time-control and increment settings
+    white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
+    black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)>,
+
+    current_move_timestamp: u64, // Timestamp of this move
+    previous_move_timestamp: u64, // Timestamp of the last move
+    player_white: bool, // Indicates if the player is white
+    game_move_number: u32, // Current move number in the game
+}
+
+to produce html lines with this format:
+        // Add time information to the HTML string
+        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+
+
+
+make boolean flag variables, based on the results of checking two sets of tuples in a hash-table:
 
 1. are the two current time controls the same?
 if so, print one line
 if not, print separate
 
 2. is everything empty (if so, nothing to do)
-
 
 3. are all the keys in the hash table lower number than current_move (if so, nothing to do)
 4. are both key-value sets in the hash-table (for black-player, white player) identical?
