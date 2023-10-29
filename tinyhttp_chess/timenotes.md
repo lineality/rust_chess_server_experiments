@@ -1,6 +1,7 @@
 Todo: 
+2nd update time based tuples to be just like move based tuples
 
-
+1st
 given this time struct:
 struct TimedProject {
     game_name: String, // The name of the game
@@ -29,31 +30,50 @@ struct TimedProject {
 }
 
 to produce html lines with this format:
-        // Add time information to the HTML string
+	html_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        html_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
+        
         html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
         html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+        
+        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
+        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
+        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
 
+        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
-make boolean flag variables, based on the results of checking two sets of tuples in a hash-table:
+        html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
+        html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
 
-1. are the two current time controls the same?
+To do this: Make boolean-flag variables, based on the results of checking two sets of tuples in a hash-table:
+
+1. are the two current time controls the same? same_time_controls_flag = ?
 if so, print one line
 if not, print separate
 
-2. is everything empty (if so, nothing to do)
+2. is everything empty (if so, nothing to do) everything_empty_flag = ?
 
-3. are all the keys in the hash table lower number than current_move (if so, nothing to do)
-4. are both key-value sets in the hash-table (for black-player, white player) identical?
-5. is there any future time-incerement? (if not, do nothing)
+3. are all the keys in the hash table lower number than current_move (if so, nothing to do) all_before_current_move_flag = ?
+4. are both key-value sets in the hash-table (for black-player, white player) identical? white_black_tables_idential_flag = ?
+5. is there any future time-incerement? (if not, do nothing) time_incriment_exists_flag = ?
 
-6. is there any future time-control? (if not, do nothing)
+6. is there any future time-control? (if not, do nothing) future_time_control_exists_flag = ?
+7. is there any time based (as opposed to move based) event? time_based_events_exist = ?
+
+Based on these flags print only the lines that are required to print.
+1. if black and white date are the same, do not print separate black and white data redundantly
+2. if a field is empty, do not print anything for that field
 
 
-Step: turn seconds into minutes for time-control only (NOT increments)
+Note: turn seconds into minutes for time-control only (NOT increments)
 
 
 
+
+//////////////////////////
 
 todo:
 like this whole function
