@@ -7799,8 +7799,8 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
                                             project.black_move_timecontrolmin_incrsec_key_values_list.keys().all(|&k| k < project.game_move_number);
         let white_black_tables_identical_flag = project.white_move_timecontrolmin_incrsec_key_values_list == project.black_move_timecontrolmin_incrsec_key_values_list;
         let time_increment_exists_flag = !project.white_time_timecontrolmin_incrsec_key_values_list.is_empty() || !project.black_time_timecontrolmin_incrsec_key_values_list.is_empty();
-        let future_time_control_exists_flag = project.white_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| k > (project.current_move_timestamp - project.project_start_time_timestamp) / 60) ||
-                                                project.black_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| k > (project.current_move_timestamp - project.project_start_time_timestamp) / 60);
+        let future_time_control_exists_flag = project.white_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| u64::from(k) > (project.current_move_timestamp - project.project_start_time_timestamp) / 60) ||
+                                                project.black_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| u64::from(k) > (project.current_move_timestamp - project.project_start_time_timestamp) / 60);
         let time_based_events_exist = !project.white_time_timecontrolmin_incrsec_key_values_list.is_empty() || !project.black_time_timecontrolmin_incrsec_key_values_list.is_empty();
 
         // Based on flags, conditionally generate HTML lines
@@ -7866,47 +7866,47 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         }
 
 
-////////////
-////////////
-////////////
-////////////
+        ////////////
+        ////////////
+        ////////////
+        ////////////
 
 
 
 
         ///////////////////////////////////
         
-        // Calculate and add next time control and increment details
-        // Logic to determine moves to next time control, next time control in minutes, and increments.
+        // // Calculate and add next time control and increment details
+        // // Logic to determine moves to next time control, next time control in minutes, and increments.
         // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
         
-        // Add to HTML string
-        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+        // // Add to HTML string
+        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
 
-        // Format time using helper functions
+        // // Format time using helper functions
         let time_since_start_str = posix_to_readable_datetime(time_since_start);
         let time_this_turn_str = seconds_to_hms(time_this_turn);
-        let white_time_str = seconds_to_hms(project.white_time_remaining_sec.into());  // <-- Modification here
-        let black_time_str = seconds_to_hms(project.black_time_remaining_sec.into());  // <-- And here, if black_time_remaining_sec is also u32
+        // let white_time_str = seconds_to_hms(project.white_time_remaining_sec.into());  // <-- Modification here
+        // let black_time_str = seconds_to_hms(project.black_time_remaining_sec.into());  // <-- And here, if black_time_remaining_sec is also u32
         
         
-        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
-        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
+        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
+        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
 
-        // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
+        // // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
 
-        html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
+        // html_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
+        // html_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
 
 
         
         
-////////////
-////////////
-////////////
-////////////
+        ////////////
+        ////////////
+        ////////////
+        ////////////
 
         // next_move black or white
         let next_move = if project.player_white {
@@ -7916,13 +7916,13 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         };
         html_timedata_string.push_str(&format!("<li>Next Move: {}</li>", next_move));
 
-        // Add time information to the HTML string
-        html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
-        html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
+        // // Add time information to the HTML string
+        // html_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
+        // html_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
 
-        // Add move number
-        html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
-        html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
+        // // Add move number
+        // html_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
+        // html_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
 
 
         // TODO this needs to be updated for black and white separate settings
@@ -8001,11 +8001,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
 
         html_content
     }
-
-
-
-
-
+    
     // End of struct implimentation: TimedProject
 }
 

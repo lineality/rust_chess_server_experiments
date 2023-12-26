@@ -1,4 +1,6 @@
 Todo: 
+timedata file is being erased
+
 2nd update time based tuples to be just like move based tuples
 
 1st
