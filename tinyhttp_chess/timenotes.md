@@ -1,5 +1,18 @@
 Todo: 
-timedata file is being erased
+timedata file is being erased for
+white_time_timecontrolmin_incrsec_key_values_list: {}
+black_time_timecontrolmin_incrsec_key_values_list: {}
+white_move_timecontrolmin_incrsec_key_values_list: {}
+black_move_timecontrolmin_incrsec_key_values_list: {}
+
+    // Print struct
+    println!("Print Struct (debug) {:?}", project); );
+
+
+    // Print struct for debug purposes
+    println!("Print Struct (debug) {:?}", self);
+
+find out where this is happening
 
 2nd update time based tuples to be just like move based tuples
 

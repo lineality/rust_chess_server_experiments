@@ -3,6 +3,9 @@ RUST_BACKTRACE=full cargo run
 
 http://0.0.0.0:8000/game/Pc2c4
 
+http://0.0.0.0:8000/setup/chess/t3_norway120/love
+
+
 http://0.0.0.0:8000/setup/chess/katsu/katsudan
 http://0.0.0.0:8000/game/Pc2c4
 
@@ -6078,8 +6081,9 @@ impl TimedProject {
         let mut black_time_remaining_sec: u32 = 0;
 
         // TODO set based on tuple for time/move zero
-        let mut white_current_time_increment: u32 = 0;
-        let mut black_current_time_increment: u32 = 0;
+        // TODO mutibple?
+        let white_current_time_increment: u32 = 0;
+        let black_current_time_increment: u32 = 0;
         
         // Skip the first segment and loop over the rest
         for segment in segments.iter().skip(1) {
@@ -6286,9 +6290,10 @@ impl TimedProject {
 
         /////////
 
+        // TODO Mutable?
         // Check for move-based increment based on current move number.
-        let mut applicable_increment = 0;
-        let mut applicable_time_control = 0;
+        let applicable_increment = 0;
+        let applicable_time_control = 0;
 
 
         /*
@@ -7051,7 +7056,6 @@ impl TimedProject {
     
     /// Create a TimedProject with preset time modes for chess games
     pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
-
         /*
         Make sure you sync pre-sets in: 
             handle_timedata_segment()
@@ -7098,17 +7102,19 @@ impl TimedProject {
          */
 
 
+
         // Initialize HashMaps for time control and increment settings
 
         // White Incriments
         // Key: seconds in time when increment starts
+        // TODO Mutable?
         // Value: (seconds added at each turn)
-        let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+        let white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
 
         // Black Incriments
         // Key: seconds in time when increment starts
         // Value: (seconds added at each turn)
-        let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+        let black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
 
         // White Incriments
         // Key: move_number when time_control starts (total time on clock) / new incriment starts (time added with each move)
@@ -7281,6 +7287,18 @@ impl TimedProject {
 
 
     fn save_timedata_to_txt(&self) -> std::io::Result<()> {
+    
+        // Print struct for debug purposes
+        println!("Print Struct save_timedata_to_txt() {:?}", self);
+    
+        // Print the data before writing
+        println!("Data before writing to file:");
+        println!("white_time_timecontrolmin_incrsec_key_values_list: {:?}", self.white_time_timecontrolmin_incrsec_key_values_list);
+        println!("black_time_timecontrolmin_incrsec_key_values_list: {:?}", self.black_time_timecontrolmin_incrsec_key_values_list);
+        println!("white_move_timecontrolmin_incrsec_key_values_list: {:?}", self.white_move_timecontrolmin_incrsec_key_values_list);
+        println!("black_move_timecontrolmin_incrsec_key_values_list: {:?}", self.black_move_timecontrolmin_incrsec_key_values_list);
+
+    
         // Generate the intended path for debugging purposes
         let path = format!("games/{}/time_data.txt", self.game_name);
         println!("Attempting to save at path: {}", path);
@@ -7759,9 +7777,11 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         */
         println!("=== Start generate_html_with_time_data ===");
 
+        // Print struct
+        println!("Print Struct generate_html_with_time_data() {:?}", project); 
         
         // Initialize the HTML string
-        let mut html_timedata_string = String::new();
+        let html_timedata_string = String::new();
         
         // Calculate the time since the start of the game.
         let time_since_start = current_timestamp - project.project_start_time_timestamp;
@@ -8300,6 +8320,9 @@ fn calculate_details_for_player(
 ///
 /// Returns a tuple with details for both white and black players.
 fn calculate_time_control_and_increment_details(project: &TimedProject) -> (u32, u32, u32, u32, u32,u32, u32, u32, u32, u32) {
+
+    // Print struct
+    println!("Print Struct calculate_time_control_and_increment_details() {:?}", project); 
 
     // Calculating details for the white player
     println!("Calculating details for white player.");
