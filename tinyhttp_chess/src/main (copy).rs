@@ -12,9 +12,9 @@ http://0.0.0.0:8000/game/Pc2c4
 http://0.0.0.0:8000/setup/chess960/ramen/two
 http://0.0.0.0:8000/game/Pc2c4
 
-http://0.0.0.0:8000/setup/chess960/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
+http://0.0.0.0:8000/setup/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
 
-http://0.0.0.0:8000/setup/chess960/thisgamename2_rawjsonmode_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
+http://0.0.0.0:8000/setup/thisgamename2_apimode_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
 
 
 Game Type vs. output_mode
@@ -1144,7 +1144,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         }
                     }
                 } else if endpoint_output_mode == "jsonmode" {
-                    // This block is for handling JSON (rawjsonmode)
+                    // This block is for handling JSON (rawjson mode)
                     match handle_chess_move(game_name.clone(), move_data.clone()) {
                         Ok(_) => {
                             let json_content_result = wrapper_move_update_and_make_json(&game_name, &move_data);
@@ -6338,7 +6338,7 @@ impl TimedProject {
             let value2 = elements.get(2).and_then(|x| x.parse().ok())?;
 
             // output mode
-            let endpoint_output_mode = "rawjsonmode";
+            let endpoint_output_mode = "rawjson";
             
             // Handle segments based on the first element in the segments list
             match segments[0] {
