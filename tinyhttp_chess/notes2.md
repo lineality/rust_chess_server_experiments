@@ -1,142 +1,127 @@
-use std::fs::File;
-use std::io::{self, BufReader, BufRead};
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-fn read_time_data(game_name: &str) -> io::Result<HashMap<String, String>> {
-    let path = format!("game/{}/time_data.txt", game_name);
-    let file = File::open(path)?;
+rust question: please advise on how to format
+
+pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    println!("\n=== start load_timedata_from_txt() ===");
+    
+    let path = format!("games/{}/time_data.txt", game_name);
+    let file = File::open(&path)?;
     let reader = BufReader::new(file);
-    let mut data = HashMap::new();
 
+    // Initialize variables
+    let mut project_start_time_timestamp: u64 = 0;
+    let mut white_time_remaining_sec: u32 = 0;
+    let mut black_time_remaining_sec: u32 = 0;
+    let mut white_current_time_increment: u32 = 0;
+    let mut black_current_time_increment: u32 = 0;
+    let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    let mut white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    let mut black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    let mut current_move_timestamp: u64 = 0;
+    let mut previous_move_timestamp: u64 = 0;
+    let mut player_white: bool = true;
+    let mut game_move_number: u32 = 0;
+    let mut endpoint_return_mode: &str = "";
+
+    // remove whitespace
     for line in reader.lines() {
         let line = line?;
-        let parts: Vec<&str> = line.split(": ").collect();
-        if parts.len() == 2 {
-            data.insert(parts[0].to_string(), parts[1].to_string());
+        let parts: Vec<&str> = line.splitn(2, ": ").collect();
+
+        if parts.len() != 2 {
+            println!("Skipping malformed line: {}", line);
+            continue;
         }
+
+        let key = parts[0].trim();
+        let value = parts[1].trim();
+
+        match key {
+            "project_start_time_timestamp" => {
+                project_start_time_timestamp = parts[1].parse().unwrap_or(0);
+                println!("project_start_time_timestamp: {}", project_start_time_timestamp);
+            },
+            "game_name" => {
+                // Do nothing for game_name since it's the input to the function
+            },
+            "white_time_remaining_sec" => {
+                white_time_remaining_sec = parts[1].parse().unwrap_or(0);
+                println!("white_time_remaining_sec: {}", white_time_remaining_sec);
+            },
+            "black_time_remaining_sec" => {
+                black_time_remaining_sec = parts[1].parse().unwrap_or(0);
+                println!("black_time_remaining_sec: {}", black_time_remaining_sec);
+            },
+            "white_time_remaining_sec" => {
+                white_current_time_increment = parts[1].parse().unwrap_or(0);
+                println!("white_time_remaining_sec: {}", white_current_time_increment);
+            },
+            "black_time_remaining_sec" => {
+                black_current_time_increment = parts[1].parse().unwrap_or(0);
+                println!("black_time_remaining_sec: {}", black_current_time_increment);
+            },
+            "white_time_timecontrolmin_incrsec_key_values_list" => {
+                white_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+                println!("white_time_timecontrolmin_incrsec_key_values_list: {:?}", white_time_timecontrolmin_incrsec_key_values_list);
+            },
+            "black_time_timecontrolmin_incrsec_key_values_list" => {
+                black_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+                println!("black_time_timecontrolmin_incrsec_key_values_list: {:?}", black_time_timecontrolmin_incrsec_key_values_list);
+            },
+            "white_move_timecontrolmin_incrsec_key_values_list" => {
+                white_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+                println!("white_move_timecontrolmin_incrsec_key_values_list: {:?}", white_move_timecontrolmin_incrsec_key_values_list);
+            },
+            "black_move_timecontrolmin_incrsec_key_values_list" => {
+                black_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+                println!("black_move_timecontrolmin_incrsec_key_values_list: {:?}", black_move_timecontrolmin_incrsec_key_values_list);
+            },
+            "current_move_timestamp" => {
+                current_move_timestamp = parts[1].parse().unwrap_or(0);
+                println!("current_move_timestamp: {}", current_move_timestamp);
+            },
+            "previous_move_timestamp" => {
+                previous_move_timestamp = parts[1].parse().unwrap_or(0);
+                println!("previous_move_timestamp: {}", previous_move_timestamp);
+            },
+            "player_white" => {
+                player_white = parts[1].parse().unwrap_or(true);
+                println!("player_white: {}", player_white);
+            },
+            "game_move_number" => {
+                game_move_number = parts[1].parse().unwrap_or(0);
+                println!("game_move_number: {}", game_move_number);
+            },
+            "endpoint_return_mode" => {
+                endpoint_return_mode = parts[1].parse().unwrap_or(0);
+                println!("endpoint_return_mode: {}", endpoint_return_mode);
+            },
+            _ => println!("Unknown key encountered: {}\n\n", parts[0]),
+        }
+        
+    println!("\n--- end load_timedata_from_txt() ---");
+        
     }
 
-    Ok(data)
-}
-
-fn generate_html(game_name: &str, data: HashMap<String, String>) -> String {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
-
-    let project_start_time: u64 = data["project_start_time_timstamp"].parse().expect("Invalid timestamp");
-    let white_time_remaining: u64 = data["white_time_remaining_sec"].parse().expect("Invalid time");
-    let black_time_remaining: u64 = data["black_time_remaining_sec"].parse().expect("Invalid time");
-    let last_move_time: u64 = data["last_move_time"].parse().expect("Invalid last move time");
-
-    let total_time_since_start = current_time - project_start_time;
-    let this_turn_time = current_time - last_move_time;
-
-    // More advanced time calculations can be done here based on the game rules
-
-    let html_content = format!(r#"
-    <!DOCTYPE html>
-    <head>
-    <meta property="og:title" content="Current Game Board" />
-    <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-    </head>
-    <html>
-        <body style="background-color:black;">
-            <br>
-            <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-            <br>
-            <!-- Time Data -->
-            <p>white time remaining: {}</p>
-            <p>black time remaining: {}</p>
-            <p>this turn so far: {}</p>
-            <p>total time since start: {}</p>
-            <p>moves to next time control: Placeholder</p>
-            <p>next time control (min): Placeholder</p>
-            <p>current increment: Placeholder</p>
-            <p>next increment at time (sec): Placeholder</p>
-            <p>next increment on move: Placeholder</p>
-        </body>
-    </html>
-    "#, game_name, game_name, white_time_remaining, black_time_remaining, this_turn_time, total_time_since_start);
-
-    html_content
-}
-
-fn main() -> io::Result<()> {
-    let game_name = "t6";
-    let data = read_time_data(game_name)?;
-    let html_content = generate_html(game_name, data);
-    println!("{}", html_content);
-
-    Ok(())
-}
-
-
-use std::fs::File;
-use std::io::{self, BufReader, BufRead};
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-fn read_time_data(game_name: &str) -> io::Result<HashMap<String, String>> {
-    let path = format!("game/{}/time_data.txt", game_name);
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let mut data = HashMap::new();
-
-    for line in reader.lines() {
-        let line = line?;
-        let parts: Vec<&str> = line.split(": ").collect();
-        if parts.len() == 2 {
-            data.insert(parts[0].to_string(), parts[1].to_string());
-        }
+    Ok(TimedProject {
+        game_name: game_name.to_string(),
+        project_start_time_timestamp,
+        white_time_remaining_sec,
+        black_time_remaining_sec,
+        white_current_time_increment,
+        black_current_time_increment,
+        white_time_timecontrolmin_incrsec_key_values_list,
+        black_time_timecontrolmin_incrsec_key_values_list,
+        white_move_timecontrolmin_incrsec_key_values_list,
+        black_move_timecontrolmin_incrsec_key_values_list,
+        current_move_timestamp,
+        previous_move_timestamp,
+        player_white,
+        game_move_number,
+        endpoint_return_mode,
+    })
+ 
+       
     }
 
-    Ok(data)
-}
-
-fn generate_html(game_name: &str, data: HashMap<String, String>) -> String {
-    let current_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
-
-    let project_start_time: u64 = data["project_start_time_timstamp"].parse().expect("Invalid timestamp");
-    let white_time_remaining: u64 = data["white_time_remaining_sec"].parse().expect("Invalid time");
-    let black_time_remaining: u64 = data["black_time_remaining_sec"].parse().expect("Invalid time");
-
-    let total_time_since_start = current_time - project_start_time;
-
-    // Additional time calculations can be done here...
-
-    let html_content = format!(r#"
-    <!DOCTYPE html>
-    <head>
-    <meta property="og:title" content="Current Game Board" />
-    <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-    </head>
-    <html>
-        <body style="background-color:black;">
-            <br>
-            <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-            <br>
-            <!-- Time Data -->
-            <p>white time remaining: {}</p>
-            <p>black time remaining: {}</p>
-            <p>this turn so far: TBD</p>
-            <p>total time since start: {}</p>
-            <p>moves to next time control: TBD</p>
-            <p>next time control (min): TBD</p>
-            <p>current increment: TBD</p>
-            <p>next increment at time (sec): TBD</p>
-            <p>next increment on move: TBD</p>
-        </body>
-    </html>
-    "#, game_name, game_name, white_time_remaining, black_time_remaining, total_time_since_start);
-
-    html_content
-}
-
-fn main() -> io::Result<()> {
-    let game_name = "t6";
-    let data = read_time_data(game_name)?;
-    let html_content = generate_html(game_name, data);
-    println!("{}", html_content);
-
-    Ok(())
-}

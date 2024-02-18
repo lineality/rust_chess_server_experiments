@@ -14,32 +14,10 @@ http://0.0.0.0:8000/game/Pc2c4
 
 http://0.0.0.0:8000/setup/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
 
-http://0.0.0.0:8000/setup/thisgamename2_apimode_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
-
-
-Game Type vs. output_mode
-
-Game type examples: chess, go, checkers, connect-4, tic-tac-toe
-
-output_mode: png, html, svg, ascii, rawjson
-
 */
 
 
 /* TODO:
-
-Add chess960 lookup table
-add github resources for chess 960
-- csv
-- json
-- jsonl?
-- python lookup table
-- rust lookup table
-
-add time-based time-controls
-
-
-
 https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces 
 
 $ sudo lsof -n -i :8000 | grep LISTEN
@@ -461,7 +439,6 @@ struct GameData {
     activity_timestamp: u128,
     ip_hash_list: Vec<u128>,
     game_board_state: [[char; 8]; 8],
-    endpoint_output_mode: String,
 }
 
 pub struct CleanerState {
@@ -616,7 +593,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             // get reduced ip_stamp rather than whole ip
             let ip_stamp = match request.remote_addr() {
                 Some(socket_addr) => {
-
+                    
                     let ip_string = socket_addr.ip().to_string();
                     // println!("ip_string: {}", ip_string);
                     let alternating_stamp = str_filter_alternating(&ip_string);
@@ -629,16 +606,19 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     // println!("Could not retrieve client IP");
                     continue;
                 },
-
+                 
             };
 
             // Testing Only
             println!("ip_stamp: {}", ip_stamp);
+            
 
 
 
+            
             // Continue processing other requests...
-
+            
+            
 
 
 
@@ -737,6 +717,9 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     continue; // No need to run the rest of the loop for the docs page
                 }
 
+
+
+            
 
 
                 /* 
@@ -874,7 +857,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                         println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
                         // Handle error or continue
                     }
-
+                
                     let response = match show_board(game_name.clone()) {
                         Ok(svg_content) => {
                             let html_content = format!(r#"
@@ -890,7 +873,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                                 </body>
                             </html>
                             "#, game_name, svg_content);
-
+                
                             match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
                                 Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
                                 Err(_) => Response::from_string("Failed to create header").with_status_code(500),
@@ -901,14 +884,14 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                             Response::from_string(format!("Failed to show_board: {}", e)).with_status_code(500)
                         }
                     };
-
+                
                     if let Err(e) = request.respond(response) {
                         eprintln!("Failed to respond to request: {}", e);
                     }
                     // continue; // No need to run the rest of the loop;
                 }
-
-
+                
+                    
                     // return an html response with with 
                 // { // Clone game_name
 
@@ -977,12 +960,10 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
 
 
-            /////////
+
             /////////
             // m0ve
-            /////////
-            /////////
-
+            ////////
             else if url_parts.len() == 3 {
 
                 // inspection
@@ -1000,7 +981,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 if is_existing_game_name(&game_name) {
                     // println!("Game exists, proceed with the game logic.");
                 } else {
-                    println!("no such game found: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
+                    println!("none such games: y0urm0ve.com/setup/chess/YOUR_GAME_NAME/YOUR_GAME_PHRASE");
                 }
 
                 // validate_ip_hash
@@ -1021,11 +1002,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 }
 
 
-                // Get game mode:
-                let endpoint_output_mode = game_data.endpoint_output_mode;
-                
-                
-                
                 // // // raw image call game move function
                 // let response = match handle_chess_move(game_name, move_data) {
                 //     Ok(svg_content) => {
@@ -1048,125 +1024,38 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 /*
                 can the html call a function to get updated time data...or display
                 updated time data now?
-                e.g. by refresh?
-                */
+
 
                 
-                /*
-                If endpoint mode is PNG(HTML)
+                e.g. by refresh?
+
                 */
-                // TODO: time not working??
-                // let response = match handle_chess_move(game_name.clone(), move_data.clone()) {
-                //     Ok(_) => {
-                //         let html_content_result = wrapper_move_update_and_make_html(&game_name, &move_data);
+
+
+                // time but not working
+                let response = match handle_chess_move(game_name.clone(), move_data.clone()) {
+                    Ok(_) => {
+                        let html_content_result = wrapper_move_update_and_make_html(&game_name, &move_data);
                         
-                //         match html_content_result {
-                //             Ok(html_content) => {
-                //                 match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                //                     Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                //                     Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                //                 }
-                //             },
-                //             Err(e) => {
-                //                 eprintln!("Error generating HTML: {}", e);
-                //                 Response::from_string(format!("Error generating HTML: {}", e)).with_status_code(500)
-                //             }
-                //         }
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-
-
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-
-
-
-                // /*
-                // If endpoint mode is rawjson
-                // TODO: this is code being adapted from html to json, so it may be mostly wrong.
-                // the goal is for this to return just a raw json as a GET request response
-                // */
-                // let response = match handle_chess_move(game_name.clone(), move_data.clone()) {
-                //     Ok(_) => {
-                //         let json_content_result = wrapper_move_update_and_make_json(&game_name, &move_data);
-                        
-                //         match json_content_result {
-                //             Ok(json_content) => {
-                //                 match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                //                     Ok(header) => Response::from_string(json_content).with_header(header).with_status_code(200),
-                //                     Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                //                 }
-                //             },
-                //             Err(e) => {
-                //                 eprintln!("Error generating json: {}", e);
-                //                 Response::from_string(format!("Error generating json: {}", e)).with_status_code(500)
-                //             }
-                //         }
-                //     },
-                //     Err(e) => {
-                //         eprintln!("Failed to handle move: {}", e);
-                //         Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                //     }
-                // };
-
-
-                // if let Err(e) = request.respond(response) {
-                //     eprintln!("Failed to respond to request: {}", e);
-                // }
-
-                let response = if endpoint_output_mode == "pngmode" {
-                    // This block is for handling HTML (PNG/HTML mode)
-                    match handle_chess_move(game_name.clone(), move_data.clone()) {
-                        Ok(_) => {
-                            let html_content_result = wrapper_move_update_and_make_html(&game_name, &move_data);
-                            
-                            match html_content_result {
-                                Ok(html_content) => {
-                                    match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
-                                        Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
-                                        Err(_) => Response::from_string("Failed to create header").with_status_code(500),
-                                    }
-                                },
-                                Err(e) => {
-                                    eprintln!("Error generating HTML: {}", e);
-                                    Response::from_string(format!("Error generating HTML: {}", e)).with_status_code(500)
+                        match html_content_result {
+                            Ok(html_content) => {
+                                match Header::from_bytes(&b"Content-Type"[..], &b"text/html"[..]) {
+                                    Ok(header) => Response::from_string(html_content).with_header(header).with_status_code(200),
+                                    Err(_) => Response::from_string("Failed to create header").with_status_code(500),
                                 }
+                            },
+                            Err(e) => {
+                                eprintln!("Error generating HTML: {}", e);
+                                Response::from_string(format!("Error generating HTML: {}", e)).with_status_code(500)
                             }
-                        },
-                        Err(e) => {
-                            eprintln!("Failed to handle move: {}", e);
-                            Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
                         }
+                    },
+                    Err(e) => {
+                        eprintln!("Failed to handle move: {}", e);
+                        Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
                     }
-                } else if endpoint_output_mode == "jsonmode" {
-                    // This block is for handling JSON (rawjson mode)
-                    match handle_chess_move(game_name.clone(), move_data.clone()) {
-                        Ok(_) => {
-                            let json_content_result = wrapper_move_update_and_make_json(&game_name, &move_data);
-                            match json_content_result {
-                                Ok(json_content) => Response::from_string(json_content)
-                                    .with_header(Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
-                                    .with_status_code(200),
-                                Err(e) => {
-                                    eprintln!("Error generating json: {}", e);
-                                    Response::from_string(format!("Error generating json: {}", e)).with_status_code(500)
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            eprintln!("Failed to handle move: {}", e);
-                            Response::from_string(format!("Failed to handle move: {}", e)).with_status_code(500)
-                        }
-                    }
-                } else {
-                    // Handle unexpected endpoint_output_mode values
-                    Response::from_string("Invalid endpoint output mode").with_status_code(400)
                 };
+
 
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
@@ -1216,10 +1105,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 // }
 
 
-                ///////////////////
-                // html svg mode?
-                ///////////////////
-                
                 // // // works
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                 //     Ok(_) => { // Changed svg_content to _
@@ -1253,9 +1138,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 // }
                 
 
-                ///////////////////
-                // html svg mode?
-                ///////////////////
 
                 // let response = match handle_chess_move(game_name.clone(), move_data) { // Clone game_name
                 //     Ok(svg_content) => { // Change back to svg_content
@@ -1285,9 +1167,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 // }
                 
 
-                /////////////////
-                // ascii mode ??
-                /////////////////
+
 
 
             } 
@@ -1454,17 +1334,16 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 if let Err(e) = request.respond(response) {
                     eprintln!("Failed to respond to request: {}", e);
                 }
+                
+
+
 
             } 
 
-
-            ////////////////////////////
             ///////////////////////////
             // setup    (new project)
             /////////////////////////
-            ////////////////////////
-
-                else if url_parts.len() == 5 {
+            else if url_parts.len() == 5 {
                 let mode = url_parts[1].to_string();
                 if mode != "setup" {
                     // Return an error response if the mode is not "setup"
@@ -1478,62 +1357,11 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     let game_type = url_parts[2].to_string();
                     let raw_game_name_section = url_parts[3].to_string();
                     let game_phrase = url_parts[4].to_string();
- 
 
-                    /////////////////////
-                    /////////////////////
+
                     // strip out modules
-                    /////////////////////
-                    /////////////////////                    
-                    /*
-                    sample raw_game_name_section string:
-                    thisgamename_incrimentseconds-(start,30)-(300,10)-(30,5)_timecontrolmin-(40,30)-(60,15)
-                    */
 
-                    ///////////////
-                    // Output Mode
-                    ///////////////
-                    
-                    // look for output_mode in raw_game_name_section
-    
-                    // Declare endpoint_output_mode with a default value
-                    let mut endpoint_output_mode = "png_mode".to_string(); // Use an appropriate default
-                    
-                    // Example output modes to look for within the raw_game_name_section string
-                    let output_modes = [
-                        "rawjsonmode", 
-                        "pngmode", 
-                        "svgmode", 
-                        "asciimode", 
-                        "htmlmode",
-                        ];
-
-                    // Set Mode
-                    // Check if raw_game_name_section contains any of the output modes
-                    for mode in output_modes {
-                        if raw_game_name_section.contains(mode) {
-                            endpoint_output_mode = mode.to_string();
-                            break; // Found a match, no need to continue checking
-                        }
-                    }
-
-                    println!("Endpoint return mode: {}", endpoint_output_mode);
-              
-
-    
-    
-                    ////////////////////
-                    // extract gamename
-                    ////////////////////
                     // // strip out gamename
-                    /*
-                    This code block
-                    removes the first section of the input-string
-                    which contains the game_name
-                    e.g. for input -> 'gamename_bob_bob_bob'
-                    
-                    this returns -> 'gamename'
-                    */
                     let game_name = raw_game_name_section.chars()
                         .take_while(|&ch| ch != '_')
                         .collect::<String>();
@@ -1557,7 +1385,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                     // Check the game type and call the corresponding function
                     let response = if game_type == "chess960" {
-                        match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &endpoint_output_mode, &ip_stamp) {
+                        match setup_new_chess960_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
                             Ok(_) => {
                                 // Load SVG content from file
                                 match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
@@ -1574,7 +1402,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                             Err(e) => Response::from_string(format!("Failed to set up Chess960 game: {}", e)).with_status_code(500),
                         }
                     } else if game_type == "chess" {
-                        match setup_new_png_chess_game(&game_type, &game_name, &game_phrase, &endpoint_output_mode, &ip_stamp) {
+                        match setup_new_png_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
                             Ok(_) => {
                                 // Load SVG content from file
                                 match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
@@ -1591,7 +1419,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                             Err(e) => Response::from_string(format!("Failed to set up Chess game: {}", e)).with_status_code(500),
                         }
                     } else if game_type == "chesssvg" {
-                        match setup_new_svg_chess_game(&game_type, &game_name, &game_phrase, &endpoint_output_mode, &ip_stamp) {
+                        match setup_new_svg_chess_game(&game_type, &game_name, &game_phrase, &ip_stamp) {
                             Ok(_) => {
                                 // Load SVG content from file
                                 match std::fs::read_to_string(format!("games/{}/board.svg", game_name)) {
@@ -1617,7 +1445,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
                     // time_setup
                     // check for game-modes
-                    timedata_parse_setup_string(&raw_game_name_section, &endpoint_output_mode);
+                    timedata_parse_setup_string(&raw_game_name_section);
 
                 }
 
@@ -2280,12 +2108,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     }
 
 
-    fn setup_new_chess960_game(
-        game_type: &str, 
-        game_name: &str, 
-        game_phrase: &str, 
-        endpoint_output_mode: &str,
-        ip_stamp: &str) -> std::io::Result<()> {
+    fn setup_new_chess960_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -2377,8 +2200,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             this_timestamp,
             this_timestamp,
             ip_hash_list, 
-            game_board_state,
-            endpoint_output_mode,
+            game_board_state
         );
 
 
@@ -2409,12 +2231,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
     }
 
 
-    fn setup_new_png_chess_game(
-        game_type: &str, 
-        game_name: &str, 
-        game_phrase: &str, 
-        endpoint_output_mode: &str,
-        ip_stamp: &str) -> std::io::Result<()> {
+    fn setup_new_png_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -2502,8 +2319,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             this_timestamp,
             this_timestamp,
             ip_hash_list, 
-            game_board_state,
-            endpoint_output_mode,
+            game_board_state
         );
 
         // write
@@ -2546,12 +2362,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
 
 
 
-    fn setup_new_svg_chess_game(
-        game_type: &str, 
-        game_name: &str, 
-        game_phrase: &str, 
-        endpoint_output_mode: &str,
-        ip_stamp: &str) -> std::io::Result<()> {
+    fn setup_new_svg_chess_game(game_type: &str, game_name: &str, game_phrase: &str, ip_stamp: &str) -> std::io::Result<()> {
 
         // Validate game_name: novel, permitted, ascii etc.
         if !is_valid_game_name(game_name) {
@@ -2632,8 +2443,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             this_timestamp,
             this_timestamp,
             ip_hash_list, 
-            game_board_state,
-            endpoint_output_mode,
+            game_board_state
         );
 
         // write
@@ -2697,8 +2507,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             game_timestamp: u128,
             activity_timestamp: u128,
             ip_hash_list: Vec<u128>, 
-            game_board_state: [[char; 8]; 8],
-            endpoint_output_mode: String,
+            game_board_state: [[char; 8]; 8]
         ) -> Self {
             Self {
                 game_name,
@@ -2708,7 +2517,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 activity_timestamp,
                 ip_hash_list,
                 game_board_state,
-                endpoint_output_mode,
             }
         }
 
@@ -2727,7 +2535,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 .create(true)
                 .truncate(true)
                 .open(format!("{}/game_type.txt", dir_path))?
-                .write_all(self.game_type.to_string().as_bytes())?;
+                .write_all(self.game_type.as_bytes())?;
         
             OpenOptions::new()
                 .write(true)
@@ -2750,13 +2558,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 .open(format!("{}/ip_hash_list.txt", dir_path))?
                 .write_all(self.ip_hash_list.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ").as_bytes())?;
         
-            OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(format!("{}/endpoint_output_mode.txt", dir_path))?
-                .write_all(self.endpoint_output_modes.to_string().as_bytes())?;
-            
             // Save game (save game_board_state to .txt file)
             std::fs::create_dir_all(&dir_path).expect("Failed to create directory");
 
@@ -2812,16 +2613,7 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     game_board_state[i][j] = c;
                 }
             }
-
-            let mut game_board_state: [[char; 8]; 8] = [[' '; 8]; 8];
-            for (i, row) in game_board_state_rows.into_iter().enumerate() {
-                for (j, c) in row.into_iter().enumerate() {
-                    game_board_state[i][j] = c;
-                }
-            }            
-
-            let endpoint_output_mode = fs::read_to_string(format!("{}/endpoint_output_mode.txt", dir_path))?;
-            
+        
             Ok(Self {
                 game_name,
                 hashed_gamephrase,
@@ -2830,7 +2622,6 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                 activity_timestamp,
                 ip_hash_list,
                 game_board_state,
-                endpoint_output_mode,
             })
         }
 
@@ -2892,13 +2683,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
             "security",
             "docs",
             "y0ur_m0ve",
-            "0ntheb0ard",
             "start",
             "erase",
-            "json",
-            "png",
-            "api",
-            "http",
             "metatag"
             ];
         if reserved_words.contains(&game_name) {
@@ -6268,38 +6054,22 @@ struct TimedProject {
 
     current_move_timestamp: u64, // Timestamp of this move
     previous_move_timestamp: u64, // Timestamp of the last move
-    
     player_white: bool, // Indicates if the player is white
-    
     game_move_number: u32, // Current move number in the game
-    endpoint_output_mode: String,  // rawjson, .png, .html, .svg, ascii, txt, TUI, etc.    
 }
-
 
 impl TimedProject {
 // Modified `from_str` function to handle the described format
 
-    fn from_increment_and_time_control(game_name: &str, endpoint_output_mode: &str, input: &str) -> Option<Self> {
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
         // Get the current timestamp
         let current_timestamp = timestamp_64();
-        
-        /*
-        From: http://0.0.0.0:8000/setup/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
-        
-        intput -> thisgamename1_rawjson_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)
-        
-        */
         // Split the input string by '-'
         let segments: Vec<&str> = input.split('-').collect();
         if segments.len() < 2 {
             return None;
         }
 
-
-        /////////////////
-        // Time Controls
-        /////////////////
-        
         // Initialize empty HashMaps for storing increment and time control settings
         let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
         let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
@@ -6314,7 +6084,7 @@ impl TimedProject {
         // TODO mutibple?
         let white_current_time_increment: u32 = 0;
         let black_current_time_increment: u32 = 0;
-
+        
         // Skip the first segment and loop over the rest
         for segment in segments.iter().skip(1) {
             // Split each segment by ',' and collect into a vector
@@ -6329,7 +6099,7 @@ impl TimedProject {
                 "bullet2",
                 "bliiz5",                                                                                                                                                                                                                           
                 ].contains(segment) {
-                return TimedProject::from_preset_time_modes_chess(segment, game_name, &endpoint_output_mode);
+                return TimedProject::from_preset_time_modes_chess(segment, game_name);
             }
 
             // Minimum two elements should be there in each segment
@@ -6342,9 +6112,6 @@ impl TimedProject {
             let value1 = elements[1].parse::<u32>().ok()?;
             let value2 = elements.get(2).and_then(|x| x.parse().ok())?;
 
-            // output mode
-            let endpoint_output_mode = "rawjson";
-            
             // Handle segments based on the first element in the segments list
             match segments[0] {
                 "incrimentsecsec" => {
@@ -6382,7 +6149,6 @@ impl TimedProject {
             previous_move_timestamp: 0,
             player_white: true,
             game_move_number: 0,
-            endpoint_output_mode: endpoint_output_mode.to_string(),
         })
     }
 
@@ -6655,9 +6421,641 @@ impl TimedProject {
         println!("---end update_timedata_before_move---");
     }
     
+    
+    
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+       
+    //     println!("===update_timedata_before_move===");
+    //     println!("Starting player_white value: {}", self.player_white);
 
+    //     // Starting Edge Case:  white move: "start time"
+    //     // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+    //     if self.game_move_number == 0 {
+    //         let this_timestamp = timestamp_64();
+    //         self.current_move_timestamp = this_timestamp;
+    //         self.project_start_time_timestamp = this_timestamp;
+    //     };
+        
+    //     // Update the last move time (previous 'current' time)
+    //     self.previous_move_timestamp = self.current_move_timestamp;
+    //     println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
+        
+    //     // Update current_move_timestamp
+    //     let current_timestamp = timestamp_64();
+    //     self.current_move_timestamp = current_timestamp;
+    //     println!("Current timestamp: {}", current_timestamp);
+ 
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+    //     println!("Time this turn: {}", time_this_turn);
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+    //     println!("Detected as move by white player: {}", is_white_move);
+
+    //     /*
+    //     THIS IS WRONG!!
+    //     THIS NEEDS TO BE FIXED!!
+    //     In addition to this multi-tuple lookup table
+    //     there needs to be a "Where are we in time?" lookup table,
+    //     to see which tuple is relevant. Namely:
+    //     1. easy: if the move is AT any of the time control move-numbers, add seconds to players time
+    //     2. harder: if move is at or after an incriment move-number AND it is the highest such matching number, add seconds.
+    //     e.g. if an incriment is only valid from move 41-60, do NOT add it after move 60. Only apply the current incriment.
+    //     make a list of incriment-moves at or higher than the current move:
+    //     pick only the highest one:
+    //     apply that one only.
+    //     */
+    //     // check for time increment based on move number or a time-remaining defined increment
+    //     if is_white_move {
+    //         // Check for move-based increment for white
+    //         for (move_num, &(min, sec)) in &self.white_move_timecontrolmin_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for white starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to white: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+    //         // Check for time-defined increment for white
+    //         for (game_duration, increment) in &self.white_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for white: game duration {} exceeded", game_duration);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to white: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for white: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+
+    //     } else {  // If Black Move
+            // /*
+            // THIS IS WRONG!!
+            // THIS NEEDS TO BE FIXED!!
+            // - Add print inspection statement
+            // In addition to this multi-tuple lookup table
+            // there needs to be a "Where are we in time?" lookup table,
+            // to see which tuple is relevant. Namely:
+            // 1. easy: if the move is AT any of the time control move-numbers, add seconds to players time
+            // 2. harder: if move is at or after an incriment move-number AND it is the highest such matching number, add seconds.
+            // e.g. if an incriment is only valid from move 41-60, do NOT add it after move 60. Only apply the current incriment.
+            // make a list of incriment-moves at or higher than the current move:
+            // pick only the highest one:
+            // apply that one only.
+            // */
+    //         // Check for move-based increment for black
+    //         for (move_num, &(min, sec)) in &self.black_move_timecontrolmin_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for black starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to black: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for black
+    //         for (game_duration, increment) in &self.black_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for black: game duration {} exceeded", game_duration);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to black: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for black: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     }
+
+    //     // Deduct time for the appropriate player based on move color
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated white_time_remaining_sec after move: {}", self.white_time_remaining_sec);
+    //         self.player_white = false;
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated black_time_remaining_sec after move: {}", self.black_time_remaining_sec);
+    //         self.player_white = true;
+    //     }
+                
+
+    //     // Increment game move number.
+    //     self.game_move_number += 1;
+    //     println!("Updated game_move_number: {}", self.game_move_number);
+
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+
+    //     println!("---end update_timedata_before_move---");
+    // }
+    
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+        
+    //     first move the previous current-time to the current-past (last) time
+    //     the meaning of the time stats are relative:
+    //     from the perspective of a move being made.
+    //     'last' now means the last 'current_move'
+    //     and what was the previous move, is now the previous-previous move.
+        
+    //     if letter in move data is capital that's white
+
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+
+    //     Note: either player may move a piece on the board
+    //     at any time, this is not nessesarily a game-move.
+    //     player_white only changes if the old player move and new player
+    //     move are NOT the same. (if player_white has changed)
+        
+    //     Note: incriment time based on move-defined and time-defined time incriments
+        
+    //     and check time-controls to add time to a clock either ON a move# (not after)
+        
+        
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("Starting player_white value: {}", self.player_white);
+
+    //     // Starting Edge Case:  white move: "start time"
+    //     // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+    //     if self.game_move_number == 0 {
+    //         let this_timestamp = timestamp_64();
+    //         self.current_move_timestamp = this_timestamp;
+    //         self.project_start_time_timestamp = this_timestamp;
+    //     };
+        
+    //     // Update the last move time (previous 'current' time)
+    //     self.previous_move_timestamp = self.current_move_timestamp;
+    //     println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
+        
+    //     // Update current_move_timestamp
+    //     let current_timestamp = timestamp_64();
+    //     self.current_move_timestamp = current_timestamp;
+    //     println!("Current timestamp: {}", current_timestamp);
+
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+    //     println!("Time this turn: {}", time_this_turn);
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+    //     println!("Detected as move by white player: {}", is_white_move);
+
+        
+    //     // check for time increment based on move number or a time-remaining defined increment
+    //     if is_white_move {
+    //         // Check for move-based increment for white
+    //         for (move_num, &(min, sec)) in &self.white_move_timecontrolmin_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for white starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to white: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for white
+    //         for (game_duration, increment) in &self.white_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for white: game duration {} exceeded", game_duration);
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to white: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for white: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     } else {
+    //         // Check for move-based increment for black
+    //         for (move_num, &(min, sec)) in &self.black_move_timecontrolmin_incrsec_key_values_list {
+    //             if self.game_move_number >= *move_num {
+    //                 println!("Applying move-based increment for black starting from move {}: {} minutes {} seconds", move_num, min, sec);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //                 println!("Added move-based increment to black: {} seconds", sec);
+    //                 break; // break after finding the relevant increment
+    //             } else {
+    //                 println!("No move-based increment found for black on move {}", self.game_move_number);
+    //             }
+    //         }
+            
+    //         // Check for time-defined increment for black
+    //         for (game_duration, increment) in &self.black_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 println!("Time-defined increment condition met for black: game duration {} exceeded", game_duration);
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to black: {} seconds", increment);
+    //             } else {
+    //                 println!("Time-defined increment condition not met for black: game duration {} not exceeded", game_duration);
+    //             }
+    //         }
+    //     }
+
+    //     // Deduct time for the appropriate player based on move color
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated white_time_remaining_sec after move: {}", self.white_time_remaining_sec);
+    //         self.player_white = false;
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated black_time_remaining_sec after move: {}", self.black_time_remaining_sec);
+    //         self.player_white = true;
+    //     }
+                
+                
+                
+    //     // // check for time incriment based on move number or a time-remaining defined incriment
+    //     // if is_white_move {
+
+    //     //     // Check for move-based increment for white
+    //     //     if let Some(&(min, sec)) = self.white_move_timecontrolmin_incrsec_key_values_list.get(&self.game_move_number) {
+    //     //         println!("Found move-based increment for white on move {}: {} minutes {} seconds", self.game_move_number, min, sec);        
+    //     //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //     //         println!("Added move-based increment to white: {}", sec);
+    //     //     }
+            
+    //     //     // Check for time-defined increment for white
+    //     //     for (game_duration, increment) in &self.white_time_timecontrolmin_incrsec_key_values_list {
+    //     //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //     //             self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //     //             println!("Added time-defined increment to white: {}", increment);
+    //     //         }
+    //     //     }
+            
+    //     // } else {
+    //     //     // Check for move-based increment for black
+    //     //     if let Some(&(min, sec)) = self.black_move_timecontrolmin_incrsec_key_values_list.get(&self.game_move_number) {
+    //     //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //     //         println!("Added move-based increment to black: {}", sec);
+    //     //     }
+            
+    //     //     // Check for time-defined increment for black
+    //     //     for (game_duration, increment) in &self.black_time_timecontrolmin_incrsec_key_values_list {
+    //     //         if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //     //             self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //     //             println!("Added time-defined increment to black: {}", increment);
+    //     //         }
+    //     //     }
+
+    //     // }
+        
+
+    //     // // Deduct time for the appropriate player based on move color
+    //     // if is_white_move {
+    //     //     self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     //     println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
+    //     //     self.player_white = false;
+    //     // } else {
+    //     //     self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     //     println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
+    //     //     self.player_white = true;
+    //     // }
+
+        
+    //     // Increment game move number.
+    //     self.game_move_number += 1;
+    //     println!("Updated game_move_number: {}", self.game_move_number);
+
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+
+    //     println!("---end update_timedata_before_move---");
+    // }
+    
+    
+    
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+        
+    //     first move the previous current-time to the current-past (last) time
+    //     the meaning of the time stats are relative:
+    //     from the perspective of a move being made.
+    //     'last' now means the last 'current_move'
+    //     and what was the previous move, is now the previous-previous move.
+        
+    //     if letter in move data is capital that's white
+
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+
+    //     Note: either player may move a piece on the board
+    //     at any time, this is not nessesarily a game-move.
+    //     player_white only changes if the old player move and new player
+    //     move are NOT the same. (if player_white has changed)
+        
+    //     Note: incriment time based on move-defined and time-defined time incriments
+        
+    //     and check time-controls to add time to a clock either ON a move# (not after)
+        
+        
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("Starting player_white value: {}", self.player_white);
+
+    //     // Starting Edge Case:  white move: "start time"
+    //     // which means 'project_start_time_timestamp' and 'current_move_timestamp'
+    //     if self.game_move_number == 0 {
+    //         let this_timestamp = timestamp_64();
+    //         self.current_move_timestamp = this_timestamp;
+    //         self.project_start_time_timestamp = this_timestamp;
+    //     };
+        
+    //     // Update the last move time (previous 'current' time)
+    //     self.previous_move_timestamp = self.current_move_timestamp;
+    //     println!("Updated previous_move_timestamp: {}", self.previous_move_timestamp);
+        
+    //     // Update current_move_timestamp
+    //     let current_timestamp = timestamp_64();
+    //     self.current_move_timestamp = current_timestamp;
+    //     println!("Current timestamp: {}", current_timestamp);
+
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+    //     println!("Time this turn: {}", time_this_turn);
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+    //     println!("Detected as move by white player: {}", is_white_move);
+
+        
+                
+                
+    //     // check for time incriment based on move number or a time-remaining defined incriment
+    //     if is_white_move {
+    //         // self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         // println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
+            
+    //         // Check for move-based increment for white
+    //         if let Some(&(min, sec)) = self.white_move_timecontrolmin_incrsec_key_values_list.get(&self.game_move_number) {
+    //             self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(sec);
+    //             println!("Added move-based increment to white: {}", sec);
+    //         }
+            
+    //         // Check for time-defined increment for white
+    //         for (game_duration, increment) in &self.white_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to white: {}", increment);
+    //             }
+    //         }
+            
+    //         // self.player_white = false;
+    //     } else {
+    //         // self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         // println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
+            
+    //         // Check for move-based increment for black
+    //         if let Some(&(min, sec)) = self.black_move_timecontrolmin_incrsec_key_values_list.get(&self.game_move_number) {
+    //             self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(sec);
+    //             println!("Added move-based increment to black: {}", sec);
+    //         }
+            
+    //         // Check for time-defined increment for black
+    //         for (game_duration, increment) in &self.black_time_timecontrolmin_incrsec_key_values_list {
+    //             if (current_timestamp - self.project_start_time_timestamp) >= (*game_duration as u64) {
+    //                 self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_add(*increment);
+    //                 println!("Added time-defined increment to black: {}", increment);
+    //             }
+    //         }
+
+    //         // self.player_white = true;
+    //     }
+        
+        
+    //     // Deduct time for the appropriate player based on move color
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated white_time_remaining_sec: {}", self.white_time_remaining_sec);
+    //         self.player_white = false;
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //         println!("Updated black_time_remaining_sec: {}", self.black_time_remaining_sec);
+    //         self.player_white = true;
+    //     }
+
+    //     // Increment game move number.
+    //     self.game_move_number += 1;
+    //     println!("Updated game_move_number: {}", self.game_move_number);
+
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+
+    //     println!("---end update_timedata_before_move---");
+    // }
+    
+    
+    
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+    //     let current_timestamp = timestamp_64();
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // If the move is by white, decrement white's time. If by black, decrement black's time.
+    //     if is_white_move {
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     } else {
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     }
+
+    //     // Update the last move time
+    //     self.previous_move_timestamp = current_timestamp;
+
+    //     // Toggle player_white based on the current move.
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Increment game move number. In this logic, every time the function is called, it represents a new move.
+    //     self.game_move_number += 1;
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+
+
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+
+    //     println!("===update_timedata_before_move===");
+        
+
+    //     println!("Received move data: {}", move_data);
+    //     // println!("Detected as move by white player: {}", is_white_move);
+    //     // println!("Player color switched: {}", old_is_white != self.player_white);
+                
+    //     // Update last move time
+    //     self.previous_move_timestamp = timestamp_64();
+        
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+        
+        
+    //     // Save the updated data to the file after making changes
+    //     if let Err(e) = self.save_timedata_to_txt() {
+    //         println!("Error saving updated data to file: {}", e);
+    //     }
+        
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+                
+    // }
+
+        
+    // // Updates fields related to the last move    
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+    //     if letter in move data is capital that's white
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+        
+    //     // Update last move time
+    //     let current_timestamp = timestamp_64();
+    //     let time_spent_this_turn = current_timestamp - self.previous_move_timestamp;
+        
+    //     // Decrement the time remaining for the player who made the last move
+    //     if self.player_white {  // If the last move was by White
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_spent_this_turn as u32);
+    //     } else {  // If the last move was by Black
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_spent_this_turn as u32);
+    //     }
+        
+    //     // Update the last move time
+    //     self.previous_move_timestamp = current_timestamp;
+        
+    //     let current_time = timestamp_64();
+
+    //     // Calculate time spent on this turn
+    //     let time_this_turn = current_time - self.previous_move_timestamp;
+
+    //     // Update last move time
+    //     self.previous_move_timestamp = current_time;
+
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //         // Decrement white's time
+    //         self.white_time_remaining_sec -= time_this_turn as u32;  // Assuming timestamp_64() returns u64
+    //     } else {
+    //         self.player_white = true;
+    //         // Decrement black's time
+    //         self.black_time_remaining_sec -= time_this_turn as u32;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+        
+        
+    // // Updates fields related to the last move
+    // fn update_timedata_before_move(&mut self, move_data: &str) {
+    //     /* 
+    //     update timestamp
+    //     if letter in move data is capital that's white
+    //     if white moves, player_white: false
+    //     if black moves, player_white: true
+    //     if player_white changes, THEN game_move_number += 1
+    //     */
+    //     println!("===update_timedata_before_move===");
+    //     println!("starting player_white value: {}", self.player_white);
+
+    //     // Calculate current timestamp
+    //     let current_timestamp = timestamp_64();
+
+    //     // Calculate time spent on this turn
+    //     let time_this_turn = current_timestamp - self.previous_move_timestamp;
+
+    //     // Decrement the time remaining for the player who made the last move
+    //     if self.player_white {  // If the last move was by White
+    //         self.white_time_remaining_sec = self.white_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     } else {  // If the last move was by Black
+    //         self.black_time_remaining_sec = self.black_time_remaining_sec.saturating_sub(time_this_turn as u32);
+    //     }
+        
+    //     // Update the last move time
+    //     self.previous_move_timestamp = current_timestamp;
+
+    //     // Store the old player color
+    //     let old_is_white = self.player_white;
+
+    //     // Check if the move is by white or black based on the case of the first two letters
+    //     let is_white_move = move_data.chars().take(2).any(|c| c.is_uppercase());
+
+    //     // Logic to toggle player_white and update game_move_number
+    //     if is_white_move {
+    //         self.player_white = false;
+    //     } else {
+    //         self.player_white = true;
+    //     }
+
+    //     // Last, increment game move number only if player color changed
+    //     if old_is_white != self.player_white {
+    //         self.game_move_number += 1;
+    //     }
+
+    //     println!("Received move data: {}", move_data);
+    //     println!("Detected as move by white player: {}", is_white_move);
+    //     println!("Player color switched: {}", old_is_white != self.player_white);
+    //     println!("---end update_timedata_before_move---");
+    // }
+        
+    
     /// Create a TimedProject with preset time modes for chess games
-    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str, endpoint_output_mode: &str) -> Option<Self> {
+    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
         /*
         Make sure you sync pre-sets in: 
             handle_timedata_segment()
@@ -6702,8 +7100,6 @@ impl TimedProject {
 
         https://www.chess.com/events/2023-norway-chess#format
          */
-
-
 
 
 
@@ -6757,7 +7153,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6782,7 +7177,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
 
@@ -6806,7 +7200,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
                 
@@ -6830,7 +7223,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6854,7 +7246,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6888,7 +7279,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             _ => None // Unknown preset
@@ -6930,7 +7320,6 @@ impl TimedProject {
                 writeln!(file, "previous_move_timestamp: {}", self.previous_move_timestamp)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
-                writeln!(file, "endpoint_output_mode: {}", self.endpoint_output_mode)?;
 
                 println!("Successfully saved time_data.txt at path: {}", path);
                 Ok(())
@@ -6942,6 +7331,244 @@ impl TimedProject {
             }
         }
     }
+
+
+    // pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+    
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut previous_move_timestamp: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: u32 = 0;
+
+
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+    
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => {
+    //                 project_start_time_timestamp = parts[1].parse().unwrap();
+    //             }
+    //             "white_time_remaining_sec" => {
+    //                 white_time_remaining_sec = parts[1].parse().unwrap();
+    //             }
+    //             "black_time_remaining_sec" => {
+    //                 black_time_remaining_sec = parts[1].parse().unwrap();
+    //             }
+    //             "white_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 white_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             }
+    //             "black_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 black_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             }
+    //             "white_move_timecontrolmin_incrsec_key_values_list" => {
+    //                 white_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+    //             }
+    //             "black_move_timecontrolmin_incrsec_key_values_list" => {
+    //                 black_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+    //             }
+    //             "previous_move_timestamp" => {
+    //                 previous_move_timestamp = parts[1].parse().unwrap();
+    //             }
+    //             "player_white" => {
+    //                 player_white = parts[1].parse().unwrap();
+    //             }
+    //             "game_move_number" => {
+    //                 game_move_number = parts[1].parse().unwrap();
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         white_time_timecontrolmin_incrsec_key_values_list,
+    //         black_time_timecontrolmin_incrsec_key_values_list,
+    //         white_move_timecontrolmin_incrsec_key_values_list,
+    //         black_move_timecontrolmin_incrsec_key_values_list,
+    //         previous_move_timestamp,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+    
+
+    // pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+    
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut previous_move_timestamp: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: u32 = 0;
+    
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+            
+    //         if parts.len() != 2 {
+    //             println!("Skipping invalid line: {}", line);
+    //             continue;
+    //         }
+    
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => {
+    //                 if let Ok(value) = parts[1].parse::<u64>() {
+    //                     project_start_time_timestamp = value;
+    //                 } else {
+    //                     println!("Failed to parse project_start_time_timestamp: {}", parts[1]);
+    //                 }
+    //             },
+    //             "white_time_remaining_sec" => {
+    //                 if let Ok(value) = parts[1].parse::<u32>() {
+    //                     white_time_remaining_sec = value;
+    //                 } else {
+    //                     println!("Failed to parse white_time_remaining_sec: {}", parts[1]);
+    //                 }
+    //             },
+    //             "black_time_remaining_sec" => {
+    //                 if let Ok(value) = parts[1].parse::<u32>() {
+    //                     black_time_remaining_sec = value;
+    //                 } else {
+    //                     println!("Failed to parse black_time_remaining_sec: {}", parts[1]);
+    //                 }
+    //             },
+    //             "white_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 white_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "black_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 black_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "previous_move_timestamp" => {
+    //                 if let Ok(value) = parts[1].parse::<u64>() {
+    //                     previous_move_timestamp = value;
+    //                 } else {
+    //                     println!("Failed to parse previous_move_timestamp: {}", parts[1]);
+    //                 }
+    //             },
+    //             "player_white" => {
+    //                 if let Ok(value) = parts[1].parse::<bool>() {
+    //                     player_white = value;
+    //                 } else {
+    //                     println!("Failed to parse player_white: {}", parts[1]);
+    //                 }
+    //             },
+    //             _ => {
+    //                 println!("Unknown key encountered: {}", parts[0]);
+    //             }
+    //         }
+            
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         white_time_timecontrolmin_incrsec_key_values_list,
+    //         black_time_timecontrolmin_incrsec_key_values_list,
+    //         white_move_timecontrolmin_incrsec_key_values_list,
+    //         black_move_timecontrolmin_incrsec_key_values_list,
+    //         previous_move_timestamp,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+
+
+
+    // pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
+    //     let path = format!("games/{}/time_data.txt", game_name);
+    //     let file = File::open(&path)?;
+    //     let reader = BufReader::new(file);
+    
+    //     // Initialize variables here
+    //     let mut project_start_time_timestamp: u64 = 0;
+    //     let mut white_time_remaining_sec: u32 = 0;
+    //     let mut black_time_remaining_sec: u32 = 0;
+    //     let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    //     let mut white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    //     let mut previous_move_timestamp: u64 = 0;
+    //     let mut player_white: bool = true;
+    //     let mut game_move_number: u32 = 0;
+    
+    //     for line in reader.lines() {
+    //         let line = line?;
+    //         let parts: Vec<&str> = line.split(": ").collect();
+    
+    //         match parts[0] {
+    //             "project_start_time_timestamp" => {
+    //                 project_start_time_timestamp = parts[1].parse().unwrap_or(0);
+    //             },
+    //             "game_name" => {},
+    //             "white_time_remaining_sec" => {
+    //                 white_time_remaining_sec = parts[1].parse().unwrap_or(0);
+    //             },
+    //             "black_time_remaining_sec" => {
+    //                 black_time_remaining_sec = parts[1].parse().unwrap_or(0);
+    //             },
+    //             "white_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 white_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "black_time_timecontrolmin_incrsec_key_values_list" => {
+    //                 black_time_timecontrolmin_incrsec_key_values_list = string_to_hashmap_timedata(parts[1]);
+    //             },
+    //             "white_move_timecontrolmin_incrsec_key_values_list" => {
+    //                 white_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+    //             },
+    //             "black_move_timecontrolmin_incrsec_key_values_list" => {
+    //                 black_move_timecontrolmin_incrsec_key_values_list = string_to_tuple_hashmap_timedata(parts[1]);
+    //             },
+    //             "previous_move_timestamp" => {
+    //                 previous_move_timestamp = parts[1].parse().unwrap_or(0);
+    //             },
+    //             "player_white" => {
+    //                 player_white = parts[1].parse().unwrap_or(true);
+    //             },
+    //             "game_move_number" => {
+    //                 game_move_number = parts[1].parse().unwrap_or(0);
+    //             },
+    //             _ => println!("Unknown key encountered: {}", parts[0]),
+    //         }
+    //     }
+    
+    //     Ok(TimedProject {
+    //         game_name: game_name.to_string(),
+    //         project_start_time_timestamp,
+    //         white_time_remaining_sec,
+    //         black_time_remaining_sec,
+    //         white_time_timecontrolmin_incrsec_key_values_list,
+    //         black_time_timecontrolmin_incrsec_key_values_list,
+    //         white_move_timecontrolmin_incrsec_key_values_list,
+    //         black_move_timecontrolmin_incrsec_key_values_list,
+    //         previous_move_timestamp,
+    //         player_white,
+    //         game_move_number,
+    //     })
+    // }
+
+
 
 
 pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
@@ -6965,7 +7592,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     let mut previous_move_timestamp: u64 = 0;
     let mut player_white: bool = true;
     let mut game_move_number: u32 = 0;
-    let mut endpoint_output_mode: String = String::new();
 
     // remove whitespace
     for line in reader.lines() {
@@ -7036,10 +7662,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
                 game_move_number = parts[1].parse().unwrap_or(0);
                 println!("game_move_number: {}", game_move_number);
             },
-            "endpoint_output_mode" => {
-                endpoint_output_mode = parts[1].parse::<String>().unwrap_or_else(|_| "default_value".to_string());
-                println!("endpoint_output_mode: {}", endpoint_output_mode);
-            },
             _ => println!("Unknown key encountered: {}\n\n", parts[0]),
         }
         
@@ -7062,7 +7684,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         previous_move_timestamp,
         player_white,
         game_move_number,
-        endpoint_output_mode,
     })
  
        
@@ -7186,7 +7807,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("previous_move_timestamp: {}", project.previous_move_timestamp);       
         println!("player_white: {}", project.player_white);
         println!("Current game move number: {}", project.game_move_number);
-        println!("endpoint return mode: {}", project.endpoint_output_mode);
 
 
 
@@ -7402,314 +8022,11 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         html_content
     }
     
-
-
-
-    /*
-    v1
-    Generates the json
-    */
-    pub fn generate_json_with_time_data(project: &TimedProject, current_timestamp: u64) -> String {
-        /* 
-        html time_bar_html items:
-        - White Time Remaining:
-        - Black Time Remaining:
-        \n
-        - Time Spent This Turn so Far:
-        - Total Time Since Start of Game:
-        - This Game Move: int
-        - Next (White/Black) Time-Control at Move: int
-        - Next (White/Black) Time-Control (in minutes): 
-        - Current (White/Black) Increment:
-        - Next (White/Black) Increment at time (sec):
-        - Next (White/Black) Increment on Move: int
-
-        making other helper function if needed is fine
-
-        Rules: 
-        1. If time controls or incriments are blank, generate no html.
-        2. If black and white time contorls or incriments are the same, 
-        then just print without 'black or white.'
-        If they are different, print separately.
-        3. 
-
-        example of timedata.txt
-        game_name: t2
-        project_start_time_timestamp: 1695688402
-        white_time_remaining_sec: 7200
-        black_time_remaining_sec: 7200
-        white_time_timecontrolmin_incrsec_key_values_list: {}
-        black_time_timecontrolmin_incrsec_key_values_list: {}
-        white_move_timecontrolmin_incrsec_key_values_list: {41: (0, 10)}
-        black_move_timecontrolmin_incrsec_key_values_list: {41: (0, 10)}
-        previous_move_timestamp: 0
-        player_white: true
-        game_move_number: 0
-        */
-        println!("=== Start generate_html_with_time_data ===");
-
-        // Print struct
-        println!("Print Struct generate_html_with_time_data() {:?}", project); 
-        
-        // Initialize the HTML string
-        let json_timedata_string = String::new();
-        
-        // Calculate the time since the start of the game.
-        let time_since_start = current_timestamp - project.project_start_time_timestamp;
-        
-        // Calculate the time used so far in this turn.
-        let time_this_turn = current_timestamp - project.previous_move_timestamp;
-
-
-        // Print statements for debugging
-        println!("Current timestamp: {}", current_timestamp);
-        println!("Time since start: {}", time_since_start);
-        println!("Time this turn: {}", time_this_turn);
-        println!("White time remaining: {}", project.white_time_remaining_sec);
-        println!("Black time remaining: {}", project.black_time_remaining_sec);
-        println!("player_white: {}", project.player_white);
-        println!("player_white: {}", project.player_white);
-        println!("project_start_time_timestamp: {}", project.project_start_time_timestamp);
-        println!("white_time_timecontrolmin_incrsec_key_values_list: {:#?}", project.white_time_timecontrolmin_incrsec_key_values_list);
-        println!("black_time_timecontrolmin_incrsec_key_values_list: {:#?}", project.black_time_timecontrolmin_incrsec_key_values_list);
-        println!("white_move_timecontrolmin_incrsec_key_values_list: {:#?}", project.white_move_timecontrolmin_incrsec_key_values_list);
-        println!("black_move_timecontrolmin_incrsec_key_values_list: {:#?}", project.black_move_timecontrolmin_incrsec_key_values_list);
-        println!("current_move_timestamp: {}", project.current_move_timestamp);       
-        println!("previous_move_timestamp: {}", project.previous_move_timestamp);       
-        println!("player_white: {}", project.player_white);
-        println!("Current game move number: {}", project.game_move_number);
-        println!("endpoint return mode: {}", project.endpoint_output_mode);
-
-
-
-        let mut json_timedata_string = String::new();
-
-        // boolean flags for time data
-        let same_time_controls_flag = project.white_time_remaining_sec == project.black_time_remaining_sec;
-        let everything_empty_flag = project.white_time_timecontrolmin_incrsec_key_values_list.is_empty() && project.black_time_timecontrolmin_incrsec_key_values_list.is_empty();
-        let all_before_current_move_flag = project.white_move_timecontrolmin_incrsec_key_values_list.keys().all(|&k| k < project.game_move_number) &&
-                                            project.black_move_timecontrolmin_incrsec_key_values_list.keys().all(|&k| k < project.game_move_number);
-        let white_black_tables_identical_flag = project.white_move_timecontrolmin_incrsec_key_values_list == project.black_move_timecontrolmin_incrsec_key_values_list;
-        let time_increment_exists_flag = !project.white_time_timecontrolmin_incrsec_key_values_list.is_empty() || !project.black_time_timecontrolmin_incrsec_key_values_list.is_empty();
-        let future_time_control_exists_flag = project.white_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| u64::from(k) > (project.current_move_timestamp - project.project_start_time_timestamp) / 60) ||
-                                                project.black_time_timecontrolmin_incrsec_key_values_list.keys().any(|&k| u64::from(k) > (project.current_move_timestamp - project.project_start_time_timestamp) / 60);
-        let time_based_events_exist = !project.white_time_timecontrolmin_incrsec_key_values_list.is_empty() || !project.black_time_timecontrolmin_incrsec_key_values_list.is_empty();
-
-        // Based on flags, conditionally generate HTML lines
-        if !everything_empty_flag & !all_before_current_move_flag {
-            
-            if same_time_controls_flag {
-
-                  for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                
-            } else {
-                // Print separate lines for white and black
-                
-                // Loop through white_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-                for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                
-                // Loop through black_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-                for (move_num, (min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                      
-                
-                
-            }
-
-
-
-            if white_black_tables_identical_flag {
-                // Print identical information only once
-            }
-
-            if time_increment_exists_flag & white_black_tables_identical_flag {
-                // Generate lines for time increments
-                for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                
-            } else if time_increment_exists_flag {
-                
-                // Include time increments for White and Black if available.
-                // Loop through white_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-                for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" White Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                
-                // Loop through black_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-                for (move_num, (min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-                    json_timedata_string.push_str(&format!(" Black Time Increment starts on move {}: {} min {} sec\n", move_num, min, sec));
-                }
-                
-            }
-
-            if future_time_control_exists_flag {
-                // Generate lines for future time controls
-            }
-
-            if time_based_events_exist {
-                // Generate lines for time-based events
-            }
-        }
-
-
-        ////////////
-        ////////////
-        ////////////
-        ////////////
-
-
-
-
-        ///////////////////////////////////
-        
-        // // Calculate and add next time control and increment details
-        // // Logic to determine moves to next time control, next time control in minutes, and increments.
-        // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
-        
-        // // Add to HTML string
-        // json_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        // json_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
-
-
-        // // Format time using helper functions
-        let time_since_start_str = posix_to_readable_datetime(time_since_start);
-        let time_this_turn_str = seconds_to_hms(time_this_turn);
-        // let white_time_str = seconds_to_hms(project.white_time_remaining_sec.into());  // <-- Modification here
-        // let black_time_str = seconds_to_hms(project.black_time_remaining_sec.into());  // <-- And here, if black_time_remaining_sec is also u32
-        
-        
-        // json_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", white_time_str, black_time_str));
-        // json_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn_str, time_since_start_str));
-
-        // // let (moves_to_next_time_control, next_time_control_min, current_increment, next_increment_time, next_increment_move) = calculate_time_control_and_increment_details(project);
-
-        // json_timedata_string.push_str(&format!("- Next Time-Control at Move: {}\n- Next Time-Control (in minutes): {}\n", moves_to_next_time_control, next_time_control_min));
-        // json_timedata_string.push_str(&format!("- Current Increment: {}\n- Next Increment at time (sec): {}\n- Next Increment on Move: {}\n", current_increment, next_increment_time, next_increment_move));
-
-
-        
-        
-        ////////////
-        ////////////
-        ////////////
-        ////////////
-
-        // next_move black or white
-        let next_move = if project.player_white {
-            "White"
-        } else {
-            "Black"
-        };
-        json_timedata_string.push_str(&format!("<li>Next Move: {}</li>", next_move));
-
-        // // Add time information to the HTML string
-        // json_timedata_string.push_str(&format!("- White Time Remaining: {}\n- Black Time Remaining: {}\n", project.white_time_remaining_sec, project.black_time_remaining_sec));
-        // json_timedata_string.push_str(&format!("- Time Spent This Turn so Far: {}\n- Total Time Since Start of Game: {}\n", time_this_turn, time_since_start));
-
-        // // Add move number
-        // json_timedata_string.push_str(&format!("<li>White Time Remaining: {}</li><li>Black Time Remaining: {}</li>", white_time_str, black_time_str));
-        // json_timedata_string.push_str(&format!("<li>This Game Move: {}</li>", project.game_move_number));
-
-
-        // TODO this needs to be updated for black and white separate settings
-        let (
-            white_moves_to_next_time_control, 
-            black_moves_to_next_time_control,
-    
-            white_next_time_control_min, 
-            black_next_time_control_min, 
-    
-            white_current_increment, 
-            black_current_increment, 
-    
-            white_next_increment_time, 
-            black_next_increment_time, 
-            
-            white_next_increment_move,
-            black_next_increment_move,
-
-        ) = calculate_time_control_and_increment_details(project);
-
-
-        // Conditionally append time control and increment details
-        if white_moves_to_next_time_control > 0 || white_next_time_control_min > 0 {
-            json_timedata_string.push_str(&format!("<li>White Next Time-Control at Move: {}</li><li>White Next Time-Control (in minutes): {}</li>", white_moves_to_next_time_control, white_next_time_control_min));
-        }
-        if black_moves_to_next_time_control > 0 || black_next_time_control_min > 0 {
-            json_timedata_string.push_str(&format!("<li>Black Next Time-Control at Move: {}</li><li>Black Next Time-Control (in minutes): {}</li>", black_moves_to_next_time_control, black_next_time_control_min));
-        }
-
-        if white_current_increment > 0 {
-            json_timedata_string.push_str(&format!("<li>White Current Increment: {}</li><li>White Next Increment at time (sec): {}</li><li>White Next Increment on Move: {}</li>", white_current_increment, white_next_increment_time, white_next_increment_move));
-        }    
-        if black_current_increment > 0 {
-            json_timedata_string.push_str(&format!("<li>Black Current Increment: {}</li><li>Black Next Increment at time (sec): {}</li><li>Black Next Increment on Move: {}</li>", black_current_increment, black_next_increment_time, black_next_increment_move));
-        }    
-
-
-        // Include time increments for White and Black if available.
-        // Loop through white_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-        for (move_num, (min, sec)) in &project.white_move_timecontrolmin_incrsec_key_values_list {
-            json_timedata_string.push_str(&format!("<li>White Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
-            json_timedata_string.push_str(&format!("<li>White Time Control starts on move {}: adding {} min.</li>", move_num, min));
-        }
-
-        // Loop through black_move_timecontrolmin_incrsec_key_values_list to dynamically include information
-        for (move_num, (min, sec)) in &project.black_move_timecontrolmin_incrsec_key_values_list {
-            json_timedata_string.push_str(&format!("<li>Black Time Increment starts on move {}: adding {} sec per move.</li>", move_num, sec));
-            json_timedata_string.push_str(&format!("<li>Black Time Control starts on move {}: adding {} min.</li>", move_num, min));
-        }
-
-        json_timedata_string.push_str(&format!("<li>Time Spent This Turn so Far: {}</li><li>Total Time Since Start of Game: {}</li>", time_this_turn_str, time_since_start_str));
-        
-        // Final HTML content
-        let json_content = format!(r#"
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta property="og:title" content="Current Game Board" />
-            <meta property="og:image" content="https://y0urm0ve.com/metatag_{}.png" />
-
-        </head>
-        <body style="background-color:black;">
-            <img src="https://y0urm0ve.com/image_{}.png" alt="chess board" height="850px" width="850px" />
-            <div style="color: gray; font-size: 42px;"> 
-            <ul style="list-style-type: none;">
-            {}
-            </ul>
-        </body>
-        </html>
-        "#,
-        project.game_name,
-        project.game_name,
-        json_timedata_string,
-        );
-
-        json_content
-    }
-    
     // End of struct implimentation: TimedProject
 }
 
 
 
-
-// Wrapper for use-case 1: Create or update struct and make HTML
-pub fn wrapper_move_update_and_make_json(game_name: &str, move_data: &str) -> io::Result<String> {
-    let mut project = TimedProject::load_timedata_from_txt(game_name)?;
-    
-    // Update the struct using the update_timedata_before_move function
-    project.update_timedata_before_move(move_data);
-    
-    // Generate the HTML content using the updated struct
-    Ok(TimedProject::generate_json_with_time_data(&project, timestamp_64()))
-}
 
 
 // Wrapper for use-case 1: Create or update struct and make HTML
@@ -7752,7 +8069,7 @@ fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
 
 
 // Function to parse the time_section_string
-fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: &str) -> Vec<Option<TimedProject>> {
+fn timedata_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
     /*
     uses: fn handle_timedata_segment(segment: &str) -> Option<TimedProject> {
 
@@ -7796,7 +8113,7 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
     for segment in segments.iter().skip(1) {
         println!("segment: {}", segment);
 
-        projects.push(handle_timedata_segment(&game_name, &endpoint_output_mode, segment));
+        projects.push(handle_timedata_segment(&game_name, segment, ));
     }
 
     // Save the parsed projects to a file at the end of the setup.
@@ -7813,8 +8130,7 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
 
 
 // Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
-fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment: &str) -> Option<TimedProject> {
-    
+fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
     println!("segment: {}", segment);
     let keyword: Vec<&str> = segment.split('-').collect();
 
@@ -7822,14 +8138,14 @@ fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment:
     if keyword[0] == "incrimentseconds" {
         println!("incrimentseconds => {}", keyword[0]);
         println!("segment => {}", segment);
-        return TimedProject::from_increment_and_time_control(&game_name, &endpoint_output_mode, segment);
+        return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
     // Step 2.2: Handle time control minutes
     if keyword[0] == "timecontrolmin" {
         println!("timecontrolmin => {}", keyword[0]);
         println!("segment => {}", segment);
-        return TimedProject::from_increment_and_time_control(&game_name, &endpoint_output_mode, segment);
+        return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
     // Step 2.3: Handle pre-set time modes
@@ -7844,7 +8160,7 @@ fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment:
     {
         println!("pre-set time mode => {}", keyword[0]);
         println!("segment => {}", segment);
-        return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name, &endpoint_output_mode);
+        return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name);
     }
 
     None

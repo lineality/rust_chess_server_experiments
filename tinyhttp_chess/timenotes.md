@@ -329,3 +329,138 @@ Our task here is to complete the top part of this function to replace the placeh
         let current_increment = 0;
         let next_increment_time = 0;
         let next_increment_move = 0;
+
+
+...
+
+
+rust error: I am in the process of trying to add another type of mode to be handled in this input.
+time control is already handled.
+now output format needs to be handled.
+please suggest code/logic for a second search of the segments for the relevant terms.
+
+code:
+
+  fn handling_modes(game_name: &str, input: &str) -> Option<Self> {
+    // Get the current timestamp
+    let current_timestamp = timestamp_64();
+    // Split the input string by '-'
+    let segments: Vec<&str> = input.split('-').collect();
+    if segments.len() < 2 {
+      return None;
+    }
+
+    // Initialize empty HashMaps for storing increment and time control settings
+    let mut white_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    let mut black_time_timecontrolmin_incrsec_key_values_list: HashMap<u32, u32> = HashMap::new();
+    let mut white_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+    let mut black_move_timecontrolmin_incrsec_key_values_list: HashMap<u32, (u32, u32)> = HashMap::new();
+     
+    // Initialize remaining time variables
+    let mut white_time_remaining_sec: u32 = 0;
+    let mut black_time_remaining_sec: u32 = 0;
+
+    // TODO set based on tuple for time/move zero
+    // TODO mutibple?
+    let white_current_time_increment: u32 = 0;
+    let black_current_time_increment: u32 = 0;
+     
+    // Skip the first segment and loop over the rest
+    for segment in segments.iter().skip(1) {
+      // Split each segment by ',' and collect into a vector
+      let elements: Vec<&str> = segment.split(',').collect();
+
+      // Check for preset formats
+      if ["norway120", 
+        "norwayarmageddon",
+        "fideworldchampmatch",
+        "bypost",
+        "bullet1",
+        "bullet2",
+        "bliiz5",                                                                                                              
+        ].contains(segment) {
+        return TimedProject::from_preset_time_modes_chess(segment, game_name);
+      }
+
+      // Minimum two elements should be there in each segment
+      if elements.len() < 2 {
+        return None;
+      }
+
+      // Parse key, value1, and optional value2
+      let key = elements[0].parse::<u32>().ok()?;
+      let value1 = elements[1].parse::<u32>().ok()?;
+      let value2 = elements.get(2).and_then(|x| x.parse().ok())?;
+
+      // output mode
+      let endpoint_return_mode = "api_json";
+       
+      // Handle segments based on the first element in the segments list
+      match segments[0] {
+        "incrimentsecsec" => {
+          // Insert increments for white and black
+          white_time_timecontrolmin_incrsec_key_values_list.insert(key, value1);
+          black_time_timecontrolmin_incrsec_key_values_list.insert(key, value1);
+        }
+        "timecontrolmovemin" => {
+          // If key is zero, set the initial time in seconds
+          if key == 0 {
+            white_time_remaining_sec = value1 * 60;
+            black_time_remaining_sec = value1 * 60;
+          }
+          // Insert time controls for white and black
+          white_move_timecontrolmin_incrsec_key_values_list.insert(key, (value1, value2));
+          black_move_timecontrolmin_incrsec_key_values_list.insert(key, (value1, value2));
+        }
+        _ => return None,
+      }
+    }
+
+    // Construct and return the TimedProject object
+    Some(TimedProject {
+      game_name: game_name.to_string(),
+      project_start_time_timestamp: current_timestamp,
+      white_time_remaining_sec,
+      black_time_remaining_sec,
+      white_current_time_increment,
+      black_current_time_increment,
+      white_time_timecontrolmin_incrsec_key_values_list,
+      black_time_timecontrolmin_incrsec_key_values_list,
+      white_move_timecontrolmin_incrsec_key_values_list,
+      black_move_timecontrolmin_incrsec_key_values_list,
+      current_move_timestamp: 0,
+      previous_move_timestamp: 0,
+      player_white: true,
+      game_move_number: 0,
+      endpoint_return_mode: endpoint_return_mode.to_string(),
+    })
+  }
+
+
+
+error[E0425]: cannot find value `endpoint_return_mode` in this scope
+  --> src/main.rs:6159:35
+   |
+6061 |   endpoint_return_mode: String, // api_json, .png, .html, .svg, ascii, txt, TUI, etc.
+   |   ---------------------------- a field by that name exists in `Self`
+...
+6159 |       endpoint_return_mode: endpoint_return_mode.to_string(),
+
+
+this value is inside 'segments' so may require a new section
+endpoint_return_mode is NOT a game time control, a separate task,
+likely requiring another search:
+
+    // Skip the first segment and loop over the rest
+    for segment in segments.iter().skip(1) {
+      // Split each segment by ',' and collect into a vector
+      let elements: Vec<&str> = segment.split(',').collect();
+
+      // Check for preset formats
+      if ["api_json", 
+		"png",
+		"svg",
+		"html",                                                                                            
+        ].contains(segment) {
+        return TimedProject::from_preset_time_modes_chess(segment, game_name);
+      }

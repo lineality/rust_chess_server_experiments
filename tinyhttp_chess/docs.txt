@@ -116,15 +116,33 @@ this is meant to strike a balance between use-ability, and privacy
 
 
 
-narrative: why this system?
+Narrative: wWy this system?
 
-My sister's husband send me a text message which was a photo of a chess game we had been in the middle of and two words: your move
-To me this was an epiphany, of sorts. People have been playing chess (as one example) by correspondence for probably over a millennium. And the simplicity of sharing a move or a board-image is part of what makes this possible. We have the internet, and powerful pocket computers (phones), and yet still the most convenient way to share a chess game move by text message is to take a photo of a physical board and send it? 
+Reviving Correspondence Chess
 
-There should be an equivalent way to do this using the internet, without the abomination of logins and cookies and ads and registering accounts and downloading bloatware and user tracking and social media and payment methods etc etc. How simple could an online chess game, as one example, be? What parts are absolutely needed? What flexibility is needed? How could you send your move in a text message, or an email, or however you want? How do you tell someone: it's your move. How could you avoid the privacy-password-login catastrophe the internet has become? 
+My sister's husband sent me a text message which was a photo of a chess game we had been in the middle of and two words: your move
+To me this was an epiphany, of sorts, or snowballed into one. People have been playing chess (as one example) by correspondence 
+for probably over a millennium. And the simplicity of sharing a move or a board-image is part of what makes this possible.
+You can very easily mail, or email, or text someone either your move or the whole board configuration in just a few characters.
+But while we have the internet, and powerful pocket computers (phones), still the most convenient way play Correspondence Chess,
+to share a chess game move by electric signal message, is to take a photo of a physical board and send it as an attachment. 
+This conspiculous disjunction seems wrong. 
+
+There should be an equivalent way play Correspondence Chess using the internet, 
+(and without the abomination of logins and cookies and ads and registering accounts 
+and downloading bloatware and user tracking and social media and payment methods 
+and updating software, and multifactor authenticaion, and confirming your mobile number,
+etc etc.)
+
+How simple could an online chess game, as one example, be? 
+What parts are absolutely needed? What flexibility is needed? 
+How could you send your move in a text message, or an email, or however you want? 
+How do you tell someone: it's your move. 
+How could you avoid the privacy-password-login catastrophe the internet has become? 
+
 
 Simple and flexbile:
-this is a game-board, that's it.
+This is a game-board, that's it.
 just like a physical board, you put a piece wherever you want
 
 
