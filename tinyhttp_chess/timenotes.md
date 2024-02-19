@@ -1,4 +1,10 @@
 Todo: 
+
+
+maybe problem in 
+    fn from_increment_and_time_control()
+
+
 timedata file is being erased for
 white_time_timecontrolmin_incrsec_key_values_list: {}
 black_time_timecontrolmin_incrsec_key_values_list: {}
