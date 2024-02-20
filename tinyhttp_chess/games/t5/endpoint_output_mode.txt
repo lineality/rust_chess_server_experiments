@@ -1,1 +1,1 @@
-pngmode
+rawjsonmode

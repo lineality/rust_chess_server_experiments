@@ -1,6 +1,10 @@
 /*
 RUST_BACKTRACE=full cargo run
 
+http://0.0.0.0:8000/setup/chess960/t2_rawjsonmode_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
+http://0.0.0.0:8000/setup/chess960/r1/love
+
+
 http://0.0.0.0:8000/game/Pc2c4
 
 http://0.0.0.0:8000/setup/chess/t3_norway120/love
@@ -10,6 +14,9 @@ http://0.0.0.0:8000/game/Pc2c4
 
 http://0.0.0.0:8000/setup/chess960/ramen/love
 http://0.0.0.0:8000/game/Pc2c4
+
+
+
 
 http://0.0.0.0:8000/setup/chess960/thisgamename1_incrimentseconds-(0,30)-(300,10)-(30,5)_timecontrolmin-(0,240)-(40,30)-(60,15)/love
 
@@ -1621,8 +1628,8 @@ fn process_in_memory_requests(in_memory_queue: &Arc<Mutex<VecDeque<Request>>>, c
                     }
 
                     // time_setup
-                    println!("timedata_parse_setup_string...");
-                    timedata_parse_setup_string(&raw_game_name_section, &endpoint_output_mode);
+                    println!("\ntimedata_parse_setup_string...");
+                    timedata_parse_setup_string(&raw_game_name_section);
 
                      }
                     }
@@ -6269,21 +6276,19 @@ struct TimedProject {
     player_white: bool, // Indicates if the player is white
     
     game_move_number: u32, // Current move number in the game
-    endpoint_output_mode: String,  // rawjson, .png, .html, .svg, ascii, txt, TUI, etc.    
 }
 
 
 impl TimedProject {
 // Modified `from_str` function to handle the described format
 
-    fn from_increment_and_time_control(game_name: &str, endpoint_output_mode: &str, input: &str) -> Option<Self> {
+    fn from_increment_and_time_control(game_name: &str, input: &str) -> Option<Self> {
         // Get the current timestamp
         let current_timestamp = timestamp_64();
         
         
         println!("\n===from_increment_and_time_control()===");
         println!("game_name: {}", game_name);
-        println!("endpoint_output_mode: {}", endpoint_output_mode);
         println!("input: {}", input);
         
         /*
@@ -6294,6 +6299,8 @@ impl TimedProject {
         */
         // Split the input string by '-'
         let segments: Vec<&str> = input.split('-').collect();
+        // println!("dbg!(&segments)");
+        // dbg!(&segments); // Inspect the value of 'segments' here
         if segments.len() < 2 {
             return None;
         }
@@ -6332,7 +6339,7 @@ impl TimedProject {
                 "bullet2",
                 "bliiz5",                                                                                                                                                                                                                           
                 ].contains(segment) {
-                return TimedProject::from_preset_time_modes_chess(segment, game_name, &endpoint_output_mode);
+                return TimedProject::from_preset_time_modes_chess(segment, game_name);
             }
 
             // Minimum two elements should be there in each segment
@@ -6383,7 +6390,6 @@ impl TimedProject {
             previous_move_timestamp: 0,
             player_white: true,
             game_move_number: 0,
-            endpoint_output_mode: endpoint_output_mode.to_string(),
         })
     }
 
@@ -6658,7 +6664,7 @@ impl TimedProject {
     
 
     /// Create a TimedProject with preset time modes for chess games
-    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str, endpoint_output_mode: &str) -> Option<Self> {
+    pub fn from_preset_time_modes_chess(preset: &str, game_name: &str) -> Option<Self> {
         /*
         Make sure you sync pre-sets in: 
             handle_timedata_segment()
@@ -6758,7 +6764,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6783,7 +6788,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
 
@@ -6807,7 +6811,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
                 
@@ -6831,7 +6834,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6855,7 +6857,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             
@@ -6889,7 +6890,6 @@ impl TimedProject {
                     previous_move_timestamp: 0,
                     player_white: true,
                     game_move_number: 0,
-                    endpoint_output_mode: endpoint_output_mode.to_string(),
                 })
             },
             _ => None // Unknown preset
@@ -6931,7 +6931,6 @@ impl TimedProject {
                 writeln!(file, "previous_move_timestamp: {}", self.previous_move_timestamp)?;
                 writeln!(file, "player_white: {}", self.player_white)?;
                 writeln!(file, "game_move_number: {}", self.game_move_number)?;
-                writeln!(file, "endpoint_output_mode: {}", self.endpoint_output_mode)?;
 
                 println!("Successfully saved time_data.txt at path: {}", path);
                 Ok(())
@@ -6966,7 +6965,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
     let mut previous_move_timestamp: u64 = 0;
     let mut player_white: bool = true;
     let mut game_move_number: u32 = 0;
-    let mut endpoint_output_mode: String = String::new();
 
     // remove whitespace
     for line in reader.lines() {
@@ -7037,10 +7035,7 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
                 game_move_number = parts[1].parse().unwrap_or(0);
                 println!("game_move_number: {}", game_move_number);
             },
-            "endpoint_output_mode" => {
-                endpoint_output_mode = parts[1].parse::<String>().unwrap_or_else(|_| "default_value".to_string());
-                println!("endpoint_output_mode: {}", endpoint_output_mode);
-            },
+
             _ => println!("Unknown key encountered: {}\n\n", parts[0]),
         }
         
@@ -7063,7 +7058,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         previous_move_timestamp,
         player_white,
         game_move_number,
-        endpoint_output_mode,
     })
  
        
@@ -7187,7 +7181,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("previous_move_timestamp: {}", project.previous_move_timestamp);       
         println!("player_white: {}", project.player_white);
         println!("Current game move number: {}", project.game_move_number);
-        println!("endpoint return mode: {}", project.endpoint_output_mode);
 
 
 
@@ -7458,7 +7451,6 @@ pub fn load_timedata_from_txt(game_name: &str) -> io::Result<TimedProject> {
         println!("previous_move_timestamp: {}", project.previous_move_timestamp);       
         println!("player_white: {}", project.player_white);
         println!("Current game move number: {}", project.game_move_number);
-        println!("endpoint return mode: {}", project.endpoint_output_mode);
 
 
 
@@ -7620,7 +7612,7 @@ fn parse_tuple_vec<T: FromStr, U: FromStr>(s: &str) -> io::Result<Vec<(T, U)>> {
 
 
 // Function to parse the time_section_string
-fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: &str) -> Vec<Option<TimedProject>> {
+fn timedata_parse_setup_string(time_section_string: &str) -> Vec<Option<TimedProject>> {
     /*
     uses: fn handle_timedata_segment(segment: &str) -> Option<TimedProject> {
 
@@ -7644,7 +7636,7 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
 
     the timecontrolmin: the first tuple number is the number of moves into the game when time gets added to the clock, the second number is how many minutes get added.
     */
-    println!("time_section_string: {}", time_section_string);
+    println!("\n timedata_parse_setup_string() Whole time_section_string: {}", time_section_string);
 
     // // strip out gamename
     let game_name = time_section_string.chars()
@@ -7653,8 +7645,6 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
 
     println!("game_name: {}", game_name);
 
-
-    // let mut projects = Vec::new();
     
     // Define the projects vector with explicit type annotation
     let mut projects: Vec<Option<TimedProject>> = Vec::new();
@@ -7664,40 +7654,47 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
 
     // Debug print to inspect the segments
     println!("Segments: {:?}", segments);    
-    
-    // // Step 2: Loop through each segment, skipping the first one (game name),
-    // // and parse the relevant time-related settings
-    // for segment in segments.iter().skip(1) {
-    //     println!("segment: {}", segment);
 
-    //     projects.push(handle_timedata_segment(&game_name, &endpoint_output_mode, segment));
-    // }
+    // if there is anything asside from the name of the game:
+    if segments.len() > 1{
+        // Step 2: Loop through each segment, skipping the first one (game name),
+        // and parse the relevant time-related settings
+        for segment in segments.iter().skip(1) {
+            println!("segment: {}", segment);
 
-    // Step 2: Loop through each segment, skipping the first one (game name),
-    // and parse the relevant time-related settings
-    for segment in segments.iter().skip(1) {
-        println!("Processing segment: {}", segment);
-
-        // Directly push the result of handle_timedata_segment as it returns Option<TimedProject>
-        let project = handle_timedata_segment(&game_name, &endpoint_output_mode, segment);
-        match &project {
-            Some(_) => println!("Segment processed successfully."),
-            None => println!("Failed to process segment or no relevant data found."),
+            projects.push(handle_timedata_segment(&game_name, segment));
         }
-        projects.push(project);
+
+        // // Step 2: Loop through each segment, skipping the first one (game name),
+        // // and parse the relevant time-related settings
+        // for segment in segments.iter().skip(1) {
+        //     println!("Processing segment: {}", segment);
+
+        //     // Directly push the result of handle_timedata_segment as it returns Option<TimedProject>
+        //     let project = handle_timedata_segment(&game_name, &endpoint_output_mode, segment);
+        //     match &project {
+        //         Some(_) => println!("Segment processed successfully."),
+        //         None => println!("Failed to process segment or no relevant data found."),
+        //     }
+        //     projects.push(project);
+        // }
+            
+        // // Save the parsed projects to a file at the end of the setup.
+        // for project in &projects {
+        //     if let Some(valid_project) = project {
+        //         if let Err(e) = valid_project.save_timedata_to_txt() {
+        //             println!("Failed to save project: {}", e);
+        //         }
+        //     }
+        // }
     }
         
-    // // Save the parsed projects to a file at the end of the setup.
-    // for project in &projects {
-    //     if let Some(valid_project) = project {
-    //         if let Err(e) = valid_project.save_timedata_to_txt() {
-    //             println!("Failed to save project: {}", e);
-    //         }
-    //     }
-    // }
-
-    
+        
+        
+        
     // Save the parsed projects to a file at the end of the setup.
+    println!("projects: {:?}", projects);   
+    // println!("save_timedata_to_txt: {:?}", segments);   
     for project in &projects {
         if let Some(valid_project) = project {
             if let Err(e) = valid_project.save_timedata_to_txt() {
@@ -7707,13 +7704,42 @@ fn timedata_parse_setup_string(time_section_string: &str, endpoint_output_mode: 
             } 
         }
     }
+    
+    // if segments.len() > 1 {
+    //     for segment in segments.iter().skip(1) {
+    //         println!("Processing segment: {}", segment);
+    //         let project = handle_timedata_segment(&game_name, endpoint_output_mode, segment);
+    //         match &project {
+    //             Some(p) => println!("Segment processed successfully: {}", p),
+    //             None => println!("Failed to process segment or no relevant data found."),
+    //         }
+    //         projects.push(project);
+    //     }
+    // }
+
+    // // Iterate over projects and attempt to save them
+    // for project in &projects {
+    //     if let Some(valid_project) = project {
+    //         match valid_project.save_timedata_to_txt() {
+    //             Ok(_) => println!("Project data saved successfully."),
+    //             Err(e) => println!("Failed to save project data: {}", e),
+    //         }
+    //     }
+    // }
+    
+    
+    println!("finis");
+        
         
     projects
 }
 
 
 // Helper function to encapsulate the logic for creating TimedProject based on the segment keyword
-fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment: &str) -> Option<TimedProject> {
+fn handle_timedata_segment(game_name: &str, segment: &str) -> Option<TimedProject> {
+    
+    println!("\n\n=======handle_timedata_segment()=========");
+    
     
     println!("handle_timedata_segment() segment: {}", segment);
     let keyword: Vec<&str> = segment.split('-').collect();
@@ -7722,14 +7748,14 @@ fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment:
     if keyword[0] == "incrimentseconds" {
         println!("handle_timedata_segment() incrimentseconds => {}", keyword[0]);
         println!("handle_timedata_segment() segment => {}", segment);
-        return TimedProject::from_increment_and_time_control(&game_name, &endpoint_output_mode, segment);
+        return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
     // Step 2.2: Handle time control minutes
     if keyword[0] == "timecontrolmin" {
         println!("handle_timedata_segment() timecontrolmin => {}", keyword[0]);
         println!("handle_timedata_segment() segment => {}", segment);
-        return TimedProject::from_increment_and_time_control(&game_name, &endpoint_output_mode, segment);
+        return TimedProject::from_increment_and_time_control(&game_name, segment);
     }
 
     // Step 2.3: Handle pre-set time modes
@@ -7744,7 +7770,7 @@ fn handle_timedata_segment(game_name: &str, endpoint_output_mode: &str, segment:
     {
         println!("handle_timedata_segment() pre-set time mode => {}", keyword[0]);
         println!("handle_timedata_segment()segment => {}", segment);
-        return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name, &endpoint_output_mode);
+        return TimedProject::from_preset_time_modes_chess(keyword[0], &game_name);
     }
 
     None
