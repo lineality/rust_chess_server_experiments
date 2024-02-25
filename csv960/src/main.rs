@@ -56,7 +56,16 @@ fn lookup_960(row_index: usize) {
 }
 
 fn main() {
+
     let row_index = 1; // Assuming you want the first position after the header
     lookup_960(row_index); // This function does not return a value but prints the result
+
+    let row_index = 2; // Assuming you want the first position after the header
+    lookup_960(row_index); // This function does not return a value but prints the result
+
+    let row_index = 3; // Assuming you want the first position after the header
+    lookup_960(row_index); // This function does not return a value but prints the result
+
+
 }
 
